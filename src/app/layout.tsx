@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Travel Log",
-  description: "Record trips, locations, photos, and expenses.",
+  description: "Record trips, locations, and photos.",
 };
 
 export default function RootLayout({

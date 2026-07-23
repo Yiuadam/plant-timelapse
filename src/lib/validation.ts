@@ -22,11 +22,3 @@ export const locationSchema = z.object({
   visitedAt: z.string().optional().or(z.literal("")),
   visited: z.boolean().optional(),
 });
-
-export const expenseSchema = z.object({
-  category: z.string().trim().min(1, "Category is required").max(100),
-  amount: z.coerce.number().positive("Amount must be positive"),
-  currency: z.string().trim().min(1).max(10).default("USD"),
-  note: z.string().max(500).optional().or(z.literal("")),
-  spentAt: z.string().optional().or(z.literal("")),
-});
