@@ -86,6 +86,7 @@ model Location {
   notes     String?
   lat       Float
   lng       Float
+  visited   Boolean   @default(true)
   visitedAt DateTime?
   createdAt DateTime  @default(now())
 

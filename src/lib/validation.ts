@@ -20,6 +20,7 @@ export const locationSchema = z.object({
   lat: z.coerce.number().min(-90).max(90),
   lng: z.coerce.number().min(-180).max(180),
   visitedAt: z.string().optional().or(z.literal("")),
+  visited: z.boolean().optional(),
 });
 
 export const expenseSchema = z.object({

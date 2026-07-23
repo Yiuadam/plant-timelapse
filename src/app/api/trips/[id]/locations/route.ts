@@ -27,7 +27,7 @@ export async function POST(
     );
   }
 
-  const { name, notes, lat, lng, visitedAt } = parsed.data;
+  const { name, notes, lat, lng, visitedAt, visited } = parsed.data;
 
   const location = await prisma.location.create({
     data: {
@@ -36,6 +36,7 @@ export async function POST(
       notes: notes || null,
       lat,
       lng,
+      visited,
       visitedAt: visitedAt ? new Date(visitedAt) : null,
     },
   });
