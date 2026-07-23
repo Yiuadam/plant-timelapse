@@ -16,13 +16,13 @@ export default async function Home() {
       <div className="flex gap-4">
         <Link
           href="/register"
-          className="rounded bg-foreground px-5 py-2.5 text-background"
+          className="rounded-xl bg-foreground px-5 py-2.5 text-background"
         >
           Get started
         </Link>
         <Link
           href="/login"
-          className="rounded border border-black/10 px-5 py-2.5 dark:border-white/20"
+          className="rounded-xl border border-black/10 px-5 py-2.5 dark:border-white/20"
         >
           Log in
         </Link>

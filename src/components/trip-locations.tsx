@@ -65,7 +65,7 @@ export default function TripLocations({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="h-80 w-full overflow-hidden rounded border border-black/10 dark:border-white/20">
+      <div className="h-80 w-full overflow-hidden rounded-2xl border border-black/10 dark:border-white/20">
         <TripMap
           locations={locations}
           pendingMarker={pending}
@@ -76,20 +76,20 @@ export default function TripLocations({
       {pending ? (
         <form
           onSubmit={handleAdd}
-          className="flex flex-col gap-3 rounded border border-black/10 p-4 dark:border-white/20"
+          className="flex flex-col gap-3 rounded-xl border border-black/10 p-4 dark:border-white/20"
         >
           <p className="text-sm text-black/60 dark:text-white/60">
             Pinned at {pending.lat.toFixed(4)}, {pending.lng.toFixed(4)}
           </p>
           <input
-            className="rounded border border-black/10 px-3 py-2 text-sm dark:border-white/20"
+            className="rounded-xl border border-black/10 px-3 py-2 text-sm dark:border-white/20"
             placeholder="Place name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
           />
           <input
-            className="rounded border border-black/10 px-3 py-2 text-sm dark:border-white/20"
+            className="rounded-xl border border-black/10 px-3 py-2 text-sm dark:border-white/20"
             placeholder="Notes (optional)"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -99,14 +99,14 @@ export default function TripLocations({
             <button
               type="submit"
               disabled={loading}
-              className="rounded bg-foreground px-3 py-1.5 text-sm text-background disabled:opacity-50"
+              className="rounded-xl bg-foreground px-3 py-1.5 text-sm text-background disabled:opacity-50"
             >
               {loading ? "Saving..." : "Add location"}
             </button>
             <button
               type="button"
               onClick={() => setPending(null)}
-              className="rounded border border-black/10 px-3 py-1.5 text-sm dark:border-white/20"
+              className="rounded-xl border border-black/10 px-3 py-1.5 text-sm dark:border-white/20"
             >
               Cancel
             </button>
@@ -123,7 +123,7 @@ export default function TripLocations({
           {locations.map((loc) => (
             <li
               key={loc.id}
-              className="flex items-center justify-between rounded border border-black/10 px-3 py-2 text-sm dark:border-white/20"
+              className="flex items-center justify-between rounded-xl border border-black/10 px-3 py-2 text-sm dark:border-white/20"
             >
               <div>
                 <div className="font-medium">{loc.name}</div>

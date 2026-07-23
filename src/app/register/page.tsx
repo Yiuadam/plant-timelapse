@@ -56,7 +56,7 @@ export default function RegisterPage() {
         <label className="flex flex-col gap-1 text-sm">
           Name
           <input
-            className="rounded border border-black/10 px-3 py-2 dark:border-white/20"
+            className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
@@ -66,7 +66,7 @@ export default function RegisterPage() {
           Email
           <input
             type="email"
-            className="rounded border border-black/10 px-3 py-2 dark:border-white/20"
+            className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -76,7 +76,7 @@ export default function RegisterPage() {
           Password
           <input
             type="password"
-            className="rounded border border-black/10 px-3 py-2 dark:border-white/20"
+            className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             minLength={8}
@@ -87,7 +87,7 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={loading}
-          className="rounded bg-foreground px-4 py-2 text-background disabled:opacity-50"
+          className="rounded-xl bg-foreground px-4 py-2 text-background disabled:opacity-50"
         >
           {loading ? "Creating..." : "Create account"}
         </button>
