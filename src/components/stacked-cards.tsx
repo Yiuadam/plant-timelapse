@@ -12,6 +12,18 @@ const CARD_HEIGHT = 520;
 const PEEK = 8; // % of container width visible as a peek on each side
 const FRONT_WIDTH = 100 - 2 * PEEK;
 const SWIPE_THRESHOLD_RATIO = 0.18;
+const SIDE_ROTATE_DEG = 32; // 3D tilt applied to the peeking side cards
+const SIDE_SCALE = 0.88;
+
+// Low-saturation glass tints per card, keyed by card.key.
+const GLASS_TINT: Record<string, string> = {
+  places: "from-sky-200/50 to-sky-100/10 dark:from-sky-400/20 dark:to-sky-300/5",
+  photos:
+    "from-fuchsia-200/50 to-fuchsia-100/10 dark:from-fuchsia-400/20 dark:to-fuchsia-300/5",
+  expenses:
+    "from-emerald-200/50 to-emerald-100/10 dark:from-emerald-400/20 dark:to-emerald-300/5",
+};
+const DEFAULT_GLASS_TINT = "from-white/40 to-white/10 dark:from-white/10 dark:to-white/5";
 
 function shortestOffset(index: number, activeIndex: number, total: number) {
   let diff = (index - activeIndex + total) % total;
@@ -88,7 +100,7 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
     <div
       ref={containerRef}
       className="relative touch-pan-y select-none overflow-hidden"
-      style={{ height: CARD_HEIGHT }}
+      style={{ height: CARD_HEIGHT, perspective: 1400 }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -106,6 +118,16 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
 
         const dragPx = isDragging ? dragX : 0;
 
+        let transform = `translateX(${dragPx}px)`;
+        let transformOrigin = "center center";
+        if (offset < 0) {
+          transform += ` rotateY(${-SIDE_ROTATE_DEG}deg) scale(${SIDE_SCALE})`;
+          transformOrigin = "right center";
+        } else if (offset > 0) {
+          transform += ` rotateY(${SIDE_ROTATE_DEG}deg) scale(${SIDE_SCALE})`;
+          transformOrigin = "left center";
+        }
+
         return (
           <div
             key={card.key}
@@ -119,14 +141,23 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
                 go(offset);
               }
             }}
-            className={`absolute inset-y-0 flex flex-col overflow-hidden rounded-2xl border border-black/10 bg-background dark:border-white/10 ${
-              isFront ? "shadow-2xl" : "cursor-pointer shadow-md"
-            } ${isVisible ? "" : "invisible"}`}
+            className={`absolute inset-y-0 flex flex-col overflow-hidden rounded-2xl border border-white/50 bg-gradient-to-br dark:border-white/15 ${
+              GLASS_TINT[card.key] ?? DEFAULT_GLASS_TINT
+            } ${isFront ? "shadow-2xl" : "cursor-pointer shadow-md"} ${
+              isVisible ? "" : "invisible"
+            }`}
             style={{
               left: `${leftPercent}%`,
               width: `${FRONT_WIDTH}%`,
               zIndex: isFront ? 10 : 5,
-              transform: `translateX(${dragPx}px)`,
+              transform,
+              transformOrigin,
+              transformStyle: "preserve-3d",
+              // Skip the blur while actively dragging: recomputing a
+              // backdrop blur every frame during the gesture is the most
+              // expensive case, so drop it until motion settles.
+              backdropFilter: isDragging ? undefined : "blur(12px)",
+              WebkitBackdropFilter: isDragging ? undefined : "blur(12px)",
               transition: isDragging
                 ? "none"
                 : "left 300ms ease-out, transform 300ms ease-out, box-shadow 300ms ease-out",
@@ -135,7 +166,7 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
             <div
               className={`flex h-12 shrink-0 items-center justify-between border-b px-5 font-medium ${
                 isFront
-                  ? "border-black/10 dark:border-white/10"
+                  ? "border-white/40 dark:border-white/10"
                   : "border-transparent"
               }`}
             >
