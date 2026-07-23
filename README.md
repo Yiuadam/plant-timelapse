@@ -29,6 +29,7 @@ See `.env.example`:
 - `AUTH_SECRET` — random secret used by Auth.js to sign sessions (`openssl rand -base64 32`)
 - `ANTHROPIC_API_KEY` — optional; enables the "Recognize photo" feature. Without it, that button returns a clear "not configured" message instead of failing.
 - `BLOB_READ_WRITE_TOKEN` — Vercel Blob token for photo uploads
+- `GROQ_API_KEY` — optional; enables the AI assistant chat widget via Groq's free API. Without it, the widget returns a clear "not configured" message instead of failing.
 
 ## Tech stack
 
