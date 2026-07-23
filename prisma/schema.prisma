@@ -76,7 +76,6 @@ model Trip {
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   locations Location[]
   photos    Photo[]
-  expenses  Expense[]
 }
 
 model Location {
@@ -106,17 +105,4 @@ model Photo {
 
   trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
   location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
-}
-
-model Expense {
-  id        String   @id @default(cuid())
-  tripId    String
-  category  String
-  amount    Float
-  currency  String   @default("USD")
-  note      String?
-  spentAt   DateTime @default(now())
-  createdAt DateTime @default(now())
-
-  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 }

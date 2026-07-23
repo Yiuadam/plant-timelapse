@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type StackCardDef = {
   key: string;
@@ -14,6 +14,11 @@ const FRONT_WIDTH = 100 - 2 * PEEK;
 const SWIPE_THRESHOLD_RATIO = 0.18;
 const SIDE_ROTATE_DEG = 32; // 3D tilt applied to the peeking side cards
 const SIDE_SCALE = 0.88;
+const MAX_DRAG_PROGRESS = 1.3; // clamps drag-follow so it can never run away/twitch
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
 
 // Low-saturation glass tints per card, keyed by card.key.
 const GLASS_TINT: Record<string, string> = {
@@ -22,8 +27,6 @@ const GLASS_TINT: Record<string, string> = {
     "from-amber-200/50 to-amber-100/10 dark:from-amber-400/20 dark:to-amber-300/5",
   photos:
     "from-fuchsia-200/50 to-fuchsia-100/10 dark:from-fuchsia-400/20 dark:to-fuchsia-300/5",
-  expenses:
-    "from-emerald-200/50 to-emerald-100/10 dark:from-emerald-400/20 dark:to-emerald-300/5",
 };
 const DEFAULT_GLASS_TINT = "from-white/40 to-white/10 dark:from-white/10 dark:to-white/5";
 
@@ -45,6 +48,17 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
   } | null>(null);
   const justDraggedRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => setContainerWidth(el.offsetWidth);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   function go(delta: number) {
     setActiveIndex((i) => (i + delta + total) % total);
@@ -108,29 +122,41 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
     >
-      {cards.map((card, index) => {
-        const offset = shortestOffset(index, activeIndex, total);
-        const isFront = offset === 0;
-        const isVisible = Math.abs(offset) <= 1;
+      {(() => {
+        const width = containerWidth || 1;
+        const rawProgress = isDragging ? dragX / width : 0;
+        const clampedProgress = clamp(
+          rawProgress,
+          -MAX_DRAG_PROGRESS,
+          MAX_DRAG_PROGRESS,
+        );
+        // Uniform pixel shift applied to every card while dragging, so the
+        // whole stack visually slides together (pure transform, no layout
+        // thrashing from animating `left`).
+        const deltaPx = clampedProgress * (FRONT_WIDTH / 100) * width;
 
-        let leftPercent: number;
-        if (offset === 0) leftPercent = PEEK;
-        else if (offset < 0) leftPercent = PEEK - FRONT_WIDTH;
-        else leftPercent = 100 - PEEK;
+        return cards.map((card, index) => {
+          const offset = shortestOffset(index, activeIndex, total);
+          const isFront = offset === 0;
+          const isVisible = Math.abs(offset) <= 1;
 
-        const dragPx = isDragging ? dragX : 0;
+          let leftPercent: number;
+          if (offset === 0) leftPercent = PEEK;
+          else if (offset < 0) leftPercent = PEEK - FRONT_WIDTH;
+          else leftPercent = 100 - PEEK;
 
-        let transform = `translateX(${dragPx}px)`;
-        let transformOrigin = "center center";
-        if (offset < 0) {
-          transform += ` rotateY(${-SIDE_ROTATE_DEG}deg) scale(${SIDE_SCALE})`;
-          transformOrigin = "right center";
-        } else if (offset > 0) {
-          transform += ` rotateY(${SIDE_ROTATE_DEG}deg) scale(${SIDE_SCALE})`;
-          transformOrigin = "left center";
-        }
+          // Virtual offset: continuously interpolates this card's
+          // rotation/scale toward the neighboring slot as the drag
+          // progresses, instead of snapping between two fixed states.
+          const v = offset + clampedProgress;
+          const vSat = clamp(v, -1, 1);
+          const rotateDeg = vSat * SIDE_ROTATE_DEG;
+          const scale = 1 - Math.abs(vSat) * (1 - SIDE_SCALE);
+          const transformOrigin =
+            v < -1e-6 ? "right center" : v > 1e-6 ? "left center" : "center center";
+          const transform = `translateX(${deltaPx}px) rotateY(${rotateDeg}deg) scale(${scale})`;
 
-        return (
+          return (
           <div
             key={card.key}
             role={isFront ? undefined : "button"}
@@ -187,8 +213,9 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
               {card.content}
             </div>
           </div>
-        );
-      })}
+          );
+        });
+      })()}
     </div>
   );
 }

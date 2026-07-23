@@ -4,7 +4,6 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import TripLocations from "@/components/trip-locations";
 import TripPhotos from "@/components/trip-photos";
-import TripExpenses from "@/components/trip-expenses";
 import TripWishlist from "@/components/trip-wishlist";
 import DeleteTripButton from "@/components/delete-trip-button";
 import StackedCards from "@/components/stacked-cards";
@@ -23,7 +22,6 @@ export default async function TripDetailPage({
     include: {
       locations: { orderBy: { createdAt: "asc" } },
       photos: { orderBy: { createdAt: "desc" } },
-      expenses: { orderBy: { spentAt: "desc" } },
     },
   });
 
@@ -77,13 +75,6 @@ export default async function TripDetailPage({
             key: "photos",
             title: "Photos",
             content: <TripPhotos tripId={trip.id} photos={trip.photos} />,
-          },
-          {
-            key: "expenses",
-            title: "Expenses",
-            content: (
-              <TripExpenses tripId={trip.id} expenses={trip.expenses} />
-            ),
           },
         ]}
       />
