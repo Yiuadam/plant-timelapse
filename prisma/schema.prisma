@@ -1,0 +1,121 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  passwordHash  String
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+
+  accounts Account[]
+  sessions Session[]
+  trips    Trip[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Trip {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  destination String?
+  startDate   DateTime?
+  endDate     DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locations Location[]
+  photos    Photo[]
+  expenses  Expense[]
+}
+
+model Location {
+  id        String    @id @default(cuid())
+  tripId    String
+  name      String
+  notes     String?
+  lat       Float
+  lng       Float
+  visitedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  trip   Trip    @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  photos Photo[]
+}
+
+model Photo {
+  id           String    @id @default(cuid())
+  tripId       String
+  locationId   String?
+  filePath     String
+  caption      String?
+  recognizedAt DateTime?
+  recognition  String?
+  createdAt    DateTime  @default(now())
+
+  trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+}
+
+model Expense {
+  id        String   @id @default(cuid())
+  tripId    String
+  category  String
+  amount    Float
+  currency  String   @default("USD")
+  note      String?
+  spentAt   DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
