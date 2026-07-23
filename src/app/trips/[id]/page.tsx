@@ -5,6 +5,7 @@ import TripLocations from "@/components/trip-locations";
 import TripPhotos from "@/components/trip-photos";
 import TripExpenses from "@/components/trip-expenses";
 import DeleteTripButton from "@/components/delete-trip-button";
+import StackedCards from "@/components/stacked-cards";
 
 export default async function TripDetailPage({
   params,
@@ -46,20 +47,29 @@ export default async function TripDetailPage({
         <p className="mb-8 whitespace-pre-wrap text-sm">{trip.notes}</p>
       )}
 
-      <section className="mb-10">
-        <h2 className="mb-3 text-lg font-medium">Places</h2>
-        <TripLocations tripId={trip.id} locations={trip.locations} />
-      </section>
-
-      <section className="mb-10">
-        <h2 className="mb-3 text-lg font-medium">Photos</h2>
-        <TripPhotos tripId={trip.id} photos={trip.photos} />
-      </section>
-
-      <section>
-        <h2 className="mb-3 text-lg font-medium">Expenses</h2>
-        <TripExpenses tripId={trip.id} expenses={trip.expenses} />
-      </section>
+      <StackedCards
+        cards={[
+          {
+            key: "places",
+            title: "Places",
+            content: (
+              <TripLocations tripId={trip.id} locations={trip.locations} />
+            ),
+          },
+          {
+            key: "photos",
+            title: "Photos",
+            content: <TripPhotos tripId={trip.id} photos={trip.photos} />,
+          },
+          {
+            key: "expenses",
+            title: "Expenses",
+            content: (
+              <TripExpenses tripId={trip.id} expenses={trip.expenses} />
+            ),
+          },
+        ]}
+      />
     </div>
   );
 }
