@@ -22,6 +22,12 @@ export default function NavBar() {
             >
               Trips
             </Link>
+            <Link
+              href="/timeline"
+              className={pathname.startsWith("/timeline") ? "underline" : ""}
+            >
+              Timeline
+            </Link>
             <span className="text-black/50 dark:text-white/50">
               {session.user?.name ?? session.user?.email}
             </span>
