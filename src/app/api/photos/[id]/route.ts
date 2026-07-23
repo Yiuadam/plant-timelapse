@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { unlink } from "fs/promises";
-import path from "path";
+import { del } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 
@@ -24,8 +23,7 @@ export async function DELETE(
 
   await prisma.photo.delete({ where: { id } });
 
-  const absolutePath = path.join(process.cwd(), "public", photo.filePath);
-  await unlink(absolutePath).catch(() => {});
+  await del(photo.filePath).catch(() => {});
 
   return NextResponse.json({ ok: true });
 }

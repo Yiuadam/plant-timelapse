@@ -8,7 +8,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -80,28 +80,28 @@ model Trip {
 }
 
 model Location {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   tripId    String
   name      String
   notes     String?
   lat       Float
   lng       Float
   visitedAt DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   trip   Trip    @relation(fields: [tripId], references: [id], onDelete: Cascade)
   photos Photo[]
 }
 
 model Photo {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   tripId       String
   locationId   String?
   filePath     String
   caption      String?
   recognizedAt DateTime?
   recognition  String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
 
   trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
   location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)

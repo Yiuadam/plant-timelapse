@@ -1,6 +1,5 @@
 import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
+import { put } from "@vercel/blob";
 
 const ALLOWED_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -25,12 +24,9 @@ export async function saveUploadedPhoto(
     throw new UploadError("Image must be smaller than 10MB");
   }
 
-  const dir = path.join(process.cwd(), "public", "uploads", tripId);
-  await mkdir(dir, { recursive: true });
+  const blob = await put(`uploads/${tripId}/${randomUUID()}.${ext}`, file, {
+    access: "public",
+  });
 
-  const filename = `${randomUUID()}.${ext}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(dir, filename), buffer);
-
-  return `/uploads/${tripId}/${filename}`;
+  return blob.url;
 }

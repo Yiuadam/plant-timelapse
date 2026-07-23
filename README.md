@@ -1,6 +1,6 @@
 # Travel Log
 
-A travel journal app: record trips, pin the places you visit on a map, attach photos, and track expenses. Built with Next.js, Prisma/SQLite, and Auth.js. Photos can optionally be auto-described via the Claude Vision API.
+A travel journal app: record trips, pin the places you visit on a map, attach photos, and track expenses. Built with Next.js, Prisma/Postgres, Auth.js, and Vercel Blob for photo storage. Photos can optionally be auto-described via the Claude Vision API.
 
 ## Features
 
@@ -25,17 +25,19 @@ Open [http://localhost:3000](http://localhost:3000).
 
 See `.env.example`:
 
-- `DATABASE_URL` — SQLite file path (defaults to `file:./dev.db`)
+- `DATABASE_URL` — Postgres connection string
 - `AUTH_SECRET` — random secret used by Auth.js to sign sessions (`openssl rand -base64 32`)
 - `ANTHROPIC_API_KEY` — optional; enables the "Recognize photo" feature. Without it, that button returns a clear "not configured" message instead of failing.
+- `BLOB_READ_WRITE_TOKEN` — Vercel Blob token for photo uploads
 
 ## Tech stack
 
 - [Next.js](https://nextjs.org) (App Router) + TypeScript
-- [Prisma](https://www.prisma.io) + SQLite
+- [Prisma](https://www.prisma.io) + PostgreSQL
 - [Auth.js](https://authjs.dev) (NextAuth) with the Credentials provider
 - [Leaflet](https://leafletjs.com) / react-leaflet for maps (OpenStreetMap tiles)
 - [Anthropic SDK](https://github.com/anthropics/anthropic-sdk-typescript) for photo recognition
+- [Vercel Blob](https://vercel.com/docs/storage/vercel-blob) for photo storage
 
 ## Project structure
 
@@ -44,7 +46,6 @@ See `.env.example`:
 - `src/lib` — Prisma client, validation schemas, upload/auth helpers
 - `prisma/schema.prisma` — data model (User, Trip, Location, Photo, Expense)
 
-## Notes
+## Deploying
 
-- Uploaded photos are stored on local disk under `public/uploads/<tripId>/`. For a multi-instance or serverless deployment, swap this for object storage (e.g. S3).
-- SQLite is used for simplicity; swap the Prisma datasource for Postgres/MySQL if you need concurrent multi-instance writes.
+This app is set up to deploy to Vercel: link the project, add a Postgres database and a Blob store (via the Vercel dashboard or `vercel storage`/`vercel env pull`), then run `npx prisma migrate deploy` against the production database before or during the build.

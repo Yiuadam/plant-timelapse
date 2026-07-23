@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { readFile } from "fs/promises";
 import path from "path";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
@@ -44,8 +43,11 @@ export async function POST(
     return NextResponse.json({ error: "Unsupported image type" }, { status: 400 });
   }
 
-  const absolutePath = path.join(process.cwd(), "public", photo.filePath);
-  const buffer = await readFile(absolutePath);
+  const imageResponse = await fetch(photo.filePath);
+  if (!imageResponse.ok) {
+    return NextResponse.json({ error: "Could not fetch image" }, { status: 502 });
+  }
+  const buffer = Buffer.from(await imageResponse.arrayBuffer());
   const base64 = buffer.toString("base64");
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
