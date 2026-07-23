@@ -18,6 +18,8 @@ const SIDE_SCALE = 0.88;
 // Low-saturation glass tints per card, keyed by card.key.
 const GLASS_TINT: Record<string, string> = {
   places: "from-sky-200/50 to-sky-100/10 dark:from-sky-400/20 dark:to-sky-300/5",
+  wishlist:
+    "from-amber-200/50 to-amber-100/10 dark:from-amber-400/20 dark:to-amber-300/5",
   photos:
     "from-fuchsia-200/50 to-fuchsia-100/10 dark:from-fuchsia-400/20 dark:to-fuchsia-300/5",
   expenses:

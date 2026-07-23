@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import TripLocations from "@/components/trip-locations";
 import TripPhotos from "@/components/trip-photos";
 import TripExpenses from "@/components/trip-expenses";
+import TripWishlist from "@/components/trip-wishlist";
 import DeleteTripButton from "@/components/delete-trip-button";
 import StackedCards from "@/components/stacked-cards";
 
@@ -27,6 +29,9 @@ export default async function TripDetailPage({
 
   if (!trip || trip.userId !== session.user.id) notFound();
 
+  const visitedLocations = trip.locations.filter((loc) => loc.visited);
+  const wishlistLocations = trip.locations.filter((loc) => !loc.visited);
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <div className="mb-6 flex items-start justify-between">
@@ -40,7 +45,12 @@ export default async function TripDetailPage({
               }`}
           </p>
         </div>
-        <DeleteTripButton tripId={trip.id} />
+        <div className="flex items-center gap-4">
+          <Link href={`/trips/${trip.id}/edit`} className="text-sm underline">
+            Edit
+          </Link>
+          <DeleteTripButton tripId={trip.id} />
+        </div>
       </div>
 
       {trip.notes && (
@@ -53,7 +63,14 @@ export default async function TripDetailPage({
             key: "places",
             title: "Places",
             content: (
-              <TripLocations tripId={trip.id} locations={trip.locations} />
+              <TripLocations tripId={trip.id} locations={visitedLocations} />
+            ),
+          },
+          {
+            key: "wishlist",
+            title: "Wishlist",
+            content: (
+              <TripWishlist tripId={trip.id} locations={wishlistLocations} />
             ),
           },
           {
