@@ -81,7 +81,7 @@ export default function TripExpenses({
 
       <form onSubmit={handleSubmit} className="flex flex-wrap gap-2">
         <input
-          className="w-32 rounded border border-black/10 px-3 py-1.5 text-sm dark:border-white/20"
+          className="w-32 rounded-xl border border-black/10 px-3 py-1.5 text-sm dark:border-white/20"
           placeholder="Category"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
@@ -91,21 +91,21 @@ export default function TripExpenses({
           type="number"
           step="0.01"
           min="0"
-          className="w-28 rounded border border-black/10 px-3 py-1.5 text-sm dark:border-white/20"
+          className="w-28 rounded-xl border border-black/10 px-3 py-1.5 text-sm dark:border-white/20"
           placeholder="Amount"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           required
         />
         <input
-          className="w-20 rounded border border-black/10 px-3 py-1.5 text-sm dark:border-white/20"
+          className="w-20 rounded-xl border border-black/10 px-3 py-1.5 text-sm dark:border-white/20"
           placeholder="USD"
           value={currency}
           onChange={(e) => setCurrency(e.target.value.toUpperCase())}
           maxLength={10}
         />
         <input
-          className="flex-1 min-w-32 rounded border border-black/10 px-3 py-1.5 text-sm dark:border-white/20"
+          className="flex-1 min-w-32 rounded-xl border border-black/10 px-3 py-1.5 text-sm dark:border-white/20"
           placeholder="Note (optional)"
           value={note}
           onChange={(e) => setNote(e.target.value)}
@@ -113,7 +113,7 @@ export default function TripExpenses({
         <button
           type="submit"
           disabled={loading}
-          className="rounded bg-foreground px-3 py-1.5 text-sm text-background disabled:opacity-50"
+          className="rounded-xl bg-foreground px-3 py-1.5 text-sm text-background disabled:opacity-50"
         >
           {loading ? "Adding..." : "Add"}
         </button>
@@ -129,7 +129,7 @@ export default function TripExpenses({
           {expenses.map((expense) => (
             <li
               key={expense.id}
-              className="flex items-center justify-between rounded border border-black/10 px-3 py-2 text-sm dark:border-white/20"
+              className="flex items-center justify-between rounded-xl border border-black/10 px-3 py-2 text-sm dark:border-white/20"
             >
               <div>
                 <span className="font-medium">{expense.category}</span>{" "}

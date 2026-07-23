@@ -44,7 +44,7 @@ export default function LoginPage() {
           Email
           <input
             type="email"
-            className="rounded border border-black/10 px-3 py-2 dark:border-white/20"
+            className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -54,7 +54,7 @@ export default function LoginPage() {
           Password
           <input
             type="password"
-            className="rounded border border-black/10 px-3 py-2 dark:border-white/20"
+            className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -64,7 +64,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="rounded bg-foreground px-4 py-2 text-background disabled:opacity-50"
+          className="rounded-xl bg-foreground px-4 py-2 text-background disabled:opacity-50"
         >
           {loading ? "Logging in..." : "Log in"}
         </button>

@@ -46,7 +46,7 @@ export default function NewTripPage() {
         <label className="flex flex-col gap-1 text-sm">
           Title
           <input
-            className="rounded border border-black/10 px-3 py-2 dark:border-white/20"
+            className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
@@ -55,7 +55,7 @@ export default function NewTripPage() {
         <label className="flex flex-col gap-1 text-sm">
           Destination
           <input
-            className="rounded border border-black/10 px-3 py-2 dark:border-white/20"
+            className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
             value={destination}
             onChange={(e) => setDestination(e.target.value)}
           />
@@ -65,7 +65,7 @@ export default function NewTripPage() {
             Start date
             <input
               type="date"
-              className="rounded border border-black/10 px-3 py-2 dark:border-white/20"
+              className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
             />
@@ -74,7 +74,7 @@ export default function NewTripPage() {
             End date
             <input
               type="date"
-              className="rounded border border-black/10 px-3 py-2 dark:border-white/20"
+              className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
             />
@@ -83,7 +83,7 @@ export default function NewTripPage() {
         <label className="flex flex-col gap-1 text-sm">
           Notes
           <textarea
-            className="rounded border border-black/10 px-3 py-2 dark:border-white/20"
+            className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
             rows={4}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -93,7 +93,7 @@ export default function NewTripPage() {
         <button
           type="submit"
           disabled={loading}
-          className="rounded bg-foreground px-4 py-2 text-background disabled:opacity-50"
+          className="rounded-xl bg-foreground px-4 py-2 text-background disabled:opacity-50"
         >
           {loading ? "Creating..." : "Create trip"}
         </button>

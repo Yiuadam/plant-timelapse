@@ -18,7 +18,7 @@ export default async function TripsPage() {
         <h1 className="text-2xl font-semibold">Your trips</h1>
         <Link
           href="/trips/new"
-          className="rounded bg-foreground px-4 py-2 text-sm text-background"
+          className="rounded-xl bg-foreground px-4 py-2 text-sm text-background"
         >
           New trip
         </Link>
@@ -38,7 +38,7 @@ export default async function TripsPage() {
             <li key={trip.id}>
               <Link
                 href={`/trips/${trip.id}`}
-                className="block rounded border border-black/10 px-4 py-3 hover:bg-black/[.03] dark:border-white/20 dark:hover:bg-white/[.05]"
+                className="block rounded-xl border border-black/10 px-4 py-3 hover:bg-black/[.03] dark:border-white/20 dark:hover:bg-white/[.05]"
               >
                 <div className="font-medium">{trip.title}</div>
                 <div className="text-sm text-black/60 dark:text-white/60">

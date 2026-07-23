@@ -38,7 +38,12 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
 
   function handlePointerDown(e: React.PointerEvent) {
     const target = e.target as HTMLElement;
-    if (target.closest("input, textarea, select, button, a, label")) return;
+    if (
+      target.closest(
+        "input, textarea, select, button, a, label, .leaflet-container",
+      )
+    )
+      return;
     dragState.current = { pointerId: e.pointerId, startX: e.clientX, dragging: false };
   }
 

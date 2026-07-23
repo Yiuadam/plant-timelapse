@@ -79,7 +79,7 @@ export default function TripPhotos({
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <label className="inline-block cursor-pointer rounded border border-black/10 px-3 py-1.5 text-sm dark:border-white/20">
+        <label className="inline-block cursor-pointer rounded-xl border border-black/10 px-3 py-1.5 text-sm dark:border-white/20">
           {uploading ? "Uploading..." : "Add photo"}
           <input
             ref={fileInput}
@@ -102,9 +102,9 @@ export default function TripPhotos({
           {photos.map((photo) => (
             <div
               key={photo.id}
-              className="flex flex-col gap-2 rounded border border-black/10 p-2 dark:border-white/20"
+              className="flex flex-col gap-2 rounded-xl border border-black/10 p-2 dark:border-white/20"
             >
-              <div className="relative aspect-square w-full overflow-hidden rounded">
+              <div className="relative aspect-square w-full overflow-hidden rounded-xl">
                 <Image
                   src={photo.filePath}
                   alt={photo.caption ?? "Trip photo"}
