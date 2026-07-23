@@ -30,6 +30,8 @@ See `.env.example`:
 - `ANTHROPIC_API_KEY` — optional; enables the "Recognize photo" feature. Without it, that button returns a clear "not configured" message instead of failing.
 - `BLOB_READ_WRITE_TOKEN` — Vercel Blob token for photo uploads
 - `GROQ_API_KEY` — optional; enables the AI assistant chat widget via Groq's free API. Without it, the widget returns a clear "not configured" message instead of failing.
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — optional; enables "Continue with Google" on login/register. The button only appears when both are set.
+- `APPLE_ID` / `APPLE_TEAM_ID` / `APPLE_KEY_ID` / `APPLE_PRIVATE_KEY` — optional; enables "Continue with Apple". Requires a paid Apple Developer Program membership. The button only appears when all four are set.
 
 ## Tech stack
 

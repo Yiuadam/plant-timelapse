@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
+import OAuthButtons from "@/components/oauth-buttons";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -92,6 +93,9 @@ export default function RegisterPage() {
           {loading ? "Creating..." : "Create account"}
         </button>
       </form>
+      <div className="mt-4">
+        <OAuthButtons />
+      </div>
       <p className="mt-4 text-sm">
         Already have an account?{" "}
         <Link href="/login" className="underline">
