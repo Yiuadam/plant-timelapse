@@ -6,12 +6,27 @@ export const registerSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
+export const TRIP_MOODS = [
+  { key: "amazing", emoji: "😍", label: "Amazing" },
+  { key: "relaxing", emoji: "😌", label: "Relaxing" },
+  { key: "adventurous", emoji: "🥾", label: "Adventurous" },
+  { key: "fun", emoji: "🥳", label: "Fun" },
+  { key: "romantic", emoji: "🥰", label: "Romantic" },
+  { key: "exhausting", emoji: "😴", label: "Exhausting" },
+  { key: "bittersweet", emoji: "🥲", label: "Bittersweet" },
+  { key: "unforgettable", emoji: "🌟", label: "Unforgettable" },
+] as const;
+
 export const tripSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(200),
   destination: z.string().trim().max(200).optional().or(z.literal("")),
   startDate: z.string().optional().or(z.literal("")),
   endDate: z.string().optional().or(z.literal("")),
   notes: z.string().max(5000).optional().or(z.literal("")),
+  mood: z
+    .enum(TRIP_MOODS.map((m) => m.key) as [string, ...string[]])
+    .optional()
+    .or(z.literal("")),
 });
 
 export const locationSchema = z.object({

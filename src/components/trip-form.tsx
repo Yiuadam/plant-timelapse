@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFieldLocks, useFieldEditing } from "@/hooks/use-field-lock";
+import { TRIP_MOODS } from "@/lib/validation";
 
 export type TripFormValues = {
   title: string;
@@ -10,6 +11,7 @@ export type TripFormValues = {
   startDate: string;
   endDate: string;
   notes: string;
+  mood: string;
 };
 
 const FIELD_RESOURCE_TYPE = "trip-field";
@@ -53,6 +55,7 @@ export default function TripForm({
   const [startDate, setStartDate] = useState(initialValues?.startDate ?? "");
   const [endDate, setEndDate] = useState(initialValues?.endDate ?? "");
   const [notes, setNotes] = useState(initialValues?.notes ?? "");
+  const [mood, setMood] = useState(initialValues?.mood ?? "");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -63,6 +66,7 @@ export default function TripForm({
   const startDateLock = useFieldEditing(FIELD_RESOURCE_TYPE, resourceId, "startDate");
   const endDateLock = useFieldEditing(FIELD_RESOURCE_TYPE, resourceId, "endDate");
   const notesLock = useFieldEditing(FIELD_RESOURCE_TYPE, resourceId, "notes");
+  const moodLock = useFieldEditing(FIELD_RESOURCE_TYPE, resourceId, "mood");
 
   function fieldClass(fieldKey: string) {
     return editors[fieldKey]
@@ -81,7 +85,7 @@ export default function TripForm({
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, destination, startDate, endDate, notes }),
+        body: JSON.stringify({ title, destination, startDate, endDate, notes, mood }),
       });
 
       if (!res.ok) {
@@ -147,6 +151,22 @@ export default function TripForm({
           </FieldLabel>
         </div>
       </div>
+      <FieldLabel label="Mood" editor={editors.mood}>
+        <select
+          className={fieldClass("mood")}
+          value={mood}
+          onChange={(e) => setMood(e.target.value)}
+          onFocus={moodLock.onFocus}
+          onBlur={moodLock.onBlur}
+        >
+          <option value="">No mood set</option>
+          {TRIP_MOODS.map((m) => (
+            <option key={m.key} value={m.key}>
+              {m.emoji} {m.label}
+            </option>
+          ))}
+        </select>
+      </FieldLabel>
       <FieldLabel label="Notes" editor={editors.notes}>
         <textarea
           className={fieldClass("notes")}

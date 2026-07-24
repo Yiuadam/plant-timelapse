@@ -11,6 +11,7 @@ import StackedCards from "@/components/stacked-cards";
 import TripShare from "@/components/trip-share";
 import LiveRefresh from "@/components/live-refresh";
 import { getAccessibleTrip } from "@/lib/trip-access";
+import { TRIP_MOODS } from "@/lib/validation";
 
 export default async function TripDetailPage({
   params,
@@ -37,13 +38,17 @@ export default async function TripDetailPage({
 
   const visitedLocations = trip.locations.filter((loc) => loc.visited);
   const wishlistLocations = trip.locations.filter((loc) => !loc.visited);
+  const tripMood = TRIP_MOODS.find((m) => m.key === trip.mood);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <LiveRefresh />
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">{trip.title}</h1>
+          <h1 className="text-2xl font-semibold">
+            {trip.title}
+            {tripMood && <span className="ml-2" aria-label={tripMood.label}>{tripMood.emoji}</span>}
+          </h1>
           <p className="text-sm text-black/60 dark:text-white/60">
             {trip.destination}
             {trip.startDate &&
@@ -64,6 +69,13 @@ export default async function TripDetailPage({
               image: c.user.image,
             }))}
           />
+          <Link
+            href={`/trips/${trip.id}/poster`}
+            prefetch={true}
+            className="text-sm underline"
+          >
+            Poster
+          </Link>
           <Link
             href={`/trips/${trip.id}/edit`}
             prefetch={true}
