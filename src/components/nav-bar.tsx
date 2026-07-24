@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import ThemeToggle from "@/components/theme-toggle";
+import FlavorPicker from "@/components/flavor-picker";
 
 export default function NavBar() {
   const { data: session, status } = useSession();
@@ -74,6 +75,7 @@ export default function NavBar() {
             <Link href="/register">Register</Link>
           </nav>
         )}
+        <FlavorPicker />
         <ThemeToggle />
       </div>
     </header>
