@@ -4,6 +4,10 @@ import { requireUserId } from "@/lib/require-user";
 import { canAccessTrip } from "@/lib/trip-access";
 import { TRAVEL_TYPES } from "@/lib/validation";
 
+// A vision call on a large/high-res image (common for ticket screenshots)
+// can take longer than the platform's default serverless timeout.
+export const maxDuration = 60;
+
 const ALLOWED_TYPES: Record<
   string,
   "image/jpeg" | "image/png" | "image/webp" | "image/gif"
@@ -16,7 +20,7 @@ const ALLOWED_TYPES: Record<
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 
-const EXTRACTION_PROMPT = `This image is a travel booking document — a flight boarding pass or e-ticket, a hotel confirmation, or a train ticket. Extract the booking details and respond with ONLY a single JSON object (no markdown fences, no extra text) matching exactly this shape:
+const EXTRACTION_PROMPT = `This image is a travel booking document — a flight boarding pass or e-ticket, a hotel confirmation, or a train ticket. It may be in any language, including Chinese (e.g. a 12306 电子客票/火车票 train ticket, a Chinese airline boarding pass, or a Chinese hotel confirmation) — read and translate/transliterate as needed, the document's language does not matter. Extract the booking details and respond with ONLY a single JSON object, nothing else — no markdown code fences, no explanation before or after — matching exactly this shape:
 
 {
   "type": "flight" | "hotel" | "train" | null,
@@ -29,22 +33,31 @@ const EXTRACTION_PROMPT = `This image is a travel booking document — a flight 
 }
 
 Field guidance:
-- "type": which kind of document this is.
-- "title": the airline name, hotel name, or train operator.
-- "detail": flight number / confirmation or booking code / room type — whichever is printed.
-- "location": for a flight or train, the route as "ORIGIN → DESTINATION" (use airport/station codes or city names as printed); for a hotel, its address if printed.
-- "startAt": departure time for a flight/train, or check-in time for a hotel, formatted EXACTLY as "YYYY-MM-DDTHH:mm" in 24-hour time, using the date/time as printed with no timezone conversion. If no year is printed, infer the nearest sensible upcoming year. Use null if genuinely unreadable.
+- "type": which kind of document this is. A Chinese train ticket (车次 like "G1234", 检票口/座位号) is "train".
+- "title": the airline name, hotel name, or train operator (e.g. "中国铁路" / "China Railway" is fine as printed, or translate to English — either is acceptable).
+- "detail": flight number / confirmation or booking code / room type / train number (车次) — whichever is printed.
+- "location": for a flight or train, the route as "ORIGIN → DESTINATION" using station/city names as printed (e.g. a Chinese ticket's 出发站 → 到达站, such as "北京南 → 上海虹桥"); for a hotel, its address if printed.
+- "startAt": departure time for a flight/train, or check-in time for a hotel, formatted EXACTLY as "YYYY-MM-DDTHH:mm" in 24-hour time (convert from any calendar/format printed, e.g. Chinese "2026年07月25日 14:30" becomes "2026-07-25T14:30"), using the date/time as printed with no timezone conversion. If no year is printed, infer the nearest sensible upcoming year. Use null only if genuinely unreadable.
 - "endAt": arrival time for a flight/train, or check-out time for a hotel, same format. Use null if not printed or not applicable.
-- "notes": anything else useful (seat number, gate, terminal) as a short string, or null.
+- "notes": anything else useful (seat number/座位号, gate, terminal, carriage/车厢) as a short string, or null.
 
-Use null for any field you cannot read with confidence — never guess. Respond with ONLY the JSON object.`;
+Use null for any field you truly cannot read — but make a best effort first, including translating or transliterating non-English text; do not return null just because the document isn't in English. Respond with ONLY the JSON object and nothing else.`;
 
 function parseExtractedJson(text: string) {
-  const cleaned = text
+  let cleaned = text
     .trim()
     .replace(/^```(?:json)?/i, "")
     .replace(/```$/, "")
     .trim();
+  // Claude occasionally wraps the JSON in a sentence or two despite being
+  // told not to (more likely on trickier/non-English documents) — fall
+  // back to the outermost {...} block so a little stray prose doesn't
+  // break parsing.
+  const first = cleaned.indexOf("{");
+  const last = cleaned.lastIndexOf("}");
+  if (first !== -1 && last !== -1 && last > first) {
+    cleaned = cleaned.slice(first, last + 1);
+  }
   try {
     return JSON.parse(cleaned);
   } catch {
@@ -100,7 +113,7 @@ export async function POST(
 
   const message = await anthropic.messages.create({
     model: "claude-sonnet-5",
-    max_tokens: 500,
+    max_tokens: 700,
     messages: [
       {
         role: "user",
@@ -120,6 +133,11 @@ export async function POST(
   const parsed = raw ? parseExtractedJson(raw) : null;
 
   if (!parsed || typeof parsed !== "object") {
+    // Logged (not exposed to the client) so a Vercel function log shows
+    // exactly what the model returned when parsing fails — useful for
+    // spotting cases like unexpected preamble text or a refusal that
+    // slipped past the prompt's "JSON only" instruction.
+    console.error("travel scan: could not parse model output", raw);
     return NextResponse.json(
       { error: "Could not read booking details from this image" },
       { status: 422 },
