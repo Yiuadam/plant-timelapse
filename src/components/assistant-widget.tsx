@@ -130,7 +130,7 @@ export default function AssistantWidget() {
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label={open ? "Close assistant" : "Open assistant"}
-        className="flex h-14 w-14 items-center justify-center rounded-full border border-white/50 bg-gradient-to-br from-violet-200 to-violet-100 shadow-2xl backdrop-blur-md dark:border-white/15 dark:from-violet-400/40 dark:to-violet-300/20"
+        className="flex h-11 w-11 items-center justify-center rounded-full border border-white/50 bg-gradient-to-br from-violet-200 to-violet-100 shadow-2xl backdrop-blur-md dark:border-white/15 dark:from-violet-400/40 dark:to-violet-300/20"
       >
         {open ? <CloseIcon /> : <ChatIcon />}
       </button>
@@ -141,8 +141,8 @@ export default function AssistantWidget() {
 function ChatIcon() {
   return (
     <svg
-      width="24"
-      height="24"
+      width="20"
+      height="20"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -158,8 +158,8 @@ function ChatIcon() {
 function CloseIcon() {
   return (
     <svg
-      width="18"
-      height="18"
+      width="16"
+      height="16"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
