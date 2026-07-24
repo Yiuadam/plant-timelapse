@@ -100,11 +100,25 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
   }, [cards, activeIndex, total]);
 
   function go(delta: number) {
-    setActiveIndex((i) => (i + delta + total) % total);
-    setRailOffsets((prev) => {
-      const next: Record<string, number> = {};
-      for (const key in prev) next[key] = prev[key] - delta;
-      return next;
+    setActiveIndex((i) => {
+      const newIndex = (i + delta + total) % total;
+      // The amount every card must rotate by is whatever offset the
+      // NEW front card currently holds, not `delta` — delta is only a
+      // ring index step (±1, or the clicked card's own index distance),
+      // while a card can have drifted arbitrarily far from ±1 after
+      // several swipes in the same direction. Shifting everyone by the
+      // target's own current offset always lands it exactly on 0 and
+      // keeps every other card's motion physically continuous.
+      setRailOffsets((prev) => {
+        const targetCard = cards[newIndex];
+        const rotationAmount = targetCard
+          ? (prev[targetCard.key] ?? shortestOffset(newIndex, i, total))
+          : delta;
+        const next: Record<string, number> = {};
+        for (const key in prev) next[key] = prev[key] - rotationAmount;
+        return next;
+      });
+      return newIndex;
     });
   }
 
