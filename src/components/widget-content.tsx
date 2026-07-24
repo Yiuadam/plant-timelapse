@@ -386,7 +386,7 @@ export function ClockWidget({
   const hourDeg = hours * 30 + minutes * 0.5;
 
   return (
-    <div className="relative h-full w-full">
+    <div className="relative z-0 h-full w-full">
       <div className="absolute top-1 right-1 z-10 flex items-center gap-1">
         <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
         <ColorPicker color={color} onChange={onColorChange} />
@@ -447,10 +447,12 @@ export function PhotosWidget({
   onUploaded: () => void;
 }) {
   const accent = ACCENT_HEX[color] ?? ACCENT_HEX.slate;
+  const [index, setIndex] = useState(0);
+  const safeIndex = photos.length === 0 ? 0 : index % photos.length;
 
   if (photos.length === 0) {
     return (
-      <div className="relative h-full w-full">
+      <div className="relative z-0 h-full w-full">
         <div className="absolute top-1 right-1 z-10 flex items-center gap-1">
           <UploadButton trips={trips} onUploaded={onUploaded} />
           <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
@@ -463,10 +465,17 @@ export function PhotosWidget({
     );
   }
 
-  const [top, ...rest] = photos.slice(0, 3);
+  const top = photos[safeIndex];
+  const rest = [1, 2]
+    .map((offset) => photos[(safeIndex + offset) % photos.length])
+    .filter((p) => p.id !== top.id);
+
+  function go(delta: number) {
+    setIndex((i) => (i + delta + photos.length) % photos.length);
+  }
 
   return (
-    <div className="relative h-full w-full">
+    <div className="group relative z-0 h-full w-full">
       <div className="absolute top-1 right-1 z-20 flex items-center gap-1">
         <UploadButton trips={trips} onUploaded={onUploaded} />
         <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
@@ -475,12 +484,20 @@ export function PhotosWidget({
       {rest.map((photo, i) => (
         <div
           key={photo.id}
-          className="absolute inset-0 rounded-lg border-8 border-white bg-white shadow-lg dark:border-white/90"
+          className="absolute inset-0 overflow-hidden rounded-lg border-8 border-white bg-white shadow-lg dark:border-white/90"
           style={{
             transform: `rotate(${(i + 1) * 7 - 3}deg)`,
             zIndex: i,
           }}
-        />
+        >
+          <Image
+            src={photo.filePath}
+            alt={photo.caption ?? photo.tripTitle}
+            fill
+            sizes="220px"
+            className="object-cover opacity-70"
+          />
+        </div>
       ))}
       <div
         className="absolute inset-0 flex flex-col overflow-hidden rounded-lg border-8 border-white bg-white shadow-xl dark:border-white/90"
@@ -502,6 +519,36 @@ export function PhotosWidget({
           {top.tripTitle}
         </div>
       </div>
+      {photos.length > 1 && (
+        <div
+          data-no-drag
+          className="absolute inset-x-0 bottom-1 z-30 flex items-center justify-center gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+        >
+          <button
+            type="button"
+            onClick={() => go(-1)}
+            aria-label="Previous photo"
+            className="flex h-6 w-6 items-center justify-center rounded-full border border-black/10 bg-white/90 text-black/60 shadow-sm dark:border-white/20 dark:bg-black/60 dark:text-white/70"
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <span className="rounded-full bg-black/50 px-2 py-0.5 text-[10px] text-white">
+            {safeIndex + 1}/{photos.length}
+          </span>
+          <button
+            type="button"
+            onClick={() => go(1)}
+            aria-label="Next photo"
+            className="flex h-6 w-6 items-center justify-center rounded-full border border-black/10 bg-white/90 text-black/60 shadow-sm dark:border-white/20 dark:bg-black/60 dark:text-white/70"
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -522,7 +569,7 @@ export function MapWidget({
   const accent = ACCENT_HEX[color] ?? ACCENT_HEX.blue;
 
   return (
-    <div className="relative h-full w-full">
+    <div className="relative z-0 h-full w-full">
       <div className="absolute top-1 right-1 z-[1200] flex items-center gap-1">
         <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
         <ColorPicker color={color} onChange={onColorChange} />
