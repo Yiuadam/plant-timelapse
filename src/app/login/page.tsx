@@ -1,13 +1,23 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import OAuthButtons from "@/components/oauth-buttons";
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") || "/trips";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +40,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/trips");
+      router.push(next);
       router.refresh();
     } finally {
       setLoading(false);
@@ -75,7 +85,10 @@ export default function LoginPage() {
       </div>
       <p className="mt-4 text-sm">
         Don&apos;t have an account?{" "}
-        <Link href="/register" className="underline">
+        <Link
+          href={`/register?next=${encodeURIComponent(next)}`}
+          className="underline"
+        >
           Register
         </Link>
       </p>

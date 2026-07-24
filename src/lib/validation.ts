@@ -23,6 +23,10 @@ export const locationSchema = z.object({
   visited: z.boolean().optional(),
 });
 
+export const inviteSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Invalid email"),
+});
+
 export const assistantChatSchema = z.object({
   messages: z
     .array(

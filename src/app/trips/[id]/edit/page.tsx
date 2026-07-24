@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import TripForm from "@/components/trip-form";
+import { canAccessTrip } from "@/lib/trip-access";
 
 function toDateInputValue(date: Date | null): string {
   if (!date) return "";
@@ -17,9 +18,9 @@ export default async function EditTripPage({
   if (!session?.user?.id) redirect("/login");
 
   const { id } = await params;
+  if (!(await canAccessTrip(id, session.user.id))) notFound();
   const trip = await prisma.trip.findUnique({ where: { id } });
-
-  if (!trip || trip.userId !== session.user.id) notFound();
+  if (!trip) notFound();
 
   return (
     <div className="mx-auto max-w-lg px-4 py-8">

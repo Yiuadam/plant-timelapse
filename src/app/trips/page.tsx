@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateWidgets } from "@/lib/widgets";
+import { tripAccessWhere } from "@/lib/trip-access";
 import WidgetBoard from "@/components/widget-board";
 
 export default async function TripsPage() {
@@ -11,13 +12,13 @@ export default async function TripsPage() {
 
   const [trips, widgets, recentPhotos, visitedLocations] = await Promise.all([
     prisma.trip.findMany({
-      where: { userId },
+      where: tripAccessWhere(userId),
       orderBy: { createdAt: "desc" },
       select: { id: true, title: true, destination: true, startDate: true },
     }),
     getOrCreateWidgets(userId),
     prisma.photo.findMany({
-      where: { trip: { userId } },
+      where: { trip: tripAccessWhere(userId) },
       orderBy: { createdAt: "desc" },
       take: 3,
       select: {
@@ -28,7 +29,7 @@ export default async function TripsPage() {
       },
     }),
     prisma.location.findMany({
-      where: { visited: true, trip: { userId } },
+      where: { visited: true, trip: tripAccessWhere(userId) },
       select: { id: true, name: true, lat: true, lng: true },
     }),
   ]);

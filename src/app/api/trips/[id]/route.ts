@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { tripSchema } from "@/lib/validation";
+import { canAccessTrip } from "@/lib/trip-access";
 
 export async function PATCH(
   request: Request,
@@ -13,8 +14,7 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const trip = await prisma.trip.findUnique({ where: { id } });
-  if (!trip || trip.userId !== userId) {
+  if (!(await canAccessTrip(id, userId))) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

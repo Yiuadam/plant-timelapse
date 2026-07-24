@@ -1,13 +1,23 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import OAuthButtons from "@/components/oauth-buttons";
 
 export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterForm />
+    </Suspense>
+  );
+}
+
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") || "/trips";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,11 +49,11 @@ export default function RegisterPage() {
       });
 
       if (result?.error) {
-        router.push("/login");
+        router.push(`/login?next=${encodeURIComponent(next)}`);
         return;
       }
 
-      router.push("/trips");
+      router.push(next);
       router.refresh();
     } finally {
       setLoading(false);
@@ -98,7 +108,10 @@ export default function RegisterPage() {
       </div>
       <p className="mt-4 text-sm">
         Already have an account?{" "}
-        <Link href="/login" className="underline">
+        <Link
+          href={`/login?next=${encodeURIComponent(next)}`}
+          className="underline"
+        >
           Log in
         </Link>
       </p>

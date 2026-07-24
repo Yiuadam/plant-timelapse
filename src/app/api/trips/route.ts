@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { tripSchema } from "@/lib/validation";
+import { tripAccessWhere } from "@/lib/trip-access";
 
 export async function GET() {
   const userId = await requireUserId();
@@ -10,7 +11,7 @@ export async function GET() {
   }
 
   const trips = await prisma.trip.findMany({
-    where: { userId },
+    where: tripAccessWhere(userId),
     orderBy: { createdAt: "desc" },
   });
 
