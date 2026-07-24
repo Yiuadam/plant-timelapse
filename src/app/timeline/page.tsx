@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import AddTimelineEntry from "@/components/add-timeline-entry";
-import TimelineEntryCard from "@/components/timeline-entry-card";
+import TimelineBoard from "@/components/timeline-board";
 
 const RING_TINTS = [
   "from-sky-200 to-sky-100 text-sky-900 dark:from-sky-400/30 dark:to-sky-300/10 dark:text-sky-100",
@@ -11,11 +11,6 @@ const RING_TINTS = [
 ];
 
 const ACCENT_CYCLE = ["#0284c7", "#c026d3", "#d97706"];
-
-const COLUMN_WIDTH = 260;
-const CONNECTOR_LENGTH = 44;
-const MAX_CARD_HEIGHT = 210;
-const TIMELINE_HEIGHT = (CONNECTOR_LENGTH + MAX_CARD_HEIGHT) * 2 + 24;
 
 export default async function TimelinePage() {
   const session = await auth();
@@ -41,7 +36,23 @@ export default async function TimelinePage() {
       ...loc,
       effectiveDate: loc.visitedAt ?? loc.createdAt,
     }))
-    .sort((a, b) => a.effectiveDate.getTime() - b.effectiveDate.getTime());
+    .sort((a, b) => a.effectiveDate.getTime() - b.effectiveDate.getTime())
+    .map((entry, i) => ({
+      id: entry.id,
+      name: entry.name,
+      lat: entry.lat,
+      lng: entry.lng,
+      dateLabel: entry.effectiveDate.toLocaleDateString(),
+      tripId: entry.trip.id,
+      tripTitle: entry.trip.title,
+      photoUrl: entry.photos[0]?.filePath ?? null,
+      initial: entry.name.charAt(0).toUpperCase(),
+      ringTint: RING_TINTS[i % RING_TINTS.length],
+      accent: ACCENT_CYCLE[i % ACCENT_CYCLE.length],
+      initialStyle: entry.cardStyle ?? "clean",
+      initialSize: entry.cardSize ?? "md",
+      isUp: i % 2 === 0,
+    }));
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -56,58 +67,7 @@ export default async function TimelinePage() {
           newest. Use &quot;Add event&quot; above to add your first one.
         </p>
       ) : (
-        <div className="snap-x snap-mandatory overflow-x-auto pb-4">
-          <div
-            className="relative"
-            style={{
-              width: entries.length * COLUMN_WIDTH + COLUMN_WIDTH,
-              height: TIMELINE_HEIGHT,
-            }}
-          >
-            <div className="pointer-events-none absolute top-1/2 right-0 left-0 h-px bg-black/10 dark:bg-white/15" />
-
-            {entries.map((entry, i) => {
-              const isUp = i % 2 === 0;
-              const x = i * COLUMN_WIDTH + COLUMN_WIDTH / 2;
-
-              return (
-                <div
-                  key={entry.id}
-                  className="absolute top-1/2 snap-center"
-                  style={{ left: x, transform: "translateX(-50%)" }}
-                >
-                  <div className="absolute top-0 left-1/2 z-10 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-black/40 dark:bg-white/50" />
-
-                  <div
-                    className="absolute left-1/2 w-px -translate-x-1/2 bg-black/15 dark:bg-white/20"
-                    style={{
-                      height: CONNECTOR_LENGTH,
-                      [isUp ? "bottom" : "top"]: 0,
-                    }}
-                  />
-
-                  <TimelineEntryCard
-                    id={entry.id}
-                    name={entry.name}
-                    lat={entry.lat}
-                    lng={entry.lng}
-                    dateLabel={entry.effectiveDate.toLocaleDateString()}
-                    tripId={entry.trip.id}
-                    tripTitle={entry.trip.title}
-                    photoUrl={entry.photos[0]?.filePath ?? null}
-                    initial={entry.name.charAt(0).toUpperCase()}
-                    ringTint={RING_TINTS[i % RING_TINTS.length]}
-                    accent={ACCENT_CYCLE[i % ACCENT_CYCLE.length]}
-                    initialStyle={entry.cardStyle ?? "clean"}
-                    initialSize={entry.cardSize ?? "md"}
-                    isUp={isUp}
-                    connectorLength={CONNECTOR_LENGTH}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <TimelineBoard entries={entries} />
       )}
     </div>
   );
