@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+/* Switch Tailwind's dark: variant from the OS-only media query to
+   responding to a `.dark` class on <html>, so the theme toggle button can
+   override the system preference instead of just following it. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -14,10 +19,15 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(.light) {
     --background: #46484f;
     --foreground: #ededed;
   }
+}
+
+:root.dark {
+  --background: #46484f;
+  --foreground: #ededed;
 }
 
 body {
