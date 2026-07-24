@@ -21,6 +21,15 @@ const markerIcon = L.icon({
   shadowSize: [41, 41],
 });
 
+// A Google-Maps-style "you are here" dot rather than a pin, so it reads as
+// a live position rather than a saved place.
+const userLocationIcon = L.divIcon({
+  className: "user-location-marker",
+  html: '<span class="user-location-dot"><span class="user-location-pulse"></span></span>',
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
+});
+
 export type MapLocation = {
   id: string;
   name: string;
@@ -80,11 +89,10 @@ export default function TripMap({
   const hasFixedFocus = locations.length > 0 || Boolean(pendingMarker);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
 
-  // Only an empty map (no pins to already center on, nothing being placed)
-  // benefits from defaulting to the visitor's own location -- a map with
-  // real content should keep centering on that content.
+  // Every map shows the "you are here" dot like Google Maps, regardless of
+  // whether it already has pins -- only the initial CENTER/zoom skips this
+  // when there's real content to focus on instead (handled below).
   useEffect(() => {
-    if (hasFixedFocus) return;
     if (typeof navigator === "undefined" || !navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
@@ -140,6 +148,14 @@ export default function TripMap({
         >
           <Popup>New location</Popup>
         </Marker>
+      )}
+      {userLocation && (
+        <Marker
+          position={userLocation}
+          icon={userLocationIcon}
+          interactive={false}
+          zIndexOffset={1000}
+        />
       )}
     </MapContainer>
   );

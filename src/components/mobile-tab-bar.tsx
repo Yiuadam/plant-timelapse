@@ -9,27 +9,22 @@ import { signOut, useSession } from "next-auth/react";
 function TabLink({
   href,
   label,
-  icon,
   active,
 }: {
   href: string;
   label: string;
-  icon: string;
   active: boolean;
 }) {
   return (
     <Link
       href={href}
       prefetch={true}
-      className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-xs font-medium ${
+      className={`flex flex-1 items-center justify-center py-3 text-sm font-medium ${
         active
           ? "text-foreground"
           : "text-black/45 dark:text-white/45"
       }`}
     >
-      <span className="text-xl leading-none" aria-hidden>
-        {icon}
-      </span>
       {label}
     </Link>
   );
@@ -51,25 +46,20 @@ export default function MobileTabBar() {
         <TabLink
           href="/trips"
           label="Trips"
-          icon="🧳"
           active={pathname.startsWith("/trips")}
         />
         <TabLink
           href="/timeline"
           label="Timeline"
-          icon="🗓️"
           active={pathname.startsWith("/timeline")}
         />
         <button
           type="button"
           onClick={() => setAccountOpen(true)}
-          className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-xs font-medium ${
+          className={`flex flex-1 items-center justify-center py-3 text-sm font-medium ${
             accountOpen ? "text-foreground" : "text-black/45 dark:text-white/45"
           }`}
         >
-          <span className="text-xl leading-none" aria-hidden>
-            👤
-          </span>
           You
         </button>
       </nav>
@@ -87,10 +77,17 @@ export default function MobileTabBar() {
               <div className="mb-4 truncate text-center text-sm text-black/60 dark:text-white/60">
                 {session?.user?.name ?? session?.user?.email}
               </div>
+              <Link
+                href="/profile"
+                onClick={() => setAccountOpen(false)}
+                className="block w-full rounded-xl border border-black/10 py-3 text-center text-sm dark:border-white/20"
+              >
+                Edit profile
+              </Link>
               <button
                 type="button"
                 onClick={() => signOut({ callbackUrl: "/" })}
-                className="w-full rounded-xl bg-foreground py-3 text-center text-sm font-medium text-background"
+                className="mt-2 w-full rounded-xl bg-foreground py-3 text-center text-sm font-medium text-background"
               >
                 Log out
               </button>

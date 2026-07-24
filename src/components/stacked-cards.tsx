@@ -8,7 +8,7 @@ export type StackCardDef = {
   content: React.ReactNode;
 };
 
-const CARD_HEIGHT = 620;
+const CARD_HEIGHT = 580;
 const CARD_WIDTH_RATIO = 0.82; // card width as a fraction of container width
 const STEP_DEG = 42; // rotation between adjacent drum slots
 const SWIPE_THRESHOLD_RATIO = 0.18;
@@ -185,7 +185,7 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
   }
 
   const cardHeight = viewportHeight
-    ? clamp(viewportHeight * 0.75, 480, CARD_HEIGHT)
+    ? clamp(viewportHeight * 0.68, 460, CARD_HEIGHT)
     : CARD_HEIGHT;
   const width = containerWidth || 1;
   const cardWidthPx = width * CARD_WIDTH_RATIO;
