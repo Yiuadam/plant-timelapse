@@ -30,6 +30,7 @@ model User {
 
   collaborations TripCollaborator[]
   editLocks      EditLock[]
+  cardPresences  CardPresence[]
 }
 
 model Account {
@@ -115,6 +116,23 @@ model EditLock {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([resourceType, resourceId])
+}
+
+// Passive "who's looking at this" presence -- unlike EditLock this is not
+// exclusive, any number of users can watch the same card at once.
+model CardPresence {
+  id           String   @id @default(cuid())
+  userId       String
+  userName     String
+  userImage    String?
+  resourceType String
+  resourceId   String
+  cardKey      String
+  lastSeenAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, resourceType, resourceId, cardKey])
 }
 
 model Location {

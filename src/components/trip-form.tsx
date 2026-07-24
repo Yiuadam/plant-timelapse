@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useEditLock } from "@/hooks/use-edit-lock";
+import { useFieldLocks, useFieldEditing } from "@/hooks/use-field-lock";
 
 export type TripFormValues = {
   title: string;
@@ -11,6 +11,30 @@ export type TripFormValues = {
   endDate: string;
   notes: string;
 };
+
+const FIELD_RESOURCE_TYPE = "trip-field";
+
+function FieldLabel({
+  label,
+  editor,
+  children,
+}: {
+  label: string;
+  editor?: { userName: string };
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="relative flex flex-col gap-1 text-sm">
+      {label}
+      {editor && (
+        <span className="pointer-events-none absolute -top-2 right-0 z-10 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-medium text-white shadow">
+          {editor.userName} is editing
+        </span>
+      )}
+      {children}
+    </label>
+  );
+}
 
 export default function TripForm({
   mode,
@@ -32,16 +56,19 @@ export default function TripForm({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const { lockedByOther, acquire, release } = useEditLock("trip", tripId ?? "");
+  const resourceId = mode === "edit" ? (tripId ?? "") : "";
+  const editors = useFieldLocks(FIELD_RESOURCE_TYPE, resourceId);
+  const titleLock = useFieldEditing(FIELD_RESOURCE_TYPE, resourceId, "title");
+  const destinationLock = useFieldEditing(FIELD_RESOURCE_TYPE, resourceId, "destination");
+  const startDateLock = useFieldEditing(FIELD_RESOURCE_TYPE, resourceId, "startDate");
+  const endDateLock = useFieldEditing(FIELD_RESOURCE_TYPE, resourceId, "endDate");
+  const notesLock = useFieldEditing(FIELD_RESOURCE_TYPE, resourceId, "notes");
 
-  useEffect(() => {
-    if (mode !== "edit" || !tripId) return;
-    acquire();
-    return () => release();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, tripId]);
-
-  const locked = mode === "edit" && Boolean(lockedByOther);
+  function fieldClass(fieldKey: string) {
+    return editors[fieldKey]
+      ? "rounded-xl border border-amber-500 px-3 py-2 ring-2 ring-amber-300 dark:ring-amber-400/40"
+      : "rounded-xl border border-black/10 px-3 py-2 dark:border-white/20";
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -66,7 +93,6 @@ export default function TripForm({
       }
 
       const trip = await res.json();
-      release();
       router.push(`/trips/${trip.id}`);
       router.refresh();
     } finally {
@@ -75,74 +101,66 @@ export default function TripForm({
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className={`flex flex-col gap-4 rounded-2xl ${
-        locked
-          ? "border-2 border-amber-500 p-3 dark:border-amber-400"
-          : ""
-      }`}
-    >
-      {locked && lockedByOther && (
-        <div className="flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-400/10 dark:text-amber-200">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500 text-xs font-medium text-white">
-            {lockedByOther.userName.charAt(0).toUpperCase()}
-          </span>
-          {lockedByOther.userName} is currently editing this trip
-        </div>
-      )}
-      <fieldset disabled={locked} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1 text-sm">
-          Title
-          <input
-            className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Destination
-          <input
-            className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
-            value={destination}
-            onChange={(e) => setDestination(e.target.value)}
-          />
-        </label>
-        <div className="flex gap-4">
-          <label className="flex flex-1 flex-col gap-1 text-sm">
-            Start date
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <FieldLabel label="Title" editor={editors.title}>
+        <input
+          className={fieldClass("title")}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onFocus={titleLock.onFocus}
+          onBlur={titleLock.onBlur}
+          required
+        />
+      </FieldLabel>
+      <FieldLabel label="Destination" editor={editors.destination}>
+        <input
+          className={fieldClass("destination")}
+          value={destination}
+          onChange={(e) => setDestination(e.target.value)}
+          onFocus={destinationLock.onFocus}
+          onBlur={destinationLock.onBlur}
+        />
+      </FieldLabel>
+      <div className="flex gap-4">
+        <div className="flex-1">
+          <FieldLabel label="Start date" editor={editors.startDate}>
             <input
               type="date"
-              className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
+              className={fieldClass("startDate")}
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
+              onFocus={startDateLock.onFocus}
+              onBlur={startDateLock.onBlur}
             />
-          </label>
-          <label className="flex flex-1 flex-col gap-1 text-sm">
-            End date
+          </FieldLabel>
+        </div>
+        <div className="flex-1">
+          <FieldLabel label="End date" editor={editors.endDate}>
             <input
               type="date"
-              className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
+              className={fieldClass("endDate")}
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
+              onFocus={endDateLock.onFocus}
+              onBlur={endDateLock.onBlur}
             />
-          </label>
+          </FieldLabel>
         </div>
-        <label className="flex flex-col gap-1 text-sm">
-          Notes
-          <textarea
-            className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
-            rows={4}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-        </label>
-      </fieldset>
+      </div>
+      <FieldLabel label="Notes" editor={editors.notes}>
+        <textarea
+          className={fieldClass("notes")}
+          rows={4}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          onFocus={notesLock.onFocus}
+          onBlur={notesLock.onBlur}
+        />
+      </FieldLabel>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <button
         type="submit"
-        disabled={loading || locked}
+        disabled={loading}
         className="rounded-xl bg-foreground px-4 py-2 text-background disabled:opacity-50"
       >
         {loading

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import CardWatchers from "@/components/card-watchers";
 
 export type StackCardDef = {
   key: string;
@@ -35,7 +36,17 @@ function shortestOffset(index: number, activeIndex: number, total: number) {
   return diff;
 }
 
-export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
+export default function StackedCards({
+  cards,
+  presenceResourceType,
+  presenceResourceId,
+}: {
+  cards: StackCardDef[];
+  // When provided, each card shows avatars of other users currently
+  // viewing it (bottom-left), keyed by card.key as the presence "cardKey".
+  presenceResourceType?: string;
+  presenceResourceId?: string;
+}) {
   const total = cards.length;
   const [activeIndex, setActiveIndex] = useState(0);
   const [dragX, setDragX] = useState(0);
@@ -277,7 +288,7 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
               }}
             >
               <div
-                className={`flex h-full w-full flex-col overflow-hidden rounded-2xl border border-white/50 bg-gradient-to-br dark:border-white/15 ${
+                className={`relative flex h-full w-full flex-col overflow-hidden rounded-2xl border border-white/50 bg-gradient-to-br dark:border-white/15 ${
                   GLASS_TINT[card.key] ?? DEFAULT_GLASS_TINT
                 } ${isFront ? "shadow-2xl" : "cursor-pointer shadow-md"}`}
                 style={{
@@ -309,6 +320,14 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
                 >
                   {card.content}
                 </div>
+                {presenceResourceType && presenceResourceId && (
+                  <CardWatchers
+                    resourceType={presenceResourceType}
+                    resourceId={presenceResourceId}
+                    cardKey={card.key}
+                    active={isFront}
+                  />
+                )}
               </div>
             </div>
           );

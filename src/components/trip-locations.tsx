@@ -4,6 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import type { MapLocation } from "@/components/trip-map";
+import { useFieldLocks, useFieldEditing } from "@/hooks/use-field-lock";
 
 const TripMap = dynamic(() => import("@/components/trip-map"), {
   ssr: false,
@@ -29,6 +30,10 @@ export default function TripLocations({
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const editors = useFieldLocks("trip-field", tripId);
+  const nameLock = useFieldEditing("trip-field", tripId, "new-location-name");
+  const notesLock = useFieldEditing("trip-field", tripId, "new-location-notes");
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -81,19 +86,45 @@ export default function TripLocations({
           <p className="text-sm text-black/60 dark:text-white/60">
             Pinned at {pending.lat.toFixed(4)}, {pending.lng.toFixed(4)}
           </p>
-          <input
-            className="rounded-xl border border-black/10 px-3 py-2 text-sm dark:border-white/20"
-            placeholder="Place name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-          <input
-            className="rounded-xl border border-black/10 px-3 py-2 text-sm dark:border-white/20"
-            placeholder="Notes (optional)"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
+          <div className="relative">
+            {editors["new-location-name"] && (
+              <span className="pointer-events-none absolute -top-2 right-2 z-10 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-medium text-white shadow">
+                {editors["new-location-name"].userName} is editing
+              </span>
+            )}
+            <input
+              className={`w-full text-sm ${
+                editors["new-location-name"]
+                  ? "rounded-xl border border-amber-500 px-3 py-2 ring-2 ring-amber-300 dark:ring-amber-400/40"
+                  : "rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
+              }`}
+              placeholder="Place name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onFocus={nameLock.onFocus}
+              onBlur={nameLock.onBlur}
+              required
+            />
+          </div>
+          <div className="relative">
+            {editors["new-location-notes"] && (
+              <span className="pointer-events-none absolute -top-2 right-2 z-10 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-medium text-white shadow">
+                {editors["new-location-notes"].userName} is editing
+              </span>
+            )}
+            <input
+              className={`w-full text-sm ${
+                editors["new-location-notes"]
+                  ? "rounded-xl border border-amber-500 px-3 py-2 ring-2 ring-amber-300 dark:ring-amber-400/40"
+                  : "rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
+              }`}
+              placeholder="Notes (optional)"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              onFocus={notesLock.onFocus}
+              onBlur={notesLock.onBlur}
+            />
+          </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex gap-2">
             <button
