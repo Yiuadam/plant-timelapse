@@ -46,16 +46,23 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
   const justDraggedRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
-  // shortestOffset always picks the smaller-magnitude wrap-around
-  // representation, so with only 3 cards the one NOT involved in a swap
-  // (e.g. the still-departed neighbor) can have its offset label flip
-  // sign — say -1 to +1 — between one committed render and the next,
-  // even though it's a single discrete step conceptually. Animating that
-  // as a normal transition swings it visibly across the front instead of
-  // just reappearing on its new side. Comparing against the last
-  // COMMITTED offsets (updated post-render below) lets us snap only the
-  // card(s) that actually jumped, leaving the real swap animation intact.
-  const [prevOffsets, setPrevOffsets] = useState<Record<string, number>>({});
+  // Each card's rotation offset is tracked as a continuous, unwrapped
+  // number of drum steps rather than recomputed fresh via shortestOffset()
+  // every render. Re-deriving the shortest wrap-around each render means a
+  // card not involved in a swap can have its offset LABEL flip sign (say
+  // -1 to +1) between commits even though nothing rotated past it — that
+  // discontinuity used to render as a visible swing/teleport across the
+  // front. Updating each card's own offset by -delta on every go() instead
+  // keeps it rotating continuously in the direction it was already
+  // heading (fading out further before it can ever reappear), which is
+  // both correct and matches how a real drum behaves.
+  const [railOffsets, setRailOffsets] = useState<Record<string, number>>(() => {
+    const initial: Record<string, number> = {};
+    cards.forEach((card, index) => {
+      initial[card.key] = shortestOffset(index, activeIndex, total);
+    });
+    return initial;
+  });
 
   useEffect(() => {
     const el = containerRef.current;
@@ -67,19 +74,38 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
     return () => observer.disconnect();
   }, []);
 
+  // Keep railOffsets in sync if the set of cards ever changes (new keys
+  // get a starting offset, removed keys are dropped); a no-op on every
+  // render where the card list is stable.
   useEffect(() => {
     const kickoff = setTimeout(() => {
-      const next: Record<string, number> = {};
-      cards.forEach((card, index) => {
-        next[card.key] = shortestOffset(index, activeIndex, total);
+      setRailOffsets((prev) => {
+        let changed = false;
+        const next: Record<string, number> = {};
+        cards.forEach((card, index) => {
+          if (card.key in prev) {
+            next[card.key] = prev[card.key];
+          } else {
+            next[card.key] = shortestOffset(index, activeIndex, total);
+            changed = true;
+          }
+        });
+        if (!changed && Object.keys(prev).length === Object.keys(next).length) {
+          return prev;
+        }
+        return next;
       });
-      setPrevOffsets(next);
     }, 0);
     return () => clearTimeout(kickoff);
-  }, [activeIndex, cards, total]);
+  }, [cards, activeIndex, total]);
 
   function go(delta: number) {
     setActiveIndex((i) => (i + delta + total) % total);
+    setRailOffsets((prev) => {
+      const next: Record<string, number> = {};
+      for (const key in prev) next[key] = prev[key] - delta;
+      return next;
+    });
   }
 
   function handlePointerDown(e: React.PointerEvent) {
@@ -163,7 +189,8 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
       >
         {cards.map((card, index) => {
           const isFront = index === activeIndex;
-          const offset = shortestOffset(index, activeIndex, total);
+          const offset =
+            railOffsets[card.key] ?? shortestOffset(index, activeIndex, total);
           const v = offset + progress;
           const angleDeg = v * STEP_DEG;
           const rad = (angleDeg * Math.PI) / 180;
@@ -175,8 +202,6 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
           // rotateY is less reliable than Chromium's).
           const opacity = clamp(0.06 + 0.94 * Math.max(0, facing) ** 3, 0.06, 1);
           const depth = Math.round(facing * 1000);
-          const prevOffset = prevOffsets[card.key] ?? offset;
-          const justJumped = !isDragging && Math.abs(offset - prevOffset) > 1.5;
 
           return (
             <div
@@ -208,10 +233,9 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
                 // expensive case, so drop it until motion settles.
                 backdropFilter: isDragging ? undefined : "blur(12px)",
                 WebkitBackdropFilter: isDragging ? undefined : "blur(12px)",
-                transition:
-                  isDragging || justJumped
-                    ? "none"
-                    : "transform 300ms ease-out, opacity 300ms ease-out, box-shadow 300ms ease-out",
+                transition: isDragging
+                  ? "none"
+                  : "transform 300ms ease-out, opacity 300ms ease-out, box-shadow 300ms ease-out",
               }}
             >
               <div
