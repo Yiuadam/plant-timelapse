@@ -3,6 +3,7 @@ import { requireUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
 import { widgetCreateSchema } from "@/lib/validation";
 import { getOrCreateWidgets } from "@/lib/widgets";
+import { WIDGET_LIBRARY } from "@/lib/default-widgets";
 
 export async function GET() {
   const userId = await requireUserId();
@@ -29,11 +30,9 @@ export async function POST(request: Request) {
     );
   }
 
-  if (parsed.data.type !== "sticky") {
-    return NextResponse.json(
-      { error: "Only sticky notes can be added" },
-      { status: 400 },
-    );
+  const defaults = WIDGET_LIBRARY[parsed.data.type];
+  if (!defaults) {
+    return NextResponse.json({ error: "Unknown widget type" }, { status: 400 });
   }
 
   const maxZ = await prisma.widget.aggregate({
@@ -44,13 +43,13 @@ export async function POST(request: Request) {
   const widget = await prisma.widget.create({
     data: {
       userId,
-      type: "sticky",
+      type: parsed.data.type,
       x: parsed.data.x ?? 10,
       y: parsed.data.y ?? 10,
-      w: 180,
-      h: 180,
+      w: defaults.w,
+      h: defaults.h,
       rotation: Math.random() * 8 - 4,
-      color: parsed.data.color ?? "yellow",
+      color: parsed.data.color ?? defaults.color,
       content: parsed.data.content ?? "",
       zIndex: (maxZ._max.zIndex ?? 0) + 1,
     },
