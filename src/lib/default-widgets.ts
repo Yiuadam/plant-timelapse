@@ -14,6 +14,16 @@ export const DEFAULT_WIDGETS = [
   },
 ] as const;
 
+// Desktop and mobile boards are independent (see the Widget.device comment
+// in schema.prisma), so a brand-new account gets its own starter widget on
+// each -- seeded once at account creation, same as DEFAULT_WIDGETS always
+// was, just duplicated across both device buckets instead of one.
+export function seedWidgetsData(userId: string) {
+  return (["desktop", "mobile"] as const).flatMap((device) =>
+    DEFAULT_WIDGETS.map((w) => ({ ...w, userId, device })),
+  );
+}
+
 // Defaults used when a widget is added from the library, keyed by type.
 export const WIDGET_LIBRARY: Record<
   string,

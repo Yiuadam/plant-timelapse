@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateWidgets } from "@/lib/widgets";
 import { tripAccessWhere } from "@/lib/trip-access";
+import { detectWidgetDevice } from "@/lib/device";
 import WidgetBoard from "@/components/widget-board";
 
 export default async function Home() {
@@ -37,6 +39,8 @@ export default async function Home() {
   }
 
   const userId = session.user.id;
+  const requestHeaders = await headers();
+  const device = detectWidgetDevice(requestHeaders.get("user-agent"));
 
   const [trips, widgets, recentPhotos, visitedLocations, upcomingTravel, passportStamps] =
     await Promise.all([
@@ -45,7 +49,7 @@ export default async function Home() {
         orderBy: { createdAt: "desc" },
         select: { id: true, title: true, destination: true, startDate: true },
       }),
-      getOrCreateWidgets(userId),
+      getOrCreateWidgets(userId, device),
       prisma.photo.findMany({
         where: { trip: tripAccessWhere(userId) },
         orderBy: { createdAt: "desc" },
@@ -84,6 +88,7 @@ export default async function Home() {
 
   return (
     <WidgetBoard
+      device={device}
       initialWidgets={widgets.map((w) => ({
         id: w.id,
         type: w.type,

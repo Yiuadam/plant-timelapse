@@ -84,11 +84,11 @@ model Trip {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  locations     Location[]
-  photos        Photo[]
-  collaborators TripCollaborator[]
-  travelItems   TravelItem[]
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locations      Location[]
+  photos         Photo[]
+  collaborators  TripCollaborator[]
+  travelItems    TravelItem[]
   passportStamps PassportStamp[]
 }
 
@@ -209,6 +209,11 @@ model TravelItem {
 model Widget {
   id        String   @id @default(cuid())
   userId    String
+  // Which board this widget lives on -- "desktop" or "mobile". The two are
+  // independent: rearranging/adding/removing widgets on one device never
+  // touches the other's layout, since a phone screen can't sensibly fit
+  // the same large, dense desktop board.
+  device    String   @default("desktop")
   type      String
   x         Float    @default(5)
   y         Float    @default(5)
@@ -223,6 +228,8 @@ model Widget {
   updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, device])
 }
 
 // A camera/photo translation: an uploaded image of foreign-language text,
