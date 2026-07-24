@@ -34,6 +34,45 @@ function formatDateTime(value: string) {
   });
 }
 
+const MAX_SCAN_DIMENSION = 2000;
+
+// A full-resolution phone photo of a ticket (as opposed to a compressed
+// screenshot) can be several MB, easily large enough to trip the
+// platform's request-body limit before it ever reaches our route
+// handler — which fails as a non-JSON error page, not a normal error
+// response. Downscaling client-side keeps the upload comfortably small
+// while remaining plenty sharp for OCR.
+async function downscaleForScan(file: File): Promise<File> {
+  if (!file.type.startsWith("image/") || file.type === "image/gif") {
+    return file;
+  }
+  const bitmap = await createImageBitmap(file).catch(() => null);
+  if (!bitmap) return file;
+  const scale = Math.min(
+    1,
+    MAX_SCAN_DIMENSION / Math.max(bitmap.width, bitmap.height),
+  );
+  if (scale === 1 && file.size <= 3 * 1024 * 1024) {
+    bitmap.close();
+    return file;
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    bitmap.close();
+    return file;
+  }
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/jpeg", 0.85),
+  );
+  if (!blob) return file;
+  return new File([blob], "scan.jpg", { type: "image/jpeg" });
+}
+
 export default function TripTravel({
   tripId,
   items,
@@ -64,27 +103,56 @@ export default function TripTravel({
     setScanError(null);
     setScanNote(null);
     try {
+      const uploadFile = await downscaleForScan(file);
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", uploadFile);
       const res = await fetch(`/api/trips/${tripId}/travel/scan`, {
         method: "POST",
         body: formData,
       });
-      const data = await res.json().catch(() => ({}));
+      let data: Record<string, unknown> | null = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = null;
+      }
       if (!res.ok) {
-        setScanError(data.error ?? "Couldn't read that image");
+        // A non-JSON response means the request never made it to our
+        // route handler at all (a platform-level error page, e.g. a
+        // request that's still too large or a gateway timeout) — say so
+        // instead of the misleading "couldn't read that image", which
+        // implies a legibility problem rather than an upload one.
+        const message =
+          typeof data?.error === "string"
+            ? data.error
+            : `Upload failed (${res.status}) — try a smaller or cropped photo`;
+        setScanError(message);
         return;
       }
-      if (data.type && TRAVEL_TYPES.includes(data.type)) setType(data.type);
-      if (data.title) setTitle(data.title);
-      if (data.detail) setDetail(data.detail);
-      if (data.location) setLocation(data.location);
-      if (data.startAt) setStartAt(data.startAt);
-      if (data.endAt) setEndAt(data.endAt);
-      if (data.notes) setNotes(data.notes);
+      if (!data) {
+        setScanError("Got an unexpected response — try again");
+        return;
+      }
+      const str = (v: unknown) => (typeof v === "string" && v ? v : null);
+      const scannedType = str(data.type);
+      const scannedTitle = str(data.title);
+      const scannedDetail = str(data.detail);
+      const scannedLocation = str(data.location);
+      const scannedStartAt = str(data.startAt);
+      const scannedEndAt = str(data.endAt);
+      const scannedNotes = str(data.notes);
+      if (scannedType && TRAVEL_TYPES.includes(scannedType as (typeof TRAVEL_TYPES)[number])) {
+        setType(scannedType as (typeof TRAVEL_TYPES)[number]);
+      }
+      if (scannedTitle) setTitle(scannedTitle);
+      if (scannedDetail) setDetail(scannedDetail);
+      if (scannedLocation) setLocation(scannedLocation);
+      if (scannedStartAt) setStartAt(scannedStartAt);
+      if (scannedEndAt) setEndAt(scannedEndAt);
+      if (scannedNotes) setNotes(scannedNotes);
       const missing = [
-        !data.title && "title",
-        !data.startAt && "date/time",
+        !scannedTitle && "title",
+        !scannedStartAt && "date/time",
       ].filter(Boolean);
       setScanNote(
         missing.length > 0
@@ -92,7 +160,7 @@ export default function TripTravel({
           : "Filled from the photo — double-check before adding.",
       );
     } catch {
-      setScanError("Couldn't read that image");
+      setScanError("Something went wrong scanning that photo — try again");
     } finally {
       setScanning(false);
       if (fileInput.current) fileInput.current.value = "";
