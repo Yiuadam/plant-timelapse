@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validation";
+import { DEFAULT_WIDGETS } from "@/lib/default-widgets";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -35,8 +36,15 @@ export async function POST(request: Request) {
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  await prisma.user.create({
+  const user = await prisma.user.create({
     data: { name, email, passwordHash },
+  });
+
+  // Seeded once, here, at account creation — not lazily on first dashboard
+  // read, so there's no "widget count reads as 0" race that could ever
+  // wipe/reset an existing user's board.
+  await prisma.widget.createMany({
+    data: DEFAULT_WIDGETS.map((w) => ({ ...w, userId: user.id })),
   });
 
   return NextResponse.json({ ok: true }, { status: 201 });

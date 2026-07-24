@@ -1,21 +1,12 @@
 import { prisma } from "@/lib/prisma";
-import { DEFAULT_WIDGETS } from "@/lib/default-widgets";
 
+// Widgets are seeded exactly once, at account creation (register route /
+// NextAuth's createUser event) — this is a plain read with no reseed-on-
+// empty fallback, so neither a transient empty read nor a user
+// intentionally clearing their board can ever force defaults back.
 export async function getOrCreateWidgets(userId: string) {
-  let widgets = await prisma.widget.findMany({
+  return prisma.widget.findMany({
     where: { userId },
     orderBy: { zIndex: "asc" },
   });
-
-  if (widgets.length === 0) {
-    await prisma.widget.createMany({
-      data: DEFAULT_WIDGETS.map((w) => ({ ...w, userId })),
-    });
-    widgets = await prisma.widget.findMany({
-      where: { userId },
-      orderBy: { zIndex: "asc" },
-    });
-  }
-
-  return widgets;
 }
