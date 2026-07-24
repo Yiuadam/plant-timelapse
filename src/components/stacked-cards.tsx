@@ -9,12 +9,9 @@ export type StackCardDef = {
 };
 
 const CARD_HEIGHT = 520;
-const PEEK = 8; // % of container width visible as a peek on each side
-const FRONT_WIDTH = 100 - 2 * PEEK;
+const CARD_WIDTH_RATIO = 0.82; // card width as a fraction of container width
+const STEP_DEG = 42; // rotation between adjacent drum slots
 const SWIPE_THRESHOLD_RATIO = 0.18;
-const SIDE_ROTATE_DEG = 32; // 3D tilt applied to the peeking side cards
-const SIDE_SCALE = 0.88;
-const MAX_DRAG_PROGRESS = 1.3; // clamps drag-follow so it can never run away/twitch
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -104,118 +101,113 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
     setDragX(0);
   }
 
-  function handleCardClick(offset: number, isFront: boolean, isVisible: boolean) {
+  function handleCardClick(offset: number, isFront: boolean) {
     if (justDraggedRef.current) {
       justDraggedRef.current = false;
       return;
     }
-    if (!isFront && isVisible) go(offset);
+    if (!isFront) go(offset);
   }
+
+  const width = containerWidth || 1;
+  const cardWidthPx = width * CARD_WIDTH_RATIO;
+  const radius = cardWidthPx / 2 / Math.tan((STEP_DEG * Math.PI) / 180 / 2);
+  // Continuous drag progress in units of "drum slots" — unclamped, so the
+  // drum keeps rotating for as long as the drag continues instead of
+  // saturating (rotateY/translateZ never blow up the way an unbounded
+  // pixel translate would, so there's nothing to clamp against).
+  const progress = isDragging ? dragX / width : 0;
 
   return (
     <div
       ref={containerRef}
       className="relative touch-pan-y select-none overflow-hidden"
-      style={{ height: CARD_HEIGHT, perspective: 1400 }}
+      style={{ height: CARD_HEIGHT, perspective: 1600 }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
     >
-      {(() => {
-        const width = containerWidth || 1;
-        const rawProgress = isDragging ? dragX / width : 0;
-        const clampedProgress = clamp(
-          rawProgress,
-          -MAX_DRAG_PROGRESS,
-          MAX_DRAG_PROGRESS,
-        );
-        // Uniform pixel shift applied to every card while dragging, so the
-        // whole stack visually slides together (pure transform, no layout
-        // thrashing from animating `left`).
-        const deltaPx = clampedProgress * (FRONT_WIDTH / 100) * width;
-
-        return cards.map((card, index) => {
+      <div
+        className="absolute inset-0"
+        style={{
+          transformStyle: "preserve-3d",
+          // Pull the whole drum back by its radius so a card at rotateY(0)
+          // nets back to zero depth instead of being thrust toward the
+          // viewer (and magnified by perspective) by translateZ(radius)
+          // below. Side cards then recede naturally as they rotate.
+          transform: `translateZ(${-radius}px)`,
+        }}
+      >
+        {cards.map((card, index) => {
+          const isFront = index === activeIndex;
           const offset = shortestOffset(index, activeIndex, total);
-          const isFront = offset === 0;
-          const isVisible = Math.abs(offset) <= 1;
-
-          let leftPercent: number;
-          if (offset === 0) leftPercent = PEEK;
-          else if (offset < 0) leftPercent = PEEK - FRONT_WIDTH;
-          else leftPercent = 100 - PEEK;
-
-          // Virtual offset: continuously interpolates this card's
-          // rotation/scale toward the neighboring slot as the drag
-          // progresses, instead of snapping between two fixed states.
-          const v = offset + clampedProgress;
-          const vSat = clamp(v, -1, 1);
-          const rotateDeg = vSat * SIDE_ROTATE_DEG;
-          const scale = 1 - Math.abs(vSat) * (1 - SIDE_SCALE);
-          const transformOrigin =
-            v < -1e-6 ? "right center" : v > 1e-6 ? "left center" : "center center";
-          const transform = `translateX(${deltaPx}px) rotateY(${rotateDeg}deg) scale(${scale})`;
+          const v = offset + progress;
+          const angleDeg = v * STEP_DEG;
+          const rad = (angleDeg * Math.PI) / 180;
+          const facing = Math.cos(rad);
+          const opacity = clamp(0.15 + 0.85 * Math.max(0, facing), 0.15, 1);
+          const depth = Math.round(facing * 1000);
 
           return (
-          <div
-            key={card.key}
-            role={isFront ? undefined : "button"}
-            tabIndex={isFront || !isVisible ? undefined : 0}
-            aria-label={isFront ? undefined : `Go to ${card.title}`}
-            onClick={() => handleCardClick(offset, isFront, isVisible)}
-            onKeyDown={(e) => {
-              if (!isFront && (e.key === "Enter" || e.key === " ")) {
-                e.preventDefault();
-                go(offset);
-              }
-            }}
-            className={`absolute inset-y-0 flex flex-col overflow-hidden rounded-2xl border border-white/50 bg-gradient-to-br dark:border-white/15 ${
-              GLASS_TINT[card.key] ?? DEFAULT_GLASS_TINT
-            } ${isFront ? "shadow-2xl" : "cursor-pointer shadow-md"} ${
-              isVisible ? "" : "invisible"
-            }`}
-            style={{
-              left: `${leftPercent}%`,
-              width: `${FRONT_WIDTH}%`,
-              zIndex: isFront ? 10 : 5,
-              transform,
-              transformOrigin,
-              transformStyle: "preserve-3d",
-              // Skip the blur while actively dragging: recomputing a
-              // backdrop blur every frame during the gesture is the most
-              // expensive case, so drop it until motion settles.
-              backdropFilter: isDragging ? undefined : "blur(12px)",
-              WebkitBackdropFilter: isDragging ? undefined : "blur(12px)",
-              transition: isDragging
-                ? "none"
-                : "left 300ms ease-out, transform 300ms ease-out, box-shadow 300ms ease-out",
-            }}
-          >
             <div
-              className={`flex h-12 shrink-0 items-center justify-between border-b px-5 font-medium ${
-                isFront
-                  ? "border-white/40 dark:border-white/10"
-                  : "border-transparent"
-              }`}
+              key={card.key}
+              role={isFront ? undefined : "button"}
+              tabIndex={isFront ? undefined : 0}
+              aria-label={isFront ? undefined : `Go to ${card.title}`}
+              onClick={() => handleCardClick(offset, isFront)}
+              onKeyDown={(e) => {
+                if (!isFront && (e.key === "Enter" || e.key === " ")) {
+                  e.preventDefault();
+                  go(offset);
+                }
+              }}
+              className={`absolute top-0 left-1/2 flex h-full flex-col overflow-hidden rounded-2xl border border-white/50 bg-gradient-to-br dark:border-white/15 ${
+                GLASS_TINT[card.key] ?? DEFAULT_GLASS_TINT
+              } ${isFront ? "shadow-2xl" : "cursor-pointer shadow-md"}`}
+              style={{
+                width: cardWidthPx,
+                marginLeft: -cardWidthPx / 2,
+                zIndex: 100 + depth,
+                opacity,
+                transform: `rotateY(${angleDeg}deg) translateZ(${radius}px)`,
+                backfaceVisibility: "hidden",
+                pointerEvents: facing > 0.1 ? "auto" : "none",
+                // Skip the blur while actively dragging: recomputing a
+                // backdrop blur every frame during the gesture is the most
+                // expensive case, so drop it until motion settles.
+                backdropFilter: isDragging ? undefined : "blur(12px)",
+                WebkitBackdropFilter: isDragging ? undefined : "blur(12px)",
+                transition: isDragging
+                  ? "none"
+                  : "transform 300ms ease-out, opacity 300ms ease-out, box-shadow 300ms ease-out",
+              }}
             >
-              <span>{card.title}</span>
-              {!isFront && (
-                <span className="text-xs text-black/40 dark:text-white/40">
-                  Tap to open
-                </span>
-              )}
+              <div
+                className={`flex h-12 shrink-0 items-center justify-between border-b px-5 font-medium ${
+                  isFront
+                    ? "border-white/40 dark:border-white/10"
+                    : "border-transparent"
+                }`}
+              >
+                <span>{card.title}</span>
+                {!isFront && (
+                  <span className="text-xs text-black/40 dark:text-white/40">
+                    Tap to open
+                  </span>
+                )}
+              </div>
+              <div
+                className={`flex-1 overflow-y-auto px-5 pb-5 ${
+                  isFront ? "" : "invisible"
+                }`}
+              >
+                {card.content}
+              </div>
             </div>
-            <div
-              className={`flex-1 overflow-y-auto px-5 pb-5 ${
-                isFront ? "" : "invisible"
-              }`}
-            >
-              {card.content}
-            </div>
-          </div>
           );
-        });
-      })()}
+        })}
+      </div>
     </div>
   );
 }

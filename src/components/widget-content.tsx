@@ -156,6 +156,114 @@ function ColorPicker({
   );
 }
 
+function UploadButton({
+  trips,
+  onUploaded,
+}: {
+  trips: TripSummary[];
+  onUploaded: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const [tripId, setTripId] = useState(trips[0]?.id ?? "");
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  function toggle() {
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + 6, left: rect.right - 220 });
+    }
+    setError(null);
+    setOpen((o) => !o);
+  }
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !tripId) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`/api/trips/${tripId}/photos`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Upload failed");
+        return;
+      }
+      setOpen(false);
+      onUploaded();
+    } finally {
+      setUploading(false);
+      if (fileInput.current) fileInput.current.value = "";
+    }
+  }
+
+  if (trips.length === 0) return null;
+
+  return (
+    <div data-no-drag className="shrink-0">
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={toggle}
+        aria-label="Upload photo"
+        className="flex h-6 w-6 items-center justify-center rounded-full border border-black/10 bg-white/90 text-black/60 shadow-sm dark:border-white/20 dark:bg-black/60 dark:text-white/70"
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </button>
+      {open &&
+        pos &&
+        createPortal(
+          <div data-no-drag>
+            <div
+              className="fixed inset-0 z-[9998]"
+              onClick={() => setOpen(false)}
+            />
+            <div
+              className="fixed z-[9999] flex w-56 flex-col gap-2 rounded-xl border border-black/10 bg-white p-3 text-sm shadow-lg dark:border-white/20 dark:bg-neutral-800"
+              style={{ top: pos.top, left: pos.left }}
+            >
+              <select
+                value={tripId}
+                onChange={(e) => setTripId(e.target.value)}
+                className="rounded-lg border border-black/10 px-2 py-1 text-xs dark:border-white/20 dark:bg-transparent"
+              >
+                {trips.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title}
+                  </option>
+                ))}
+              </select>
+              <label className="cursor-pointer rounded-lg border border-black/10 px-2 py-1.5 text-center text-xs dark:border-white/20">
+                {uploading ? "Uploading..." : "Choose photo"}
+                <input
+                  ref={fileInput}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={handleFile}
+                  disabled={uploading}
+                />
+              </label>
+              {error && <p className="text-xs text-red-600">{error}</p>}
+            </div>
+          </div>,
+          document.body,
+        )}
+    </div>
+  );
+}
+
 export function TripsWidget({
   trips,
   color,
@@ -286,17 +394,22 @@ export function PhotosWidget({
   photos,
   color,
   onColorChange,
+  trips,
+  onUploaded,
 }: {
   photos: PhotoSummary[];
   color: string;
   onColorChange: (color: string) => void;
+  trips: TripSummary[];
+  onUploaded: () => void;
 }) {
   const accent = ACCENT_HEX[color] ?? ACCENT_HEX.slate;
 
   if (photos.length === 0) {
     return (
       <div className="relative h-full w-full">
-        <div className="absolute top-1 right-1 z-10">
+        <div className="absolute top-1 right-1 z-10 flex gap-1">
+          <UploadButton trips={trips} onUploaded={onUploaded} />
           <ColorPicker color={color} onChange={onColorChange} />
         </div>
         <div className="flex h-full w-full items-center justify-center rounded-lg border-8 border-white bg-white text-center text-sm text-black/40 shadow-xl dark:border-white/90">
@@ -310,7 +423,8 @@ export function PhotosWidget({
 
   return (
     <div className="relative h-full w-full">
-      <div className="absolute top-1 right-1 z-20">
+      <div className="absolute top-1 right-1 z-20 flex gap-1">
+        <UploadButton trips={trips} onUploaded={onUploaded} />
         <ColorPicker color={color} onChange={onColorChange} />
       </div>
       {rest.map((photo, i) => (

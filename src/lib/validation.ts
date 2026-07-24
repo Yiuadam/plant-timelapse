@@ -74,3 +74,10 @@ export const widgetUpdateSchema = z.object({
   style: z.enum(WIDGET_STYLES).optional(),
   content: z.string().max(2000).optional(),
 });
+
+export const LOCATION_CARD_SIZES = ["sm", "md", "lg"] as const;
+
+export const locationCardSchema = z.object({
+  cardStyle: z.enum(WIDGET_STYLES).optional(),
+  cardSize: z.enum(LOCATION_CARD_SIZES).optional(),
+});

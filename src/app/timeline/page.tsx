@@ -1,9 +1,8 @@
-import Image from "next/image";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import AddTimelineEntry from "@/components/add-timeline-entry";
+import TimelineEntryCard from "@/components/timeline-entry-card";
 
 const RING_TINTS = [
   "from-sky-200 to-sky-100 text-sky-900 dark:from-sky-400/30 dark:to-sky-300/10 dark:text-sky-100",
@@ -11,10 +10,12 @@ const RING_TINTS = [
   "from-amber-200 to-amber-100 text-amber-900 dark:from-amber-400/30 dark:to-amber-300/10 dark:text-amber-100",
 ];
 
-const COLUMN_WIDTH = 150;
+const ACCENT_CYCLE = ["#0284c7", "#c026d3", "#d97706"];
+
+const COLUMN_WIDTH = 260;
 const CONNECTOR_LENGTH = 44;
-const CARD_HEIGHT = 156;
-const TIMELINE_HEIGHT = (CONNECTOR_LENGTH + CARD_HEIGHT) * 2 + 24;
+const MAX_CARD_HEIGHT = 210;
+const TIMELINE_HEIGHT = (CONNECTOR_LENGTH + MAX_CARD_HEIGHT) * 2 + 24;
 
 export default async function TimelinePage() {
   const session = await auth();
@@ -85,44 +86,23 @@ export default async function TimelinePage() {
                     }}
                   />
 
-                  <Link
-                    href={`/trips/${entry.trip.id}`}
-                    className="absolute flex w-28 -translate-x-1/2 flex-col items-center gap-2 text-center"
-                    style={{
-                      left: "50%",
-                      [isUp ? "bottom" : "top"]: CONNECTOR_LENGTH,
-                    }}
-                  >
-                    <div className="h-24 w-24 overflow-hidden rounded-full border-4 border-background shadow-lg ring-2 ring-black/10 dark:ring-white/15">
-                      {entry.photos[0] ? (
-                        <Image
-                          src={entry.photos[0].filePath}
-                          alt={entry.name}
-                          width={96}
-                          height={96}
-                          className="h-full w-full object-cover"
-                          unoptimized
-                        />
-                      ) : (
-                        <div
-                          className={`flex h-full w-full items-center justify-center bg-gradient-to-br text-lg font-semibold ${
-                            RING_TINTS[i % RING_TINTS.length]
-                          }`}
-                        >
-                          {entry.name.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-xs text-black/50 dark:text-white/50">
-                      {entry.effectiveDate.toLocaleDateString()}
-                    </div>
-                    <div className="w-full truncate text-sm font-medium">
-                      {entry.name}
-                    </div>
-                    <div className="w-full truncate text-xs text-black/40 dark:text-white/40">
-                      {entry.trip.title}
-                    </div>
-                  </Link>
+                  <TimelineEntryCard
+                    id={entry.id}
+                    name={entry.name}
+                    lat={entry.lat}
+                    lng={entry.lng}
+                    dateLabel={entry.effectiveDate.toLocaleDateString()}
+                    tripId={entry.trip.id}
+                    tripTitle={entry.trip.title}
+                    photoUrl={entry.photos[0]?.filePath ?? null}
+                    initial={entry.name.charAt(0).toUpperCase()}
+                    ringTint={RING_TINTS[i % RING_TINTS.length]}
+                    accent={ACCENT_CYCLE[i % ACCENT_CYCLE.length]}
+                    initialStyle={entry.cardStyle ?? "clean"}
+                    initialSize={entry.cardSize ?? "md"}
+                    isUp={isUp}
+                    connectorLength={CONNECTOR_LENGTH}
+                  />
                 </div>
               );
             })}
