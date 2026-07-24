@@ -656,6 +656,10 @@ export function PhotosWidget({
         <ColorPicker color={color} onChange={onColorChange} />
         <RemoveButton onRemove={onRemove} />
       </div>
+      {/* Offset each peeking photo diagonally (not just rotated in place)
+          so a real strip of it pokes out from under the front photo --
+          previously they were the same inset-0 box just rotated, which
+          left only the tiny rotated corner tips clickable. */}
       {rest.map((photo, i) => (
         <button
           key={photo.id}
@@ -668,7 +672,7 @@ export function PhotosWidget({
           aria-label="Bring this photo to the front"
           className="absolute inset-0 cursor-pointer overflow-hidden rounded-lg border-8 border-white bg-white shadow-lg dark:border-white/90"
           style={{
-            transform: `rotate(${(i + 1) * 7 - 3}deg)`,
+            transform: `rotate(${(i + 1) * 7 - 3}deg) translate(${(i + 1) * 10}px, ${(i + 1) * 10}px)`,
             zIndex: i,
           }}
         >
@@ -702,17 +706,21 @@ export function PhotosWidget({
         </div>
       </div>
       {photos.length > 1 && (
+        // Always visible rather than hover-only -- opacity-0 + group-hover
+        // never becomes visible on a touchscreen at all (there's no hover
+        // state to trigger it), so these were effectively undiscoverable
+        // on mobile. Bigger buttons too, for an easier tap target.
         <div
           data-no-drag
-          className="absolute inset-x-0 bottom-1 z-30 flex items-center justify-center gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+          className="absolute inset-x-0 bottom-1 z-30 flex items-center justify-center gap-2"
         >
           <button
             type="button"
             onClick={() => go(-1)}
             aria-label="Previous photo"
-            className="flex h-6 w-6 items-center justify-center rounded-full border border-black/10 bg-white/90 text-black/60 shadow-sm dark:border-white/20 dark:bg-black/60 dark:text-white/70"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-white/95 text-black/70 shadow-sm dark:border-white/20 dark:bg-black/70 dark:text-white/80"
           >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
@@ -723,9 +731,9 @@ export function PhotosWidget({
             type="button"
             onClick={() => go(1)}
             aria-label="Next photo"
-            className="flex h-6 w-6 items-center justify-center rounded-full border border-black/10 bg-white/90 text-black/60 shadow-sm dark:border-white/20 dark:bg-black/60 dark:text-white/70"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-white/95 text-black/70 shadow-sm dark:border-white/20 dark:bg-black/70 dark:text-white/80"
           >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
