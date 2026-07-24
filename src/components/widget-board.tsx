@@ -203,10 +203,13 @@ export default function WidgetBoard({
   }
 
   function persist(id: string, patch: Record<string, unknown>, isRetry = false) {
+    // keepalive so an in-flight save isn't cancelled by an immediate
+    // navigation/tab-close right after a drag or resize ends.
     fetch(`/api/widgets/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
+      keepalive: true,
     })
       .then((res) => {
         if (!res.ok && !isRetry) persist(id, patch, true);

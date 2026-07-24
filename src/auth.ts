@@ -6,6 +6,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { buildAppleClientSecret } from "@/lib/apple-client-secret";
+import { DEFAULT_WIDGETS } from "@/lib/default-widgets";
 
 const appleClientSecret = buildAppleClientSecret();
 
@@ -56,6 +57,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
   pages: { signIn: "/login" },
   providers,
+  events: {
+    // Fires exactly once, when the adapter inserts a brand-new User row
+    // (OAuth first sign-in). Credentials sign-up seeds the same way from
+    // its own register route, since that path creates the User directly
+    // rather than through the adapter.
+    async createUser({ user }) {
+      if (!user.id) return;
+      await prisma.widget.createMany({
+        data: DEFAULT_WIDGETS.map((w) => ({ ...w, userId: user.id as string })),
+      });
+    },
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) token.sub = user.id;
