@@ -26,6 +26,22 @@ export type PhotoSummary = {
 
 export type MapLoc = { id: string; name: string; lat: number; lng: number };
 
+export type TravelSummary = {
+  id: string;
+  type: string;
+  title: string;
+  location: string | null;
+  startAt: string;
+  tripId: string;
+  tripTitle: string;
+};
+
+const TRAVEL_TYPE_ICON: Record<string, string> = {
+  flight: "✈️",
+  hotel: "🏨",
+  train: "🚆",
+};
+
 export type WidgetData = {
   id: string;
   type: string;
@@ -609,6 +625,72 @@ export function MapWidget({
         style={{ border: `4px solid ${accent}` }}
       >
         <TripMap locations={locations} />
+      </div>
+    </div>
+  );
+}
+
+export function TravelWidget({
+  items,
+  color,
+  onColorChange,
+  style,
+  onStyleChange,
+  onRemove,
+}: {
+  items: TravelSummary[];
+  color: string;
+  onColorChange: (color: string) => void;
+  style: string;
+  onStyleChange: () => void;
+  onRemove: () => void;
+}) {
+  const tint = GLASS_TINT[color] ?? GLASS_TINT.blue;
+
+  return (
+    <div
+      className={`flex h-full flex-col overflow-hidden rounded-2xl border border-white/60 bg-gradient-to-br shadow-xl backdrop-blur-md dark:border-white/15 ${tint}`}
+    >
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/40 px-4 py-2.5 dark:border-white/10">
+        <span className="font-medium">Travel</span>
+        <div className="flex items-center gap-2">
+          <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
+          <ColorPicker color={color} onChange={onColorChange} />
+          <RemoveButton onRemove={onRemove} />
+        </div>
+      </div>
+      <div data-no-drag className="flex-1 space-y-2 overflow-y-auto p-3">
+        {items.length === 0 ? (
+          <p className="text-sm text-black/50 dark:text-white/50">
+            No upcoming flights, hotels, or trains yet.
+          </p>
+        ) : (
+          items.map((item) => (
+            <Link
+              key={item.id}
+              href={`/trips/${item.tripId}`}
+              prefetch={true}
+              className="flex items-start gap-2 rounded-xl bg-white/50 px-3 py-2 text-sm hover:bg-white/70 dark:bg-black/20 dark:hover:bg-black/30"
+            >
+              <span aria-hidden>{TRAVEL_TYPE_ICON[item.type] ?? "🧳"}</span>
+              <div className="min-w-0">
+                <div className="truncate font-medium">{item.title}</div>
+                <div className="truncate text-xs text-black/50 dark:text-white/50">
+                  {new Date(item.startAt).toLocaleString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                  {item.location && ` · ${item.location}`}
+                </div>
+                <div className="truncate text-xs text-black/40 dark:text-white/40">
+                  {item.tripTitle}
+                </div>
+              </div>
+            </Link>
+          ))
+        )}
       </div>
     </div>
   );

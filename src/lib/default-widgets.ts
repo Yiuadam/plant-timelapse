@@ -25,4 +25,5 @@ export const WIDGET_LIBRARY: Record<
   map: { label: "Map", w: 280, h: 280, color: "blue" },
   notes: { label: "Notes", w: 260, h: 220, color: "yellow" },
   sticky: { label: "Sticky note", w: 180, h: 180, color: "yellow" },
+  travel: { label: "Travel", w: 280, h: 320, color: "blue" },
 };

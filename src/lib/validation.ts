@@ -46,6 +46,7 @@ export const WIDGET_TYPES = [
   "map",
   "notes",
   "sticky",
+  "travel",
 ] as const;
 
 export const WIDGET_COLORS = [
@@ -84,4 +85,16 @@ export const LOCATION_CARD_SIZES = ["sm", "md", "lg"] as const;
 export const locationCardSchema = z.object({
   cardStyle: z.enum(WIDGET_STYLES).optional(),
   cardSize: z.enum(LOCATION_CARD_SIZES).optional(),
+});
+
+export const TRAVEL_TYPES = ["flight", "hotel", "train"] as const;
+
+export const travelItemSchema = z.object({
+  type: z.enum(TRAVEL_TYPES),
+  title: z.string().trim().min(1, "Title is required").max(200),
+  detail: z.string().trim().max(200).optional().or(z.literal("")),
+  location: z.string().trim().max(200).optional().or(z.literal("")),
+  startAt: z.string().min(1, "Start date/time is required"),
+  endAt: z.string().optional().or(z.literal("")),
+  notes: z.string().max(2000).optional().or(z.literal("")),
 });

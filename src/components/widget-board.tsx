@@ -9,10 +9,12 @@ import {
   MapWidget,
   NotesWidget,
   StickyWidget,
+  TravelWidget,
   ACCENT_HEX,
   type TripSummary,
   type PhotoSummary,
   type MapLoc,
+  type TravelSummary,
 } from "@/components/widget-content";
 import { InkSplash } from "@/components/ink-splash";
 import { WIDGET_LIBRARY } from "@/lib/default-widgets";
@@ -32,6 +34,7 @@ const DEFAULT_COLOR_BY_TYPE: Record<string, string> = {
   map: "blue",
   notes: "yellow",
   sticky: "yellow",
+  travel: "blue",
 };
 
 type Widget = {
@@ -136,11 +139,13 @@ export default function WidgetBoard({
   trips,
   recentPhotos,
   mapLocations,
+  travelItems,
 }: {
   initialWidgets: Widget[];
   trips: TripSummary[];
   recentPhotos: PhotoSummary[];
   mapLocations: MapLoc[];
+  travelItems: TravelSummary[];
 }) {
   const router = useRouter();
   const [widgets, setWidgets] = useState(initialWidgets);
@@ -460,6 +465,16 @@ export default function WidgetBoard({
               {widget.type === "map" && (
                 <MapWidget
                   locations={mapLocations}
+                  color={widget.color ?? "blue"}
+                  onColorChange={(color) => saveColor(widget.id, color)}
+                  style={widget.style ?? "clean"}
+                  onStyleChange={() => toggleStyle(widget.id, widget.style)}
+                  onRemove={() => removeWidget(widget.id)}
+                />
+              )}
+              {widget.type === "travel" && (
+                <TravelWidget
+                  items={travelItems}
                   color={widget.color ?? "blue"}
                   onColorChange={(color) => saveColor(widget.id, color)}
                   style={widget.style ?? "clean"}

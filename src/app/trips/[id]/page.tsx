@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import TripLocations from "@/components/trip-locations";
 import TripPhotos from "@/components/trip-photos";
 import TripWishlist from "@/components/trip-wishlist";
+import TripTravel from "@/components/trip-travel";
 import DeleteTripButton from "@/components/delete-trip-button";
 import StackedCards from "@/components/stacked-cards";
 import TripShare from "@/components/trip-share";
@@ -28,6 +29,7 @@ export default async function TripDetailPage({
       locations: { orderBy: { createdAt: "asc" } },
       photos: { orderBy: { createdAt: "desc" } },
       collaborators: { include: { user: { select: { name: true, email: true, image: true } } } },
+      travelItems: { orderBy: { startAt: "asc" } },
     },
   });
   if (!trip) notFound();
@@ -95,6 +97,25 @@ export default async function TripDetailPage({
             key: "photos",
             title: "Photos",
             content: <TripPhotos tripId={trip.id} photos={trip.photos} />,
+          },
+          {
+            key: "travel",
+            title: "Travel",
+            content: (
+              <TripTravel
+                tripId={trip.id}
+                items={trip.travelItems.map((item) => ({
+                  id: item.id,
+                  type: item.type,
+                  title: item.title,
+                  detail: item.detail,
+                  location: item.location,
+                  startAt: item.startAt.toISOString(),
+                  endAt: item.endAt ? item.endAt.toISOString() : null,
+                  notes: item.notes,
+                }))}
+              />
+            ),
           },
         ]}
       />

@@ -82,6 +82,7 @@ model Trip {
   locations     Location[]
   photos        Photo[]
   collaborators TripCollaborator[]
+  travelItems   TravelItem[]
 }
 
 model TripCollaborator {
@@ -143,6 +144,24 @@ model Photo {
 
   trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
   location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+}
+
+// A booking a user wants to keep track of for a trip — a flight, hotel
+// stay, or train ride. `type` is a free string rather than a Prisma enum
+// so new travel types can be added without a migration.
+model TravelItem {
+  id        String    @id @default(cuid())
+  tripId    String
+  type      String
+  title     String
+  detail    String?
+  location  String?
+  startAt   DateTime
+  endAt     DateTime?
+  notes     String?
+  createdAt DateTime  @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 }
 
 model Widget {
