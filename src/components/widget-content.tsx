@@ -641,9 +641,16 @@ export function PhotosWidget({
         <RemoveButton onRemove={onRemove} />
       </div>
       {rest.map((photo, i) => (
-        <div
+        <button
           key={photo.id}
-          className="absolute inset-0 overflow-hidden rounded-lg border-8 border-white bg-white shadow-lg dark:border-white/90"
+          type="button"
+          data-no-drag
+          onClick={() => {
+            const actualIndex = photos.findIndex((p) => p.id === photo.id);
+            if (actualIndex !== -1) setIndex(actualIndex);
+          }}
+          aria-label="Bring this photo to the front"
+          className="absolute inset-0 cursor-pointer overflow-hidden rounded-lg border-8 border-white bg-white shadow-lg dark:border-white/90"
           style={{
             transform: `rotate(${(i + 1) * 7 - 3}deg)`,
             zIndex: i,
@@ -656,7 +663,7 @@ export function PhotosWidget({
             sizes="220px"
             className="object-cover opacity-70"
           />
-        </div>
+        </button>
       ))}
       <div
         className="absolute inset-0 flex flex-col overflow-hidden rounded-lg border-8 border-white bg-white shadow-xl dark:border-white/90"

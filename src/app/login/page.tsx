@@ -87,6 +87,7 @@ function LoginForm() {
         Don&apos;t have an account?{" "}
         <Link
           href={`/register?next=${encodeURIComponent(next)}`}
+          prefetch={true}
           className="underline"
         >
           Register
