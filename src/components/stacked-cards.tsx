@@ -220,6 +220,14 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
           const depth = Math.round(facing * 1000);
 
           return (
+            // Safari fails to clip content with `overflow: hidden` when
+            // that same element also carries a live rotateY/translateZ
+            // (a known WebKit 3D-transform bug) — so the transform lives
+            // on this outer positioning div, and the rounded/bordered/
+            // clipped visual box is a separate, untransformed inner div.
+            // That inner div is what actually contains and clips the
+            // card content, so nothing can visually escape the card
+            // regardless of what its content does.
             <div
               key={card.key}
               role={isFront ? undefined : "button"}
@@ -232,9 +240,7 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
                   go(offset);
                 }
               }}
-              className={`absolute top-0 left-1/2 flex h-full flex-col overflow-hidden rounded-2xl border border-white/50 bg-gradient-to-br dark:border-white/15 ${
-                GLASS_TINT[card.key] ?? DEFAULT_GLASS_TINT
-              } ${isFront ? "shadow-2xl" : "cursor-pointer shadow-md"}`}
+              className="absolute top-0 left-1/2 h-full"
               style={{
                 width: cardWidthPx,
                 marginLeft: -cardWidthPx / 2,
@@ -244,36 +250,44 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
                 backfaceVisibility: "hidden",
                 WebkitBackfaceVisibility: "hidden",
                 pointerEvents: facing > 0.2 ? "auto" : "none",
-                // Skip the blur while actively dragging: recomputing a
-                // backdrop blur every frame during the gesture is the most
-                // expensive case, so drop it until motion settles.
-                backdropFilter: isDragging ? undefined : "blur(12px)",
-                WebkitBackdropFilter: isDragging ? undefined : "blur(12px)",
                 transition: isDragging
                   ? "none"
                   : "transform 300ms ease-out, opacity 300ms ease-out, box-shadow 300ms ease-out",
               }}
             >
               <div
-                className={`flex h-12 shrink-0 items-center justify-between border-b px-5 font-medium ${
-                  isFront
-                    ? "border-white/40 dark:border-white/10"
-                    : "border-transparent"
-                }`}
+                className={`flex h-full w-full flex-col overflow-hidden rounded-2xl border border-white/50 bg-gradient-to-br dark:border-white/15 ${
+                  GLASS_TINT[card.key] ?? DEFAULT_GLASS_TINT
+                } ${isFront ? "shadow-2xl" : "cursor-pointer shadow-md"}`}
+                style={{
+                  // Skip the blur while actively dragging: recomputing a
+                  // backdrop blur every frame during the gesture is the
+                  // most expensive case, so drop it until motion settles.
+                  backdropFilter: isDragging ? undefined : "blur(12px)",
+                  WebkitBackdropFilter: isDragging ? undefined : "blur(12px)",
+                }}
               >
-                <span>{card.title}</span>
-                {!isFront && (
-                  <span className="text-xs text-black/40 dark:text-white/40">
-                    Tap to open
-                  </span>
-                )}
-              </div>
-              <div
-                className={`flex-1 overflow-y-auto px-5 pb-5 ${
-                  isFront ? "" : "invisible"
-                }`}
-              >
-                {card.content}
+                <div
+                  className={`flex h-12 shrink-0 items-center justify-between border-b px-5 font-medium ${
+                    isFront
+                      ? "border-white/40 dark:border-white/10"
+                      : "border-transparent"
+                  }`}
+                >
+                  <span>{card.title}</span>
+                  {!isFront && (
+                    <span className="text-xs text-black/40 dark:text-white/40">
+                      Tap to open
+                    </span>
+                  )}
+                </div>
+                <div
+                  className={`min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-5 pb-5 ${
+                    isFront ? "" : "invisible"
+                  }`}
+                >
+                  {card.content}
+                </div>
               </div>
             </div>
           );

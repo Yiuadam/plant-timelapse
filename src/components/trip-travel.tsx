@@ -172,11 +172,11 @@ export default function TripTravel({
         {scanNote && (
           <p className="text-xs text-black/50 dark:text-white/50">{scanNote}</p>
         )}
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <select
             value={type}
             onChange={(e) => setType(e.target.value as (typeof TRAVEL_TYPES)[number])}
-            className="rounded-lg border border-black/10 px-2 py-1.5 text-sm dark:border-white/20 dark:bg-transparent"
+            className="w-full rounded-lg border border-black/10 px-2 py-1.5 text-sm dark:border-white/20 dark:bg-transparent sm:w-auto"
           >
             {TRAVEL_TYPES.map((t) => (
               <option key={t} value={t}>
@@ -185,7 +185,7 @@ export default function TripTravel({
             ))}
           </select>
           <input
-            className="flex-1 rounded-lg border border-black/10 px-2 py-1.5 text-sm dark:border-white/20"
+            className="w-full min-w-0 rounded-lg border border-black/10 px-2 py-1.5 text-sm dark:border-white/20 sm:flex-1"
             placeholder={
               type === "flight"
                 ? "Airline (e.g. Cathay Pacific)"
@@ -198,9 +198,9 @@ export default function TripTravel({
             required
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <input
-            className="flex-1 rounded-lg border border-black/10 px-2 py-1.5 text-sm dark:border-white/20"
+            className="w-full min-w-0 rounded-lg border border-black/10 px-2 py-1.5 text-sm dark:border-white/20 sm:flex-1"
             placeholder={
               type === "flight"
                 ? "Flight no. / confirmation"
@@ -210,7 +210,7 @@ export default function TripTravel({
             onChange={(e) => setDetail(e.target.value)}
           />
           <input
-            className="flex-1 rounded-lg border border-black/10 px-2 py-1.5 text-sm dark:border-white/20"
+            className="w-full min-w-0 rounded-lg border border-black/10 px-2 py-1.5 text-sm dark:border-white/20 sm:flex-1"
             placeholder={
               type === "hotel" ? "Address" : "Route (e.g. HKG → NRT)"
             }
@@ -218,8 +218,8 @@ export default function TripTravel({
             onChange={(e) => setLocation(e.target.value)}
           />
         </div>
-        <div className="flex gap-2">
-          <label className="flex-1 text-xs text-black/50 dark:text-white/50">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <label className="w-full min-w-0 text-xs text-black/50 sm:flex-1 dark:text-white/50">
             {type === "hotel" ? "Check-in" : "Departs"}
             <input
               type="datetime-local"
@@ -229,7 +229,7 @@ export default function TripTravel({
               required
             />
           </label>
-          <label className="flex-1 text-xs text-black/50 dark:text-white/50">
+          <label className="w-full min-w-0 text-xs text-black/50 sm:flex-1 dark:text-white/50">
             {type === "hotel" ? "Check-out" : "Arrives"} (optional)
             <input
               type="datetime-local"
