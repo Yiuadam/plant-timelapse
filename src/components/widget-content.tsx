@@ -343,6 +343,7 @@ function UploadButton({
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const [tripId, setTripId] = useState(trips[0]?.id ?? "");
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -356,29 +357,41 @@ function UploadButton({
     setOpen((o) => !o);
   }
 
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !tripId) return;
+  // Uploads one at a time (rather than Promise.all) so progress reflects
+  // real completions and a slow/failed photo doesn't hold up the others.
+  async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0 || !tripId) return;
     setUploading(true);
     setError(null);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch(`/api/trips/${tripId}/photos`, {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Upload failed");
-        return;
+    let failures = 0;
+    for (let i = 0; i < files.length; i++) {
+      setProgress({ done: i, total: files.length });
+      try {
+        const formData = new FormData();
+        formData.append("file", files[i]);
+        const res = await fetch(`/api/trips/${tripId}/photos`, {
+          method: "POST",
+          body: formData,
+        });
+        if (!res.ok) failures++;
+      } catch {
+        failures++;
       }
-      setOpen(false);
-      onUploaded();
-    } finally {
-      setUploading(false);
-      if (fileInput.current) fileInput.current.value = "";
     }
+    setProgress(null);
+    setUploading(false);
+    if (fileInput.current) fileInput.current.value = "";
+    if (failures > 0) {
+      setError(
+        failures === files.length
+          ? "Upload failed"
+          : `${failures} of ${files.length} photos failed to upload`,
+      );
+    } else {
+      setOpen(false);
+    }
+    onUploaded();
   }
 
   if (trips.length === 0) return null;
@@ -421,13 +434,16 @@ function UploadButton({
                 ))}
               </select>
               <label className="cursor-pointer rounded-lg border border-black/10 px-2 py-1.5 text-center text-xs dark:border-white/20">
-                {uploading ? "Uploading..." : "Choose photo"}
+                {uploading
+                  ? `Uploading ${(progress?.done ?? 0) + 1}/${progress?.total ?? 1}...`
+                  : "Choose photos"}
                 <input
                   ref={fileInput}
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/gif"
+                  multiple
                   className="hidden"
-                  onChange={handleFile}
+                  onChange={handleFiles}
                   disabled={uploading}
                 />
               </label>

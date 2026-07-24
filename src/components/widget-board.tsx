@@ -62,6 +62,10 @@ function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
 }
 
+function bottomOf(w: Widget) {
+  return w.y + (w.h / DESIGN_HEIGHT) * 100;
+}
+
 function ResizeHandle({
   scale,
   onPointerDown,
@@ -197,8 +201,14 @@ export default function WidgetBoard({
     1,
   );
   const fillHeight = Math.max(0, viewportHeight - containerTop - 24);
+  // The canvas has overflow-hidden, so a mobile stack tall enough to pass
+  // DESIGN_HEIGHT (e.g. several widgets vertically stacked -- see addWidget
+  // below) would otherwise get silently clipped. Grow the canvas to the
+  // tallest widget's bottom edge so nothing is cut off or forced to
+  // overlap the widget above it.
+  const contentBottom = widgets.length > 0 ? Math.max(...widgets.map(bottomOf)) : 0;
   const canvasHeight = isMobile
-    ? Math.max(DESIGN_HEIGHT * scale, fillHeight)
+    ? Math.max(DESIGN_HEIGHT * scale, fillHeight, (contentBottom / 100) * DESIGN_HEIGHT * scale + 24)
     : DESIGN_HEIGHT * scale;
 
   const dragState = useRef<{
@@ -345,14 +355,27 @@ export default function WidgetBoard({
             Math.floor(Math.random() * STICKY_COLOR_CYCLE.length)
           ]
         : undefined;
+    // Widgets are near full-width on narrow phones, so the desktop
+    // scatter-them-randomly placement stacked them almost directly on top
+    // of each other. Stack new widgets vertically below the lowest one
+    // instead, so the mobile board reads as a list rather than a jumble.
+    const x = isMobile ? 4 : 10 + Math.random() * 55;
+    // Not capped to keep it on one screen -- the canvas itself grows to
+    // fit (see contentBottom above), so a long stack just makes the board
+    // taller and scrollable instead of overlapping to squeeze in.
+    const y = isMobile
+      ? widgets.length === 0
+        ? 4
+        : Math.max(...widgets.map(bottomOf)) + 3
+      : 10 + Math.random() * 55;
     const res = await fetch("/api/widgets", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type,
         device,
-        x: 10 + Math.random() * 55,
-        y: 10 + Math.random() * 55,
+        x,
+        y,
         ...(color ? { color } : {}),
       }),
     });
@@ -361,6 +384,23 @@ export default function WidgetBoard({
       setWidgets((prev) => [...prev, data.widget]);
       router.refresh();
     }
+  }
+
+  // Re-lays-out every widget into a single non-overlapping vertical stack --
+  // an escape hatch for boards that already got jumbled from the old random
+  // mobile placement (or from dragging things on top of each other).
+  function tidyUp() {
+    const margin = 4;
+    let y = margin;
+    const next = [...widgets]
+      .sort((a, b) => a.y - b.y)
+      .map((w) => {
+        const patch = { x: margin, y };
+        y = y + (w.h / DESIGN_HEIGHT) * 100 + 3;
+        return { ...w, ...patch };
+      });
+    setWidgets(next);
+    next.forEach((w) => persist(w.id, { x: w.x, y: w.y }));
   }
 
   function removeWidget(id: string) {
@@ -387,9 +427,20 @@ export default function WidgetBoard({
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold">Your board</h1>
-        <AddWidgetMenu onAdd={addWidget} />
+        <div className="flex items-center gap-2">
+          {isMobile && widgets.length > 1 && (
+            <button
+              type="button"
+              onClick={tidyUp}
+              className="rounded-xl border border-black/10 px-3 py-1.5 text-sm dark:border-white/20"
+            >
+              Tidy up
+            </button>
+          )}
+          <AddWidgetMenu onAdd={addWidget} />
+        </div>
       </div>
 
       <div

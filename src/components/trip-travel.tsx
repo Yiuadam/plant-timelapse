@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { downscaleImageForUpload } from "@/lib/downscale-image";
 
 export type TravelItemData = {
   id: string;
@@ -34,45 +35,6 @@ function formatDateTime(value: string) {
   });
 }
 
-const MAX_SCAN_DIMENSION = 2000;
-
-// A full-resolution phone photo of a ticket (as opposed to a compressed
-// screenshot) can be several MB, easily large enough to trip the
-// platform's request-body limit before it ever reaches our route
-// handler — which fails as a non-JSON error page, not a normal error
-// response. Downscaling client-side keeps the upload comfortably small
-// while remaining plenty sharp for OCR.
-async function downscaleForScan(file: File): Promise<File> {
-  if (!file.type.startsWith("image/") || file.type === "image/gif") {
-    return file;
-  }
-  const bitmap = await createImageBitmap(file).catch(() => null);
-  if (!bitmap) return file;
-  const scale = Math.min(
-    1,
-    MAX_SCAN_DIMENSION / Math.max(bitmap.width, bitmap.height),
-  );
-  if (scale === 1 && file.size <= 3 * 1024 * 1024) {
-    bitmap.close();
-    return file;
-  }
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    bitmap.close();
-    return file;
-  }
-  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-  const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, "image/jpeg", 0.85),
-  );
-  if (!blob) return file;
-  return new File([blob], "scan.jpg", { type: "image/jpeg" });
-}
-
 export default function TripTravel({
   tripId,
   items,
@@ -103,7 +65,7 @@ export default function TripTravel({
     setScanError(null);
     setScanNote(null);
     try {
-      const uploadFile = await downscaleForScan(file);
+      const uploadFile = await downscaleImageForUpload(file);
       const formData = new FormData();
       formData.append("file", uploadFile);
       const res = await fetch(`/api/trips/${tripId}/travel/scan`, {

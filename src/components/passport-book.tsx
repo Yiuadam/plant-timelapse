@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { PassportStampGraphic } from "@/components/passport-stamp";
+import { PassportStampGraphic, StampStand } from "@/components/passport-stamp";
 import StampButton from "@/components/stamp-button";
 
 export type PassportBookProps = {
@@ -43,29 +43,37 @@ export default function PassportBook({
   available,
 }: PassportBookProps) {
   const [open, setOpen] = useState(false);
-  // Which stamp(s) to play the slam-in animation for -- computed in an
-  // effect (a side effect, not render) since it depends on Date.now(),
-  // which React's purity rules disallow calling directly during render.
+  // Which stamp(s) to play the slam-in animation for -- an id is newly
+  // "just stamped" when it appears in `stamps` that wasn't there on the
+  // previous render. Diffing against the previous id set (rather than
+  // comparing stampedAt to Date.now(), the original approach) avoids a
+  // race where a slow round trip -- e.g. a cold Vercel function -- pushes
+  // the stamp's real age past the animation window before the refreshed
+  // props even arrive, silently killing the animation.
+  const prevIdsRef = useRef<Set<string> | null>(null);
   const [justStampedIds, setJustStampedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const now = Date.now();
-    const recent = new Set(
-      stamps
-        .filter((s) => now - new Date(s.stampedAt).getTime() < 4000)
-        .map((s) => s.id),
-    );
-    if (recent.size === 0) return;
+    const currentIds = new Set(stamps.map((s) => s.id));
+    if (prevIdsRef.current === null) {
+      // First mount: nothing to diff against yet, so don't animate
+      // stamps that already existed before this page was opened.
+      prevIdsRef.current = currentIds;
+      return;
+    }
+    const previousIds = prevIdsRef.current;
+    const added = new Set([...currentIds].filter((id) => !previousIds.has(id)));
+    prevIdsRef.current = currentIds;
+    if (added.size === 0) return;
     // Deferred to a macrotask so the setState isn't synchronous within the
     // effect body itself (avoids a same-tick cascading render).
-    const kickoff = setTimeout(() => setJustStampedIds(recent), 0);
+    const kickoff = setTimeout(() => setJustStampedIds(added), 0);
     const clear = setTimeout(() => setJustStampedIds(new Set()), 4000);
     return () => {
       clearTimeout(kickoff);
       clearTimeout(clear);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stamps.length]);
+  }, [stamps]);
 
   return (
     <div style={{ perspective: 1800 }} className="mx-auto w-full max-w-2xl">
@@ -134,7 +142,8 @@ export default function PassportBook({
 
           {available.length > 0 && (
             <>
-              <h2 className="mb-3 text-sm font-medium text-black/70 dark:text-white/70">
+              <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-black/70 dark:text-white/70">
+                <StampStand />
                 Ready to stamp
               </h2>
               <div className="flex flex-col gap-2">

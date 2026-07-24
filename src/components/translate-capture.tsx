@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { downscaleImageForUpload } from "@/lib/downscale-image";
 
 type Result = {
   imageUrl: string;
@@ -25,15 +26,33 @@ export default function TranslateCapture() {
     setLoading(true);
 
     try {
+      const uploadFile = await downscaleImageForUpload(file);
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", uploadFile);
       const res = await fetch("/api/translate", { method: "POST", body: formData });
-      const data = await res.json().catch(() => ({}));
+      let data: Record<string, unknown> | null = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = null;
+      }
       if (!res.ok) {
-        setError(data.error ?? "Translation failed");
+        // A non-JSON response means the request never reached our route
+        // handler at all (a platform-level error page -- most often the
+        // photo was still too large, or a gateway timeout) rather than a
+        // normal error response.
+        const message =
+          typeof data?.error === "string"
+            ? data.error
+            : `Upload failed (${res.status}) — try a smaller or cropped photo`;
+        setError(message);
         return;
       }
-      setResult(data.translation);
+      if (!data) {
+        setError("Got an unexpected response — try again");
+        return;
+      }
+      setResult(data.translation as Result);
       router.refresh();
     } finally {
       setLoading(false);
