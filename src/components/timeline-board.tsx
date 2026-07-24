@@ -7,9 +7,11 @@ const CONNECTOR_LENGTH = 44;
 const MAX_CARD_HEIGHT = 210;
 const TIMELINE_HEIGHT = (CONNECTOR_LENGTH + MAX_CARD_HEIGHT) * 2 + 24;
 
-// Steps control the spacing (interval) between entries, not the cards
-// themselves — each card already has its own independent sm/md/lg size.
+// Spacing (interval between entries) is the dominant effect; card scale
+// moves too but more subtly, layered on top of each card's own independent
+// sm/md/lg size.
 const COLUMN_WIDTH_STEPS = [180, 220, 260, 320, 400];
+const CARD_SCALE_STEPS = [0.85, 0.92, 1, 1.1, 1.2];
 const COLUMN_WIDTH_STORAGE_KEY = "timeline-column-width";
 
 export type TimelineEntryData = {
@@ -57,12 +59,13 @@ export default function TimelineBoard({
   }
 
   const columnWidth = COLUMN_WIDTH_STEPS[stepIndex];
+  const cardScale = CARD_SCALE_STEPS[stepIndex];
   const width = entries.length * columnWidth + columnWidth;
 
   return (
     <div>
       <div className="mb-3 flex items-center justify-end gap-1 text-sm">
-        <span className="mr-1 text-black/40 dark:text-white/40">Spacing</span>
+        <span className="mr-1 text-black/40 dark:text-white/40">Size</span>
         <button
           type="button"
           onClick={() => setStep(stepIndex - 1)}
@@ -136,6 +139,7 @@ export default function TimelineBoard({
                   initialSize={entry.initialSize}
                   isUp={entry.isUp}
                   connectorLength={CONNECTOR_LENGTH}
+                  scale={cardScale}
                 />
               </div>
             );
