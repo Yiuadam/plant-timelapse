@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
+import { PassportStampGraphic } from "@/components/passport-stamp";
 
 const TripMap = dynamic(() => import("@/components/trip-map"), {
   ssr: false,
@@ -34,6 +35,13 @@ export type TravelSummary = {
   startAt: string;
   tripId: string;
   tripTitle: string;
+};
+
+export type PassportStampSummary = {
+  id: string;
+  tripId: string;
+  city: string;
+  stampedAt: string;
 };
 
 const TRAVEL_TYPE_ICON: Record<string, string> = {
@@ -900,6 +908,66 @@ export function StickyWidget({
         placeholder="Write a note..."
         className="min-h-0 flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-current/40"
       />
+    </div>
+  );
+}
+
+export function PassportWidget({
+  stamps,
+  color,
+  onColorChange,
+  style,
+  onStyleChange,
+  onRemove,
+}: {
+  stamps: PassportStampSummary[];
+  color: string;
+  onColorChange: (color: string) => void;
+  style: string;
+  onStyleChange: (style: string) => void;
+  onRemove: () => void;
+}) {
+  const tint = GLASS_TINT[color] ?? GLASS_TINT.indigo ?? GLASS_TINT.violet;
+
+  return (
+    <div
+      className={`flex h-full flex-col overflow-hidden rounded-2xl border border-white/60 bg-gradient-to-br shadow-xl backdrop-blur-md dark:border-white/15 ${tint}`}
+    >
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/40 px-4 py-2.5 dark:border-white/10">
+        <span className="font-medium">Passport</span>
+        <div className="flex items-center gap-2">
+          <StylePicker style={style} onChange={onStyleChange} />
+          <ColorPicker color={color} onChange={onColorChange} />
+          <RemoveButton onRemove={onRemove} />
+          <Link
+            href="/passport"
+            prefetch={true}
+            data-no-drag
+            className="rounded-lg bg-black/10 px-2 py-1 text-xs font-medium dark:bg-white/15"
+          >
+            Open
+          </Link>
+        </div>
+      </div>
+      <div data-no-drag className="flex-1 overflow-y-auto p-3">
+        {stamps.length === 0 ? (
+          <p className="text-sm text-black/50 dark:text-white/50">
+            No stamps yet — visit the Passport page once you&apos;ve been.
+          </p>
+        ) : (
+          <div className="flex flex-wrap justify-center gap-2">
+            {stamps.map((s) => (
+              <PassportStampGraphic
+                key={s.id}
+                city={s.city}
+                stampedAt={s.stampedAt}
+                seed={s.tripId}
+                size={64}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

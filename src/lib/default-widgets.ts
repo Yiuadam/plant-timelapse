@@ -26,4 +26,5 @@ export const WIDGET_LIBRARY: Record<
   notes: { label: "Notes", w: 260, h: 220, color: "yellow" },
   sticky: { label: "Sticky note", w: 180, h: 180, color: "yellow" },
   travel: { label: "Travel", w: 280, h: 320, color: "blue" },
+  passport: { label: "Passport", w: 260, h: 260, color: "indigo" },
 };

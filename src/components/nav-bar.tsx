@@ -33,6 +33,13 @@ export default function NavBar() {
                 Timeline
               </Link>
               <Link
+                href="/passport"
+                prefetch={true}
+                className={pathname.startsWith("/passport") ? "underline" : ""}
+              >
+                Passport
+              </Link>
+              <Link
                 href="/profile"
                 prefetch={true}
                 className={pathname.startsWith("/profile") ? "underline" : ""}

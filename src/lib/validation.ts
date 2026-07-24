@@ -60,6 +60,7 @@ export const WIDGET_TYPES = [
   "notes",
   "sticky",
   "travel",
+  "passport",
 ] as const;
 
 export const WIDGET_COLORS = [

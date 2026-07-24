@@ -31,6 +31,7 @@ model User {
   collaborations TripCollaborator[]
   editLocks      EditLock[]
   cardPresences  CardPresence[]
+  passportStamps PassportStamp[]
 }
 
 model Account {
@@ -86,6 +87,7 @@ model Trip {
   photos        Photo[]
   collaborators TripCollaborator[]
   travelItems   TravelItem[]
+  passportStamps PassportStamp[]
 }
 
 model TripCollaborator {
@@ -134,6 +136,23 @@ model CardPresence {
 
   @@unique([userId, resourceType, resourceId, cardKey])
   @@index([resourceType, resourceId, cardKey])
+}
+
+// A stamp a user has manually pressed into their passport for a trip's
+// destination. Each collaborator on a shared trip can stamp it into their
+// own passport independently -- @@unique is per (userId, tripId), not
+// tripId alone.
+model PassportStamp {
+  id        String   @id @default(cuid())
+  userId    String
+  tripId    String
+  city      String
+  stampedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tripId])
 }
 
 model Location {

@@ -10,11 +10,13 @@ import {
   NotesWidget,
   StickyWidget,
   TravelWidget,
+  PassportWidget,
   ACCENT_HEX,
   type TripSummary,
   type PhotoSummary,
   type MapLoc,
   type TravelSummary,
+  type PassportStampSummary,
 } from "@/components/widget-content";
 import { InkSplash } from "@/components/ink-splash";
 import { SketchBorder } from "@/components/sketch-border";
@@ -39,6 +41,7 @@ const DEFAULT_COLOR_BY_TYPE: Record<string, string> = {
   notes: "yellow",
   sticky: "yellow",
   travel: "blue",
+  passport: "indigo",
 };
 
 type Widget = {
@@ -144,12 +147,14 @@ export default function WidgetBoard({
   recentPhotos,
   mapLocations,
   travelItems,
+  passportStamps,
 }: {
   initialWidgets: Widget[];
   trips: TripSummary[];
   recentPhotos: PhotoSummary[];
   mapLocations: MapLoc[];
   travelItems: TravelSummary[];
+  passportStamps: PassportStampSummary[];
 }) {
   const router = useRouter();
   const [widgets, setWidgets] = useState(initialWidgets);
@@ -484,6 +489,16 @@ export default function WidgetBoard({
                 <TravelWidget
                   items={travelItems}
                   color={widget.color ?? "blue"}
+                  onColorChange={(color) => saveColor(widget.id, color)}
+                  style={widget.style ?? "clean"}
+                  onStyleChange={(style) => setWidgetStyle(widget.id, style)}
+                  onRemove={() => removeWidget(widget.id)}
+                />
+              )}
+              {widget.type === "passport" && (
+                <PassportWidget
+                  stamps={passportStamps}
+                  color={widget.color ?? "indigo"}
                   onColorChange={(color) => saveColor(widget.id, color)}
                   style={widget.style ?? "clean"}
                   onStyleChange={(style) => setWidgetStyle(widget.id, style)}
