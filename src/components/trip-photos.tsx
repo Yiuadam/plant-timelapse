@@ -111,7 +111,6 @@ export default function TripPhotos({
                   fill
                   className="object-cover"
                   sizes="200px"
-                  unoptimized
                 />
               </div>
               {photo.recognition ? (

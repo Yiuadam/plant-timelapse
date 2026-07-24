@@ -44,7 +44,11 @@ export default async function TripDetailPage({
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <Link href={`/trips/${trip.id}/edit`} className="text-sm underline">
+          <Link
+            href={`/trips/${trip.id}/edit`}
+            prefetch={true}
+            className="text-sm underline"
+          >
             Edit
           </Link>
           <DeleteTripButton tripId={trip.id} />

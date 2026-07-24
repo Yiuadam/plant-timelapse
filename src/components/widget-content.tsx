@@ -285,6 +285,7 @@ export function TripsWidget({
           <ColorPicker color={color} onChange={onColorChange} />
           <Link
             href="/trips/new"
+            prefetch={true}
             data-no-drag
             className="rounded-lg bg-black/10 px-2 py-1 text-xs font-medium dark:bg-white/15"
           >
@@ -305,6 +306,7 @@ export function TripsWidget({
             <Link
               key={trip.id}
               href={`/trips/${trip.id}`}
+              prefetch={true}
               className="block rounded-xl bg-white/50 px-3 py-2 text-sm hover:bg-white/70 dark:bg-black/20 dark:hover:bg-black/30"
             >
               <div className="truncate font-medium">{trip.title}</div>
@@ -448,7 +450,6 @@ export function PhotosWidget({
             fill
             sizes="220px"
             className="object-cover"
-            unoptimized
           />
         </div>
         <div

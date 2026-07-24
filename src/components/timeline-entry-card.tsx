@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -49,6 +49,24 @@ export default function TimelineEntryCard({
 }) {
   const [style, setStyle] = useState(initialStyle);
   const [size, setSize] = useState(initialSize);
+  const [mapVisible, setMapVisible] = useState(false);
+  const mapWrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = mapWrapRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setMapVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   function persist(patch: Record<string, unknown>) {
     fetch(`/api/locations/${id}`, {
@@ -80,6 +98,7 @@ export default function TimelineEntryCard({
   return (
     <Link
       href={`/trips/${tripId}`}
+      prefetch={true}
       className="group absolute -translate-x-1/2 select-none"
       style={{
         left: "50%",
@@ -107,7 +126,6 @@ export default function TimelineEntryCard({
                 width={squareSize}
                 height={squareSize}
                 className="h-full w-full object-cover"
-                unoptimized
               />
             ) : (
               <div
@@ -118,13 +136,16 @@ export default function TimelineEntryCard({
             )}
           </div>
           <div
+            ref={mapWrapRef}
             className="overflow-hidden rounded-xl border-2 border-background shadow ring-1 ring-black/10 dark:ring-white/15"
             style={{ width: squareSize, height: squareSize }}
           >
-            <TripMap
-              locations={[{ id, name, lat, lng }]}
-              interactive={false}
-            />
+            {mapVisible && (
+              <TripMap
+                locations={[{ id, name, lat, lng }]}
+                interactive={false}
+              />
+            )}
           </div>
         </div>
 
