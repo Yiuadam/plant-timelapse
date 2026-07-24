@@ -132,6 +132,7 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
         className="absolute inset-0"
         style={{
           transformStyle: "preserve-3d",
+          WebkitTransformStyle: "preserve-3d",
           // Pull the whole drum back by its radius so a card at rotateY(0)
           // nets back to zero depth instead of being thrust toward the
           // viewer (and magnified by perspective) by translateZ(radius)
@@ -146,7 +147,12 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
           const angleDeg = v * STEP_DEG;
           const rad = (angleDeg * Math.PI) / 180;
           const facing = Math.cos(rad);
-          const opacity = clamp(0.15 + 0.85 * Math.max(0, facing), 0.15, 1);
+          // Cubed so opacity collapses quickly away from dead-center instead
+          // of fading linearly with angle — outgoing/incoming cards mid-swap
+          // otherwise stay simultaneously legible and visually overlap
+          // (worse on iOS Safari, where backface culling during a live
+          // rotateY is less reliable than Chromium's).
+          const opacity = clamp(0.06 + 0.94 * Math.max(0, facing) ** 3, 0.06, 1);
           const depth = Math.round(facing * 1000);
 
           return (
@@ -172,7 +178,8 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
                 opacity,
                 transform: `rotateY(${angleDeg}deg) translateZ(${radius}px)`,
                 backfaceVisibility: "hidden",
-                pointerEvents: facing > 0.1 ? "auto" : "none",
+                WebkitBackfaceVisibility: "hidden",
+                pointerEvents: facing > 0.2 ? "auto" : "none",
                 // Skip the blur while actively dragging: recomputing a
                 // backdrop blur every frame during the gesture is the most
                 // expensive case, so drop it until motion settles.
