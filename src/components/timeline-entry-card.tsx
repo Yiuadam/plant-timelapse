@@ -30,6 +30,7 @@ export default function TimelineEntryCard({
   initialSize,
   isUp,
   connectorLength,
+  scale = 1,
 }: {
   id: string;
   name: string;
@@ -46,6 +47,7 @@ export default function TimelineEntryCard({
   initialSize: string;
   isUp: boolean;
   connectorLength: number;
+  scale?: number;
 }) {
   const [style, setStyle] = useState(initialStyle);
   const [size, setSize] = useState(initialSize);
@@ -93,7 +95,7 @@ export default function TimelineEntryCard({
     persist({ cardSize: next });
   }
 
-  const squareSize = SIZE_PX[size] ?? SIZE_PX.md;
+  const squareSize = (SIZE_PX[size] ?? SIZE_PX.md) * scale;
 
   return (
     <Link
