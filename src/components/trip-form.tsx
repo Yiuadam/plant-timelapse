@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useEditLock } from "@/hooks/use-edit-lock";
 
 export type TripFormValues = {
   title: string;
@@ -31,6 +32,17 @@ export default function TripForm({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const { lockedByOther, acquire, release } = useEditLock("trip", tripId ?? "");
+
+  useEffect(() => {
+    if (mode !== "edit" || !tripId) return;
+    acquire();
+    return () => release();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, tripId]);
+
+  const locked = mode === "edit" && Boolean(lockedByOther);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -54,6 +66,7 @@ export default function TripForm({
       }
 
       const trip = await res.json();
+      release();
       router.push(`/trips/${trip.id}`);
       router.refresh();
     } finally {
@@ -62,57 +75,74 @@ export default function TripForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <label className="flex flex-col gap-1 text-sm">
-        Title
-        <input
-          className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        Destination
-        <input
-          className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
-          value={destination}
-          onChange={(e) => setDestination(e.target.value)}
-        />
-      </label>
-      <div className="flex gap-4">
-        <label className="flex flex-1 flex-col gap-1 text-sm">
-          Start date
+    <form
+      onSubmit={handleSubmit}
+      className={`flex flex-col gap-4 rounded-2xl ${
+        locked
+          ? "border-2 border-amber-500 p-3 dark:border-amber-400"
+          : ""
+      }`}
+    >
+      {locked && lockedByOther && (
+        <div className="flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-400/10 dark:text-amber-200">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500 text-xs font-medium text-white">
+            {lockedByOther.userName.charAt(0).toUpperCase()}
+          </span>
+          {lockedByOther.userName} is currently editing this trip
+        </div>
+      )}
+      <fieldset disabled={locked} className="flex flex-col gap-4">
+        <label className="flex flex-col gap-1 text-sm">
+          Title
           <input
-            type="date"
             className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
           />
         </label>
-        <label className="flex flex-1 flex-col gap-1 text-sm">
-          End date
+        <label className="flex flex-col gap-1 text-sm">
+          Destination
           <input
-            type="date"
             className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
+            value={destination}
+            onChange={(e) => setDestination(e.target.value)}
           />
         </label>
-      </div>
-      <label className="flex flex-col gap-1 text-sm">
-        Notes
-        <textarea
-          className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
-          rows={4}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-        />
-      </label>
+        <div className="flex gap-4">
+          <label className="flex flex-1 flex-col gap-1 text-sm">
+            Start date
+            <input
+              type="date"
+              className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </label>
+          <label className="flex flex-1 flex-col gap-1 text-sm">
+            End date
+            <input
+              type="date"
+              className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </label>
+        </div>
+        <label className="flex flex-col gap-1 text-sm">
+          Notes
+          <textarea
+            className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
+            rows={4}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+        </label>
+      </fieldset>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || locked}
         className="rounded-xl bg-foreground px-4 py-2 text-background disabled:opacity-50"
       >
         {loading

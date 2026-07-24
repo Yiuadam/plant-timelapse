@@ -25,6 +25,9 @@ model User {
   sessions Session[]
   trips    Trip[]
   widgets  Widget[]
+
+  collaborations TripCollaborator[]
+  editLocks      EditLock[]
 }
 
 model Account {
@@ -71,12 +74,44 @@ model Trip {
   startDate   DateTime?
   endDate     DateTime?
   notes       String?
+  shareToken  String?   @unique
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  locations Location[]
-  photos    Photo[]
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locations     Location[]
+  photos        Photo[]
+  collaborators TripCollaborator[]
+}
+
+model TripCollaborator {
+  id        String   @id @default(cuid())
+  tripId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, userId])
+}
+
+// A short-lived claim that a user is actively editing one field/resource,
+// used to show other viewers a "someone's editing this" indicator and
+// prevent simultaneous edits from silently overwriting each other. Expires
+// on its own (heartbeat-refreshed while focused) so a crashed tab can't
+// leave a permanent lock.
+model EditLock {
+  id           String   @id @default(cuid())
+  resourceType String
+  resourceId   String
+  userId       String
+  userName     String
+  expiresAt    DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceType, resourceId])
 }
 
 model Location {

@@ -3,6 +3,7 @@ import path from "path";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
+import { canAccessTrip } from "@/lib/trip-access";
 
 const MEDIA_TYPES: Record<string, string> = {
   ".jpg": "image/jpeg",
@@ -29,11 +30,8 @@ export async function POST(
   }
 
   const { id } = await params;
-  const photo = await prisma.photo.findUnique({
-    where: { id },
-    include: { trip: true },
-  });
-  if (!photo || photo.trip.userId !== userId) {
+  const photo = await prisma.photo.findUnique({ where: { id } });
+  if (!photo || !(await canAccessTrip(photo.tripId, userId))) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

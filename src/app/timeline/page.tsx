@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import AddTimelineEntry from "@/components/add-timeline-entry";
 import TimelineBoard from "@/components/timeline-board";
+import { tripAccessWhere } from "@/lib/trip-access";
 
 const RING_TINTS = [
   "from-sky-200 to-sky-100 text-sky-900 dark:from-sky-400/30 dark:to-sky-300/10 dark:text-sky-100",
@@ -18,14 +19,14 @@ export default async function TimelinePage() {
 
   const [locations, trips] = await Promise.all([
     prisma.location.findMany({
-      where: { visited: true, trip: { userId: session.user.id } },
+      where: { visited: true, trip: tripAccessWhere(session.user.id) },
       include: {
         photos: { take: 1, orderBy: { createdAt: "asc" } },
         trip: { select: { id: true, title: true } },
       },
     }),
     prisma.trip.findMany({
-      where: { userId: session.user.id },
+      where: tripAccessWhere(session.user.id),
       orderBy: { createdAt: "desc" },
       select: { id: true, title: true },
     }),

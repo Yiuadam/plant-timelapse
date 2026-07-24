@@ -1,27 +1,25 @@
 import { NextResponse } from "next/server";
-import { del } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
-import { canAccessTrip } from "@/lib/trip-access";
 
 export async function DELETE(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string; collaboratorId: string }> },
 ) {
   const userId = await requireUserId();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = await params;
-  const photo = await prisma.photo.findUnique({ where: { id } });
-  if (!photo || !(await canAccessTrip(photo.tripId, userId))) {
+  const { id, collaboratorId } = await params;
+  const trip = await prisma.trip.findUnique({ where: { id } });
+  if (!trip || trip.userId !== userId) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  await prisma.photo.delete({ where: { id } });
-
-  await del(photo.filePath).catch(() => {});
+  await prisma.tripCollaborator.deleteMany({
+    where: { id: collaboratorId, tripId: id },
+  });
 
   return NextResponse.json({ ok: true });
 }

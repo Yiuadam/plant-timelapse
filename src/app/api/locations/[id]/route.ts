@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { locationCardSchema } from "@/lib/validation";
+import { canAccessTrip } from "@/lib/trip-access";
 
 export async function PATCH(
   request: Request,
@@ -13,11 +14,8 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const location = await prisma.location.findUnique({
-    where: { id },
-    include: { trip: true },
-  });
-  if (!location || location.trip.userId !== userId) {
+  const location = await prisma.location.findUnique({ where: { id } });
+  if (!location || !(await canAccessTrip(location.tripId, userId))) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -48,11 +46,8 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const location = await prisma.location.findUnique({
-    where: { id },
-    include: { trip: true },
-  });
-  if (!location || location.trip.userId !== userId) {
+  const location = await prisma.location.findUnique({ where: { id } });
+  if (!location || !(await canAccessTrip(location.tripId, userId))) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

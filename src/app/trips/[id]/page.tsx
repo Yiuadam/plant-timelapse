@@ -7,6 +7,8 @@ import TripPhotos from "@/components/trip-photos";
 import TripWishlist from "@/components/trip-wishlist";
 import DeleteTripButton from "@/components/delete-trip-button";
 import StackedCards from "@/components/stacked-cards";
+import TripShare from "@/components/trip-share";
+import { getAccessibleTrip } from "@/lib/trip-access";
 
 export default async function TripDetailPage({
   params,
@@ -17,15 +19,18 @@ export default async function TripDetailPage({
   if (!session?.user?.id) redirect("/login");
 
   const { id } = await params;
+  const accessible = await getAccessibleTrip(id, session.user.id);
+  if (!accessible) notFound();
+
   const trip = await prisma.trip.findUnique({
     where: { id },
     include: {
       locations: { orderBy: { createdAt: "asc" } },
       photos: { orderBy: { createdAt: "desc" } },
+      collaborators: { include: { user: { select: { name: true, email: true, image: true } } } },
     },
   });
-
-  if (!trip || trip.userId !== session.user.id) notFound();
+  if (!trip) notFound();
 
   const visitedLocations = trip.locations.filter((loc) => loc.visited);
   const wishlistLocations = trip.locations.filter((loc) => !loc.visited);
@@ -44,6 +49,17 @@ export default async function TripDetailPage({
           </p>
         </div>
         <div className="flex items-center gap-4">
+          <TripShare
+            tripId={trip.id}
+            isOwner={accessible.isOwner}
+            shareToken={trip.shareToken}
+            collaborators={trip.collaborators.map((c) => ({
+              id: c.id,
+              name: c.user.name,
+              email: c.user.email,
+              image: c.user.image,
+            }))}
+          />
           <Link
             href={`/trips/${trip.id}/edit`}
             prefetch={true}
@@ -51,7 +67,7 @@ export default async function TripDetailPage({
           >
             Edit
           </Link>
-          <DeleteTripButton tripId={trip.id} />
+          {accessible.isOwner && <DeleteTripButton tripId={trip.id} />}
         </div>
       </div>
 
