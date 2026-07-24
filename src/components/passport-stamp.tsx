@@ -64,6 +64,27 @@ function LandmarkIcon({ kind, ink }: { kind: (typeof LANDMARKS)[number]; ink: st
   }
 }
 
+// The rubber-stamp handle itself, shown only for the instant a fresh stamp
+// is pressed: drops in from above, presses flat onto the page in sync with
+// the ink graphic's own reveal (see the `stamp-slam` animation's delay in
+// globals.css), then lifts back away.
+function StampTool({ ink }: { ink: string }) {
+  return (
+    <div
+      className="animate-stamp-tool-drop pointer-events-none absolute inset-0 flex items-center justify-center"
+      style={{ perspective: 300 }}
+      aria-hidden
+    >
+      <svg width="55%" height="55%" viewBox="0 0 40 56">
+        <rect x="16" y="0" width="8" height="20" rx="3" fill="#3f3f46" />
+        <rect x="9" y="15" width="22" height="9" rx="3" fill="#52525b" />
+        <rect x="3" y="24" width="34" height="27" rx="5" fill="#27272a" />
+        <rect x="7" y="28" width="26" height="19" rx="3" fill={ink} opacity="0.85" />
+      </svg>
+    </div>
+  );
+}
+
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, {
     month: "short",
@@ -97,7 +118,7 @@ export function PassportStampGraphic({
 
   return (
     <div
-      className={`shrink-0 select-none ${animate ? "animate-stamp-slam" : ""}`}
+      className={`relative shrink-0 select-none ${animate ? "animate-stamp-slam" : ""}`}
       style={{ width: size, height: size }}
       title={`${city} — stamped ${formatDate(stampedAt)}`}
     >
@@ -133,6 +154,7 @@ export function PassportStampGraphic({
           </span>
         </div>
       </div>
+      {animate && <StampTool ink={ink} />}
     </div>
   );
 }
