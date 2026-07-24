@@ -156,6 +156,33 @@ function ColorPicker({
   );
 }
 
+export function StyleToggle({
+  active,
+  onToggle,
+}: {
+  active: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      data-no-drag
+      onClick={onToggle}
+      aria-label={active ? "Use clean style" : "Use ink-splash style"}
+      aria-pressed={active}
+      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border shadow-sm ${
+        active
+          ? "border-black/20 bg-black/80 text-white dark:border-white/30 dark:bg-white/80 dark:text-black"
+          : "border-black/10 bg-white/80 text-black/50 dark:border-white/20 dark:bg-black/40 dark:text-white/60"
+      }`}
+    >
+      <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M7 21c-1.1 0-2-.9-2-2 0-.4.1-.7.3-1L9 12l6-6 3 3-6 6-6.3 3.7c-.3.2-.7.3-1 .3zM14.5 4.5l3-3a1 1 0 0 1 1.4 0l2.6 2.6a1 1 0 0 1 0 1.4l-3 3-4-4z" />
+      </svg>
+    </button>
+  );
+}
+
 function UploadButton({
   trips,
   onUploaded,
@@ -268,10 +295,14 @@ export function TripsWidget({
   trips,
   color,
   onColorChange,
+  style,
+  onStyleChange,
 }: {
   trips: TripSummary[];
   color: string;
   onColorChange: (color: string) => void;
+  style: string;
+  onStyleChange: () => void;
 }) {
   const tint = GLASS_TINT[color] ?? GLASS_TINT.violet;
 
@@ -282,6 +313,7 @@ export function TripsWidget({
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/40 px-4 py-2.5 dark:border-white/10">
         <span className="font-medium">Trips</span>
         <div className="flex items-center gap-2">
+          <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
           <ColorPicker color={color} onChange={onColorChange} />
           <Link
             href="/trips/new"
@@ -324,9 +356,13 @@ export function TripsWidget({
 export function ClockWidget({
   color,
   onColorChange,
+  style,
+  onStyleChange,
 }: {
   color: string;
   onColorChange: (color: string) => void;
+  style: string;
+  onStyleChange: () => void;
 }) {
   const [now, setNow] = useState<Date | null>(null);
   const tint = GLASS_TINT[color] ?? GLASS_TINT.slate;
@@ -351,7 +387,8 @@ export function ClockWidget({
 
   return (
     <div className="relative h-full w-full">
-      <div className="absolute top-1 right-1 z-10">
+      <div className="absolute top-1 right-1 z-10 flex items-center gap-1">
+        <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
         <ColorPicker color={color} onChange={onColorChange} />
       </div>
       <div
@@ -396,12 +433,16 @@ export function PhotosWidget({
   photos,
   color,
   onColorChange,
+  style,
+  onStyleChange,
   trips,
   onUploaded,
 }: {
   photos: PhotoSummary[];
   color: string;
   onColorChange: (color: string) => void;
+  style: string;
+  onStyleChange: () => void;
   trips: TripSummary[];
   onUploaded: () => void;
 }) {
@@ -410,8 +451,9 @@ export function PhotosWidget({
   if (photos.length === 0) {
     return (
       <div className="relative h-full w-full">
-        <div className="absolute top-1 right-1 z-10 flex gap-1">
+        <div className="absolute top-1 right-1 z-10 flex items-center gap-1">
           <UploadButton trips={trips} onUploaded={onUploaded} />
+          <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
           <ColorPicker color={color} onChange={onColorChange} />
         </div>
         <div className="flex h-full w-full items-center justify-center rounded-lg border-8 border-white bg-white text-center text-sm text-black/40 shadow-xl dark:border-white/90">
@@ -425,8 +467,9 @@ export function PhotosWidget({
 
   return (
     <div className="relative h-full w-full">
-      <div className="absolute top-1 right-1 z-20 flex gap-1">
+      <div className="absolute top-1 right-1 z-20 flex items-center gap-1">
         <UploadButton trips={trips} onUploaded={onUploaded} />
+        <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
         <ColorPicker color={color} onChange={onColorChange} />
       </div>
       {rest.map((photo, i) => (
@@ -467,16 +510,21 @@ export function MapWidget({
   locations,
   color,
   onColorChange,
+  style,
+  onStyleChange,
 }: {
   locations: MapLoc[];
   color: string;
   onColorChange: (color: string) => void;
+  style: string;
+  onStyleChange: () => void;
 }) {
   const accent = ACCENT_HEX[color] ?? ACCENT_HEX.blue;
 
   return (
     <div className="relative h-full w-full">
-      <div className="absolute top-1 right-1 z-[1200]">
+      <div className="absolute top-1 right-1 z-[1200] flex items-center gap-1">
+        <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
         <ColorPicker color={color} onChange={onColorChange} />
       </div>
       <div
@@ -493,11 +541,15 @@ export function NotesWidget({
   content,
   color,
   onColorChange,
+  style,
+  onStyleChange,
   onSave,
 }: {
   content: string;
   color: string;
   onColorChange: (color: string) => void;
+  style: string;
+  onStyleChange: () => void;
   onSave: (value: string) => void;
 }) {
   const [value, setValue] = useState(content);
@@ -511,7 +563,10 @@ export function NotesWidget({
         <span className="text-xs font-medium text-black/50 dark:text-white/50">
           Notes
         </span>
-        <ColorPicker color={color} onChange={onColorChange} />
+        <div className="flex items-center gap-1">
+          <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
+          <ColorPicker color={color} onChange={onColorChange} />
+        </div>
       </div>
       <textarea
         data-no-drag
@@ -530,12 +585,16 @@ export function StickyWidget({
   content,
   onSave,
   onColorChange,
+  style,
+  onStyleChange,
   onRemove,
 }: {
   color: string;
   content: string;
   onSave: (value: string) => void;
   onColorChange: (color: string) => void;
+  style: string;
+  onStyleChange: () => void;
   onRemove: () => void;
 }) {
   const [value, setValue] = useState(content);
@@ -546,7 +605,10 @@ export function StickyWidget({
       className={`flex h-full flex-col rounded-sm bg-gradient-to-br p-3 shadow-xl ${gradient}`}
     >
       <div className="mb-1 flex shrink-0 items-center justify-between">
-        <ColorPicker color={color} onChange={onColorChange} />
+        <div className="flex items-center gap-1">
+          <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
+          <ColorPicker color={color} onChange={onColorChange} />
+        </div>
         <button
           type="button"
           data-no-drag
