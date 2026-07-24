@@ -9,6 +9,7 @@ import TripTravel from "@/components/trip-travel";
 import DeleteTripButton from "@/components/delete-trip-button";
 import StackedCards from "@/components/stacked-cards";
 import TripShare from "@/components/trip-share";
+import LiveRefresh from "@/components/live-refresh";
 import { getAccessibleTrip } from "@/lib/trip-access";
 
 export default async function TripDetailPage({
@@ -39,6 +40,7 @@ export default async function TripDetailPage({
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
+      <LiveRefresh />
       <div className="mb-6 flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold">{trip.title}</h1>
@@ -78,6 +80,8 @@ export default async function TripDetailPage({
       )}
 
       <StackedCards
+        presenceResourceType="trip"
+        presenceResourceId={trip.id}
         cards={[
           {
             key: "places",
