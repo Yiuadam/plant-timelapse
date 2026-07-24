@@ -88,6 +88,8 @@ model Location {
   lng       Float
   visited   Boolean   @default(true)
   visitedAt DateTime?
+  cardStyle String?   @default("clean")
+  cardSize  String?   @default("md")
   createdAt DateTime  @default(now())
 
   trip   Trip    @relation(fields: [tripId], references: [id], onDelete: Cascade)

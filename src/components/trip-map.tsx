@@ -60,10 +60,12 @@ export default function TripMap({
   locations,
   onMapClick,
   pendingMarker,
+  interactive = true,
 }: {
   locations: MapLocation[];
   onMapClick?: (lat: number, lng: number) => void;
   pendingMarker?: { lat: number; lng: number } | null;
+  interactive?: boolean;
 }) {
   const center = useMemo<[number, number]>(() => {
     if (pendingMarker) return [pendingMarker.lat, pendingMarker.lng];
@@ -77,7 +79,14 @@ export default function TripMap({
     <MapContainer
       center={center}
       zoom={zoom}
-      scrollWheelZoom
+      scrollWheelZoom={interactive}
+      dragging={interactive}
+      doubleClickZoom={interactive}
+      touchZoom={interactive}
+      boxZoom={interactive}
+      keyboard={interactive}
+      zoomControl={interactive}
+      attributionControl={interactive}
       className="h-full w-full"
     >
       <TileLayer
