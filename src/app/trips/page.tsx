@@ -10,7 +10,8 @@ export default async function TripsPage() {
   if (!session?.user?.id) redirect("/login");
   const userId = session.user.id;
 
-  const [trips, widgets, recentPhotos, visitedLocations] = await Promise.all([
+  const [trips, widgets, recentPhotos, visitedLocations, upcomingTravel] =
+    await Promise.all([
     prisma.trip.findMany({
       where: tripAccessWhere(userId),
       orderBy: { createdAt: "desc" },
@@ -31,6 +32,20 @@ export default async function TripsPage() {
     prisma.location.findMany({
       where: { visited: true, trip: tripAccessWhere(userId) },
       select: { id: true, name: true, lat: true, lng: true },
+    }),
+    prisma.travelItem.findMany({
+      where: { trip: tripAccessWhere(userId) },
+      orderBy: { startAt: "asc" },
+      take: 8,
+      select: {
+        id: true,
+        type: true,
+        title: true,
+        location: true,
+        startAt: true,
+        tripId: true,
+        trip: { select: { title: true } },
+      },
     }),
   ]);
 
@@ -62,6 +77,15 @@ export default async function TripsPage() {
         tripTitle: p.trip.title,
       }))}
       mapLocations={visitedLocations}
+      travelItems={upcomingTravel.map((item) => ({
+        id: item.id,
+        type: item.type,
+        title: item.title,
+        location: item.location,
+        startAt: item.startAt.toISOString(),
+        tripId: item.tripId,
+        tripTitle: item.trip.title,
+      }))}
     />
   );
 }

@@ -24,6 +24,8 @@ const GLASS_TINT: Record<string, string> = {
     "from-amber-200/50 to-amber-100/10 dark:from-amber-400/20 dark:to-amber-300/5",
   photos:
     "from-fuchsia-200/50 to-fuchsia-100/10 dark:from-fuchsia-400/20 dark:to-fuchsia-300/5",
+  travel:
+    "from-emerald-200/50 to-emerald-100/10 dark:from-emerald-400/20 dark:to-emerald-300/5",
 };
 const DEFAULT_GLASS_TINT = "from-white/40 to-white/10 dark:from-white/10 dark:to-white/5";
 
