@@ -28,7 +28,7 @@ export default function ThemeToggle() {
   }
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-center">
+    <div className="pointer-events-none fixed inset-x-0 bottom-20 z-30 flex justify-center sm:bottom-4">
       <button
         type="button"
         onClick={toggle}
