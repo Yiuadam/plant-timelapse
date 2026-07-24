@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "@/components/auth-provider";
@@ -33,6 +33,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Travel Log",
   description: "Record trips, locations, and photos.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Travel Log",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#38bdf8",
 };
 
 export default function RootLayout({
