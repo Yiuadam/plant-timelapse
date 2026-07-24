@@ -28,23 +28,23 @@ export default function ThemeToggle() {
   }
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-20 z-30 flex justify-center sm:bottom-4">
-      <button
-        type="button"
-        onClick={toggle}
-        aria-label="Toggle dark and light mode"
-        className="pointer-events-auto flex h-11 items-center gap-2 rounded-full border border-white/50 bg-white/70 px-4 text-sm font-medium shadow-lg backdrop-blur-md transition hover:bg-white/90 dark:border-white/15 dark:bg-black/40 dark:hover:bg-black/60"
-      >
-        {theme === "dark" ? (
-          <>
-            <span aria-hidden>🌙</span> Dark
-          </>
-        ) : (
-          <>
-            <span aria-hidden>☀️</span> Light
-          </>
-        )}
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label="Toggle dark and light mode"
+      className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-black/10 bg-white/70 px-3 text-sm font-medium shadow-sm backdrop-blur-md transition hover:bg-white/90 dark:border-white/15 dark:bg-black/40 dark:hover:bg-black/60"
+    >
+      {theme === "dark" ? (
+        <>
+          <span aria-hidden>🌙</span>
+          <span className="hidden sm:inline">Dark</span>
+        </>
+      ) : (
+        <>
+          <span aria-hidden>☀️</span>
+          <span className="hidden sm:inline">Light</span>
+        </>
+      )}
+    </button>
   );
 }

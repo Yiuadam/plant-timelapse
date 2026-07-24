@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import ThemeToggle from "@/components/theme-toggle";
 
 export default function NavBar() {
   const { data: session, status } = useSession();
@@ -13,44 +14,54 @@ export default function NavBar() {
       <Link href="/" className="font-semibold">
         Travel Log
       </Link>
-      <nav className="hidden items-center gap-4 text-sm sm:flex">
-        {status === "authenticated" && (
-          <>
-            <Link
-              href="/trips"
-              prefetch={true}
-              className={pathname.startsWith("/trips") ? "underline" : ""}
-            >
-              Trips
-            </Link>
-            <Link
-              href="/timeline"
-              prefetch={true}
-              className={pathname.startsWith("/timeline") ? "underline" : ""}
-            >
-              Timeline
-            </Link>
-            <span className="text-black/50 dark:text-white/50">
-              {session.user?.name ?? session.user?.email}
-            </span>
-            <button onClick={() => signOut({ callbackUrl: "/" })}>
-              Log out
-            </button>
-          </>
-        )}
+      <div className="flex items-center gap-3">
+        <nav className="hidden items-center gap-4 text-sm sm:flex">
+          {status === "authenticated" && (
+            <>
+              <Link
+                href="/trips"
+                prefetch={true}
+                className={pathname.startsWith("/trips") ? "underline" : ""}
+              >
+                Trips
+              </Link>
+              <Link
+                href="/timeline"
+                prefetch={true}
+                className={pathname.startsWith("/timeline") ? "underline" : ""}
+              >
+                Timeline
+              </Link>
+              <Link
+                href="/profile"
+                prefetch={true}
+                className={pathname.startsWith("/profile") ? "underline" : ""}
+              >
+                Profile
+              </Link>
+              <span className="text-black/50 dark:text-white/50">
+                {session.user?.name ?? session.user?.email}
+              </span>
+              <button onClick={() => signOut({ callbackUrl: "/" })}>
+                Log out
+              </button>
+            </>
+          )}
+          {status === "unauthenticated" && (
+            <>
+              <Link href="/login">Log in</Link>
+              <Link href="/register">Register</Link>
+            </>
+          )}
+        </nav>
         {status === "unauthenticated" && (
-          <>
+          <nav className="flex items-center gap-4 text-sm sm:hidden">
             <Link href="/login">Log in</Link>
             <Link href="/register">Register</Link>
-          </>
+          </nav>
         )}
-      </nav>
-      {status === "unauthenticated" && (
-        <nav className="flex items-center gap-4 text-sm sm:hidden">
-          <Link href="/login">Log in</Link>
-          <Link href="/register">Register</Link>
-        </nav>
-      )}
+        <ThemeToggle />
+      </div>
     </header>
   );
 }

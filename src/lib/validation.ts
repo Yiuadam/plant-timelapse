@@ -23,6 +23,19 @@ export const locationSchema = z.object({
   visited: z.boolean().optional(),
 });
 
+export const GENDER_OPTIONS = [
+  "female",
+  "male",
+  "non-binary",
+  "prefer-not-to-say",
+] as const;
+
+export const profileSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(100),
+  birthday: z.string().optional().or(z.literal("")),
+  gender: z.enum(GENDER_OPTIONS).optional().or(z.literal("")),
+});
+
 export const inviteSchema = z.object({
   email: z.string().trim().toLowerCase().email("Invalid email"),
 });

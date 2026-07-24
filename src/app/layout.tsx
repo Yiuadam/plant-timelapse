@@ -4,7 +4,6 @@ import "./globals.css";
 import AuthProvider from "@/components/auth-provider";
 import NavBar from "@/components/nav-bar";
 import AssistantWidget from "@/components/assistant-widget";
-import ThemeToggle from "@/components/theme-toggle";
 import MobileTabBar from "@/components/mobile-tab-bar";
 
 // Runs before paint so the stored/system theme applies immediately —
@@ -59,7 +58,6 @@ export default function RootLayout({
           <AssistantWidget />
           <MobileTabBar />
         </AuthProvider>
-        <ThemeToggle />
       </body>
     </html>
   );
