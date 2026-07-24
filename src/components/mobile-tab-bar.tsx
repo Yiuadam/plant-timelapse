@@ -53,6 +53,11 @@ export default function MobileTabBar() {
           label="Timeline"
           active={pathname.startsWith("/timeline")}
         />
+        <TabLink
+          href="/passport"
+          label="Passport"
+          active={pathname.startsWith("/passport")}
+        />
         <button
           type="button"
           onClick={() => setAccountOpen(true)}

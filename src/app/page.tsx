@@ -36,7 +36,7 @@ export default async function Home() {
 
   const userId = session.user.id;
 
-  const [trips, widgets, recentPhotos, visitedLocations, upcomingTravel] =
+  const [trips, widgets, recentPhotos, visitedLocations, upcomingTravel, passportStamps] =
     await Promise.all([
       prisma.trip.findMany({
         where: tripAccessWhere(userId),
@@ -72,6 +72,11 @@ export default async function Home() {
           tripId: true,
           trip: { select: { title: true } },
         },
+      }),
+      prisma.passportStamp.findMany({
+        where: { userId },
+        orderBy: { stampedAt: "desc" },
+        select: { id: true, tripId: true, city: true, stampedAt: true },
       }),
     ]);
 
@@ -111,6 +116,12 @@ export default async function Home() {
         startAt: item.startAt.toISOString(),
         tripId: item.tripId,
         tripTitle: item.trip.title,
+      }))}
+      passportStamps={passportStamps.map((s) => ({
+        id: s.id,
+        tripId: s.tripId,
+        city: s.city,
+        stampedAt: s.stampedAt.toISOString(),
       }))}
     />
   );
