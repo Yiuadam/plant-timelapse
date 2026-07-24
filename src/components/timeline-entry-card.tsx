@@ -80,6 +80,7 @@ export default function TimelineEntryCard({
   return (
     <Link
       href={`/trips/${tripId}`}
+      prefetch={true}
       className="group absolute -translate-x-1/2 select-none"
       style={{
         left: "50%",

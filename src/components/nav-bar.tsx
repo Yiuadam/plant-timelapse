@@ -18,12 +18,14 @@ export default function NavBar() {
           <>
             <Link
               href="/trips"
+              prefetch={true}
               className={pathname.startsWith("/trips") ? "underline" : ""}
             >
               Trips
             </Link>
             <Link
               href="/timeline"
+              prefetch={true}
               className={pathname.startsWith("/timeline") ? "underline" : ""}
             >
               Timeline
