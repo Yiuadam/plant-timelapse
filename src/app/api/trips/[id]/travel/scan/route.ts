@@ -67,6 +67,27 @@ function parseExtractedJson(text: string) {
 
 export async function POST(
   request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  try {
+    return await handlePost(request, context);
+  } catch (err) {
+    // A last-resort net: the Anthropic call already has its own specific
+    // error handling below, but a failure anywhere else in this handler
+    // (auth lookup, the trip-access DB query, reading the upload) would
+    // otherwise crash uncaught and come back as a non-JSON platform error
+    // page — which the client can only show as a vague, misleading
+    // message no matter what actually broke.
+    console.error("travel scan: unexpected error", err);
+    return NextResponse.json(
+      { error: "Something went wrong scanning that photo — try again" },
+      { status: 500 },
+    );
+  }
+}
+
+async function handlePost(
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const userId = await requireUserId();
