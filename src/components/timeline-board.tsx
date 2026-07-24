@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import TimelineEntryCard from "@/components/timeline-entry-card";
 
-const COLUMN_WIDTH = 260;
 const CONNECTOR_LENGTH = 44;
 const MAX_CARD_HEIGHT = 210;
 const TIMELINE_HEIGHT = (CONNECTOR_LENGTH + MAX_CARD_HEIGHT) * 2 + 24;
 
-const ZOOM_STEPS = [0.75, 1, 1.25, 1.5, 1.75];
-const ZOOM_STORAGE_KEY = "timeline-zoom";
+// Steps control the spacing (interval) between entries, not the cards
+// themselves — each card already has its own independent sm/md/lg size.
+const COLUMN_WIDTH_STEPS = [180, 220, 260, 320, 400];
+const COLUMN_WIDTH_STORAGE_KEY = "timeline-column-width";
 
 export type TimelineEntryData = {
   id: string;
@@ -33,50 +34,52 @@ export default function TimelineBoard({
 }: {
   entries: TimelineEntryData[];
 }) {
-  const [zoomIndex, setZoomIndex] = useState(1); // index into ZOOM_STEPS, default 1x
+  const [stepIndex, setStepIndex] = useState(2); // index into COLUMN_WIDTH_STEPS, default 260px
 
   useEffect(() => {
     const kickoff = setTimeout(() => {
-      const saved = localStorage.getItem(ZOOM_STORAGE_KEY);
+      const saved = localStorage.getItem(COLUMN_WIDTH_STORAGE_KEY);
       if (saved !== null) {
-        const idx = ZOOM_STEPS.indexOf(Number(saved));
-        if (idx !== -1) setZoomIndex(idx);
+        const idx = COLUMN_WIDTH_STEPS.indexOf(Number(saved));
+        if (idx !== -1) setStepIndex(idx);
       }
     }, 0);
     return () => clearTimeout(kickoff);
   }, []);
 
-  function setZoom(idx: number) {
-    const clamped = Math.max(0, Math.min(ZOOM_STEPS.length - 1, idx));
-    setZoomIndex(clamped);
-    localStorage.setItem(ZOOM_STORAGE_KEY, String(ZOOM_STEPS[clamped]));
+  function setStep(idx: number) {
+    const clamped = Math.max(0, Math.min(COLUMN_WIDTH_STEPS.length - 1, idx));
+    setStepIndex(clamped);
+    localStorage.setItem(
+      COLUMN_WIDTH_STORAGE_KEY,
+      String(COLUMN_WIDTH_STEPS[clamped]),
+    );
   }
 
-  const zoom = ZOOM_STEPS[zoomIndex];
-  const width = entries.length * COLUMN_WIDTH + COLUMN_WIDTH;
-  const height = TIMELINE_HEIGHT;
+  const columnWidth = COLUMN_WIDTH_STEPS[stepIndex];
+  const width = entries.length * columnWidth + columnWidth;
 
   return (
     <div>
       <div className="mb-3 flex items-center justify-end gap-1 text-sm">
-        <span className="mr-1 text-black/40 dark:text-white/40">Size</span>
+        <span className="mr-1 text-black/40 dark:text-white/40">Spacing</span>
         <button
           type="button"
-          onClick={() => setZoom(zoomIndex - 1)}
-          disabled={zoomIndex === 0}
-          aria-label="Shrink timeline"
+          onClick={() => setStep(stepIndex - 1)}
+          disabled={stepIndex === 0}
+          aria-label="Shrink timeline spacing"
           className="flex h-7 w-7 items-center justify-center rounded-full border border-black/10 disabled:opacity-30 dark:border-white/20"
         >
           −
         </button>
         <span className="w-10 text-center text-xs text-black/50 dark:text-white/50">
-          {Math.round(zoom * 100)}%
+          {columnWidth}px
         </span>
         <button
           type="button"
-          onClick={() => setZoom(zoomIndex + 1)}
-          disabled={zoomIndex === ZOOM_STEPS.length - 1}
-          aria-label="Enlarge timeline"
+          onClick={() => setStep(stepIndex + 1)}
+          disabled={stepIndex === COLUMN_WIDTH_STEPS.length - 1}
+          aria-label="Enlarge timeline spacing"
           className="flex h-7 w-7 items-center justify-center rounded-full border border-black/10 disabled:opacity-30 dark:border-white/20"
         >
           +
@@ -85,62 +88,58 @@ export default function TimelineBoard({
 
       <div className="snap-x snap-mandatory overflow-x-auto pb-4">
         <div
+          className="relative"
           style={{
-            width: width * zoom,
-            height: height * zoom,
+            width,
+            height: TIMELINE_HEIGHT,
+            transition: "width 0.2s ease",
           }}
         >
-          <div
-            className="relative"
-            style={{
-              width,
-              height,
-              transform: `scale(${zoom})`,
-              transformOrigin: "top left",
-            }}
-          >
-            <div className="pointer-events-none absolute top-1/2 right-0 left-0 h-px bg-black/10 dark:bg-white/15" />
+          <div className="pointer-events-none absolute top-1/2 right-0 left-0 h-px bg-black/10 dark:bg-white/15" />
 
-            {entries.map((entry, i) => {
-              const x = i * COLUMN_WIDTH + COLUMN_WIDTH / 2;
+          {entries.map((entry, i) => {
+            const x = i * columnWidth + columnWidth / 2;
 
-              return (
+            return (
+              <div
+                key={entry.id}
+                className="absolute top-1/2 snap-center"
+                style={{
+                  left: x,
+                  transform: "translateX(-50%)",
+                  transition: "left 0.2s ease",
+                }}
+              >
+                <div className="absolute top-0 left-1/2 z-10 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-black/40 dark:bg-white/50" />
+
                 <div
-                  key={entry.id}
-                  className="absolute top-1/2 snap-center"
-                  style={{ left: x, transform: "translateX(-50%)" }}
-                >
-                  <div className="absolute top-0 left-1/2 z-10 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-black/40 dark:bg-white/50" />
+                  className="absolute left-1/2 w-px -translate-x-1/2 bg-black/15 dark:bg-white/20"
+                  style={{
+                    height: CONNECTOR_LENGTH,
+                    [entry.isUp ? "bottom" : "top"]: 0,
+                  }}
+                />
 
-                  <div
-                    className="absolute left-1/2 w-px -translate-x-1/2 bg-black/15 dark:bg-white/20"
-                    style={{
-                      height: CONNECTOR_LENGTH,
-                      [entry.isUp ? "bottom" : "top"]: 0,
-                    }}
-                  />
-
-                  <TimelineEntryCard
-                    id={entry.id}
-                    name={entry.name}
-                    lat={entry.lat}
-                    lng={entry.lng}
-                    dateLabel={entry.dateLabel}
-                    tripId={entry.tripId}
-                    tripTitle={entry.tripTitle}
-                    photoUrl={entry.photoUrl}
-                    initial={entry.initial}
-                    ringTint={entry.ringTint}
-                    accent={entry.accent}
-                    initialStyle={entry.initialStyle}
-                    initialSize={entry.initialSize}
-                    isUp={entry.isUp}
-                    connectorLength={CONNECTOR_LENGTH}
-                  />
-                </div>
-              );
-            })}
-          </div>
+                <TimelineEntryCard
+                  id={entry.id}
+                  name={entry.name}
+                  lat={entry.lat}
+                  lng={entry.lng}
+                  dateLabel={entry.dateLabel}
+                  tripId={entry.tripId}
+                  tripTitle={entry.tripTitle}
+                  photoUrl={entry.photoUrl}
+                  initial={entry.initial}
+                  ringTint={entry.ringTint}
+                  accent={entry.accent}
+                  initialStyle={entry.initialStyle}
+                  initialSize={entry.initialSize}
+                  isUp={entry.isUp}
+                  connectorLength={CONNECTOR_LENGTH}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

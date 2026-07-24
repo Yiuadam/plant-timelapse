@@ -202,12 +202,21 @@ export default function WidgetBoard({
     );
   }
 
-  function persist(id: string, patch: Record<string, unknown>) {
+  function persist(id: string, patch: Record<string, unknown>, isRetry = false) {
     fetch(`/api/widgets/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
-    }).catch(() => {});
+    })
+      .then((res) => {
+        if (!res.ok && !isRetry) persist(id, patch, true);
+      })
+      .catch(() => {
+        // One retry covers a transient network blip; a repeat failure means
+        // the layout change is genuinely lost, which is better surfaced by
+        // a stale reload than by retrying forever.
+        if (!isRetry) persist(id, patch, true);
+      });
   }
 
   function handlePointerDown(e: React.PointerEvent, widget: Widget) {
