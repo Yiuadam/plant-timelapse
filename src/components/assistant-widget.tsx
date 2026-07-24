@@ -62,7 +62,7 @@ export default function AssistantWidget() {
   }
 
   return (
-    <div className="fixed right-4 bottom-4 z-50 flex flex-col items-end gap-3">
+    <div className="fixed right-4 bottom-20 z-50 flex flex-col items-end gap-3 sm:bottom-4">
       {open && (
         <div className="flex h-96 w-80 flex-col overflow-hidden rounded-2xl border border-white/50 bg-gradient-to-br from-violet-200/50 to-violet-100/10 shadow-2xl backdrop-blur-md dark:border-white/15 dark:from-violet-400/20 dark:to-violet-300/5">
           <div className="flex h-12 shrink-0 items-center justify-between border-b border-white/40 px-4 font-medium dark:border-white/10">

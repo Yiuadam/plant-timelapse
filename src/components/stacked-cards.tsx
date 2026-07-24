@@ -48,6 +48,11 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
   const justDraggedRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  // The 520px card height was a fixed desktop constant; on a short phone
+  // viewport that forced awkward extra page scrolling just to reach the
+  // "Add" button below the card. Scale it down (never up) against the
+  // viewport instead, so it comfortably fits above the fold on mobile.
+  const [viewportHeight, setViewportHeight] = useState(0);
   // Each card's rotation offset is tracked as a continuous, unwrapped
   // number of drum steps rather than recomputed fresh via shortestOffset()
   // every render. Re-deriving the shortest wrap-around each render means a
@@ -74,6 +79,13 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
     const observer = new ResizeObserver(update);
     observer.observe(el);
     return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const update = () => setViewportHeight(window.innerHeight);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
   }, []);
 
   // Keep railOffsets in sync if the set of cards ever changes (new keys
@@ -172,6 +184,9 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
     if (!isFront) go(offset);
   }
 
+  const cardHeight = viewportHeight
+    ? clamp(viewportHeight * 0.6, 380, CARD_HEIGHT)
+    : CARD_HEIGHT;
   const width = containerWidth || 1;
   const cardWidthPx = width * CARD_WIDTH_RATIO;
   const radius = cardWidthPx / 2 / Math.tan((STEP_DEG * Math.PI) / 180 / 2);
@@ -185,7 +200,7 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
     <div
       ref={containerRef}
       className="relative touch-pan-y select-none overflow-hidden"
-      style={{ height: CARD_HEIGHT, perspective: 1600 }}
+      style={{ height: cardHeight, perspective: 1600 }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}

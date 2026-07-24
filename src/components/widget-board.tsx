@@ -22,9 +22,11 @@ import { WIDGET_LIBRARY } from "@/lib/default-widgets";
 const DESIGN_WIDTH = 1000;
 const DESIGN_HEIGHT = 880;
 // On phones the board scales against a narrower reference width than the
-// desktop 1000px canvas, so widget text/controls land near their natural
-// size instead of shrinking to ~0.35x (unreadable) alongside the layout.
-const MOBILE_DESIGN_WIDTH = 460;
+// desktop 1000px canvas, so widget text/controls land at (or above) their
+// full native size — scale is clamped to a max of 1 below, so this just
+// controls how quickly mobile hits that ceiling — instead of shrinking
+// proportionally with the layout the way the desktop 1000px canvas does.
+const MOBILE_DESIGN_WIDTH = 320;
 const MIN_SCALE = 0.36;
 const STICKY_COLOR_CYCLE = ["yellow", "pink", "blue", "green"];
 const DEFAULT_COLOR_BY_TYPE: Record<string, string> = {

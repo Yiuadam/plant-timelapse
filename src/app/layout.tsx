@@ -5,6 +5,7 @@ import AuthProvider from "@/components/auth-provider";
 import NavBar from "@/components/nav-bar";
 import AssistantWidget from "@/components/assistant-widget";
 import ThemeToggle from "@/components/theme-toggle";
+import MobileTabBar from "@/components/mobile-tab-bar";
 
 // Runs before paint so the stored/system theme applies immediately —
 // without this, the page would flash the opposite theme for a frame
@@ -54,8 +55,9 @@ export default function RootLayout({
         </div>
         <AuthProvider>
           <NavBar />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 pb-20 sm:pb-0">{children}</main>
           <AssistantWidget />
+          <MobileTabBar />
         </AuthProvider>
         <ThemeToggle />
       </body>

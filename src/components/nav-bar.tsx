@@ -13,7 +13,7 @@ export default function NavBar() {
       <Link href={session ? "/trips" : "/"} className="font-semibold">
         Travel Log
       </Link>
-      <nav className="flex items-center gap-4 text-sm">
+      <nav className="hidden items-center gap-4 text-sm sm:flex">
         {status === "authenticated" && (
           <>
             <Link
@@ -45,6 +45,12 @@ export default function NavBar() {
           </>
         )}
       </nav>
+      {status === "unauthenticated" && (
+        <nav className="flex items-center gap-4 text-sm sm:hidden">
+          <Link href="/login">Log in</Link>
+          <Link href="/register">Register</Link>
+        </nav>
+      )}
     </header>
   );
 }
