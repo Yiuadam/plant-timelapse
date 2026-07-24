@@ -133,6 +133,7 @@ model CardPresence {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, resourceType, resourceId, cardKey])
+  @@index([resourceType, resourceId, cardKey])
 }
 
 model Location {

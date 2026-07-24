@@ -69,9 +69,13 @@ export const WIDGET_COLORS = [
   "green",
   "yellow",
   "violet",
+  "teal",
+  "rose",
+  "indigo",
+  "coral",
 ] as const;
 
-export const WIDGET_STYLES = ["clean", "ink"] as const;
+export const WIDGET_STYLES = ["clean", "ink", "sketch", "frame"] as const;
 
 export const widgetCreateSchema = z.object({
   type: z.enum(WIDGET_TYPES),

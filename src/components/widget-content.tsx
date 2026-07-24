@@ -56,6 +56,10 @@ export const WIDGET_COLORS = [
   "green",
   "yellow",
   "violet",
+  "teal",
+  "rose",
+  "indigo",
+  "coral",
 ] as const;
 
 export const SWATCH_CLASSES: Record<string, string> = {
@@ -65,6 +69,10 @@ export const SWATCH_CLASSES: Record<string, string> = {
   green: "bg-emerald-300",
   yellow: "bg-amber-300",
   violet: "bg-violet-300",
+  teal: "bg-teal-300",
+  rose: "bg-rose-300",
+  indigo: "bg-indigo-300",
+  coral: "bg-orange-300",
 };
 
 export const ACCENT_HEX: Record<string, string> = {
@@ -74,6 +82,10 @@ export const ACCENT_HEX: Record<string, string> = {
   green: "#059669",
   yellow: "#d97706",
   violet: "#7c3aed",
+  teal: "#0d9488",
+  rose: "#e11d48",
+  indigo: "#4f46e5",
+  coral: "#ea580c",
 };
 
 export const GLASS_TINT: Record<string, string> = {
@@ -87,6 +99,12 @@ export const GLASS_TINT: Record<string, string> = {
     "from-amber-200/60 to-amber-100/20 dark:from-amber-400/25 dark:to-amber-300/10",
   violet:
     "from-indigo-200/60 to-indigo-100/20 dark:from-indigo-400/25 dark:to-indigo-300/10",
+  teal: "from-teal-200/60 to-teal-100/20 dark:from-teal-400/25 dark:to-teal-300/10",
+  rose: "from-rose-200/60 to-rose-100/20 dark:from-rose-400/25 dark:to-rose-300/10",
+  indigo:
+    "from-indigo-200/60 to-indigo-100/20 dark:from-indigo-400/25 dark:to-indigo-300/10",
+  coral:
+    "from-orange-200/60 to-orange-100/20 dark:from-orange-400/25 dark:to-orange-300/10",
 };
 
 const PAPER_TINT: Record<string, string> = {
@@ -99,6 +117,12 @@ const PAPER_TINT: Record<string, string> = {
     "from-amber-50 to-amber-100/70 dark:from-amber-400/15 dark:to-amber-300/5",
   violet:
     "from-violet-50 to-violet-100/70 dark:from-violet-400/15 dark:to-violet-300/5",
+  teal: "from-teal-50 to-teal-100/70 dark:from-teal-400/15 dark:to-teal-300/5",
+  rose: "from-rose-50 to-rose-100/70 dark:from-rose-400/15 dark:to-rose-300/5",
+  indigo:
+    "from-indigo-50 to-indigo-100/70 dark:from-indigo-400/15 dark:to-indigo-300/5",
+  coral:
+    "from-orange-50 to-orange-100/70 dark:from-orange-400/15 dark:to-orange-300/5",
 };
 
 export const STICKY_COLORS: Record<string, string> = {
@@ -108,6 +132,10 @@ export const STICKY_COLORS: Record<string, string> = {
   green: "from-emerald-200 to-emerald-100 text-emerald-950",
   slate: "from-slate-200 to-slate-100 text-slate-950",
   violet: "from-violet-200 to-violet-100 text-violet-950",
+  teal: "from-teal-200 to-teal-100 text-teal-950",
+  rose: "from-rose-200 to-rose-100 text-rose-950",
+  indigo: "from-indigo-200 to-indigo-100 text-indigo-950",
+  coral: "from-orange-200 to-orange-100 text-orange-950",
 };
 
 function ColorPicker({
@@ -172,30 +200,110 @@ function ColorPicker({
   );
 }
 
-export function StyleToggle({
-  active,
-  onToggle,
+const STYLE_LABELS: Record<string, string> = {
+  clean: "Clean",
+  ink: "Ink splash",
+  sketch: "Sketch",
+  frame: "Scrapbook",
+};
+
+const STYLE_ORDER = ["clean", "ink", "sketch", "frame"] as const;
+
+function StyleIcon({ styleKey }: { styleKey: string }) {
+  switch (styleKey) {
+    case "ink":
+      return (
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M7 21c-1.1 0-2-.9-2-2 0-.4.1-.7.3-1L9 12l6-6 3 3-6 6-6.3 3.7c-.3.2-.7.3-1 .3zM14.5 4.5l3-3a1 1 0 0 1 1.4 0l2.6 2.6a1 1 0 0 1 0 1.4l-3 3-4-4z" />
+        </svg>
+      );
+    case "sketch":
+      return (
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="M4 5.5 C 10 3, 16 8, 20 5 M4 12 C 10 10, 16 14, 20 11.5 M4 18.5 C 10 17, 16 20, 20 18" />
+        </svg>
+      );
+    case "frame":
+      return (
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="3" y="3" width="9" height="6" rx="1" transform="rotate(-18 7.5 6)" opacity="0.9" />
+          <rect x="13" y="15" width="9" height="6" rx="1" transform="rotate(-18 17.5 18)" opacity="0.9" />
+        </svg>
+      );
+    default:
+      return <span className="block h-1.5 w-1.5 rounded-full bg-current" />;
+  }
+}
+
+export function StylePicker({
+  style,
+  onChange,
 }: {
-  active: boolean;
-  onToggle: () => void;
+  style: string;
+  onChange: (style: string) => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  function toggle() {
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + 6, left: rect.right - 148 });
+    }
+    setOpen((o) => !o);
+  }
+
   return (
-    <button
-      type="button"
-      data-no-drag
-      onClick={onToggle}
-      aria-label={active ? "Use clean style" : "Use ink-splash style"}
-      aria-pressed={active}
-      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border shadow-sm ${
-        active
-          ? "border-black/20 bg-black/80 text-white dark:border-white/30 dark:bg-white/80 dark:text-black"
-          : "border-black/10 bg-white/80 text-black/50 dark:border-white/20 dark:bg-black/40 dark:text-white/60"
-      }`}
-    >
-      <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M7 21c-1.1 0-2-.9-2-2 0-.4.1-.7.3-1L9 12l6-6 3 3-6 6-6.3 3.7c-.3.2-.7.3-1 .3zM14.5 4.5l3-3a1 1 0 0 1 1.4 0l2.6 2.6a1 1 0 0 1 0 1.4l-3 3-4-4z" />
-      </svg>
-    </button>
+    <div data-no-drag className="shrink-0">
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={toggle}
+        aria-label={`Change widget style (currently ${STYLE_LABELS[style] ?? "Clean"})`}
+        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border shadow-sm ${
+          style !== "clean"
+            ? "border-black/20 bg-black/80 text-white dark:border-white/30 dark:bg-white/80 dark:text-black"
+            : "border-black/10 bg-white/80 text-black/50 dark:border-white/20 dark:bg-black/40 dark:text-white/60"
+        }`}
+      >
+        <StyleIcon styleKey={style} />
+      </button>
+      {open &&
+        pos &&
+        createPortal(
+          <div data-no-drag>
+            <div
+              className="fixed inset-0 z-[9998]"
+              onClick={() => setOpen(false)}
+            />
+            <div
+              className="fixed z-[9999] flex w-36 flex-col gap-0.5 rounded-xl border border-black/10 bg-white p-1.5 shadow-lg dark:border-white/20 dark:bg-neutral-800"
+              style={{ top: pos.top, left: pos.left }}
+            >
+              {STYLE_ORDER.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => {
+                    onChange(s);
+                    setOpen(false);
+                  }}
+                  className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs ${
+                    s === style
+                      ? "bg-black/10 font-medium dark:bg-white/15"
+                      : "hover:bg-black/5 dark:hover:bg-white/10"
+                  }`}
+                >
+                  <StyleIcon styleKey={s} />
+                  {STYLE_LABELS[s]}
+                </button>
+              ))}
+            </div>
+          </div>,
+          document.body,
+        )}
+    </div>
   );
 }
 
@@ -336,7 +444,7 @@ export function TripsWidget({
   color: string;
   onColorChange: (color: string) => void;
   style: string;
-  onStyleChange: () => void;
+  onStyleChange: (style: string) => void;
   onRemove: () => void;
 }) {
   const tint = GLASS_TINT[color] ?? GLASS_TINT.violet;
@@ -348,7 +456,7 @@ export function TripsWidget({
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/40 px-4 py-2.5 dark:border-white/10">
         <span className="font-medium">Trips</span>
         <div className="flex items-center gap-2">
-          <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
+          <StylePicker style={style} onChange={onStyleChange} />
           <ColorPicker color={color} onChange={onColorChange} />
           <RemoveButton onRemove={onRemove} />
           <Link
@@ -399,7 +507,7 @@ export function ClockWidget({
   color: string;
   onColorChange: (color: string) => void;
   style: string;
-  onStyleChange: () => void;
+  onStyleChange: (style: string) => void;
   onRemove: () => void;
 }) {
   const [now, setNow] = useState<Date | null>(null);
@@ -426,7 +534,7 @@ export function ClockWidget({
   return (
     <div className="relative z-0 h-full w-full">
       <div className="absolute top-1 right-1 z-10 flex items-center gap-1">
-        <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
+        <StylePicker style={style} onChange={onStyleChange} />
         <ColorPicker color={color} onChange={onColorChange} />
         <RemoveButton onRemove={onRemove} />
       </div>
@@ -482,7 +590,7 @@ export function PhotosWidget({
   color: string;
   onColorChange: (color: string) => void;
   style: string;
-  onStyleChange: () => void;
+  onStyleChange: (style: string) => void;
   onRemove: () => void;
   trips: TripSummary[];
   onUploaded: () => void;
@@ -496,7 +604,7 @@ export function PhotosWidget({
       <div className="relative z-0 h-full w-full">
         <div className="absolute top-1 right-1 z-10 flex items-center gap-1">
           <UploadButton trips={trips} onUploaded={onUploaded} />
-          <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
+          <StylePicker style={style} onChange={onStyleChange} />
           <ColorPicker color={color} onChange={onColorChange} />
           <RemoveButton onRemove={onRemove} />
         </div>
@@ -520,7 +628,7 @@ export function PhotosWidget({
     <div className="group relative z-0 h-full w-full">
       <div className="absolute top-1 right-1 z-20 flex items-center gap-1">
         <UploadButton trips={trips} onUploaded={onUploaded} />
-        <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
+        <StylePicker style={style} onChange={onStyleChange} />
         <ColorPicker color={color} onChange={onColorChange} />
         <RemoveButton onRemove={onRemove} />
       </div>
@@ -608,7 +716,7 @@ export function MapWidget({
   color: string;
   onColorChange: (color: string) => void;
   style: string;
-  onStyleChange: () => void;
+  onStyleChange: (style: string) => void;
   onRemove: () => void;
 }) {
   const accent = ACCENT_HEX[color] ?? ACCENT_HEX.blue;
@@ -616,7 +724,7 @@ export function MapWidget({
   return (
     <div className="relative z-0 h-full w-full">
       <div className="absolute top-1 right-1 z-[1200] flex items-center gap-1">
-        <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
+        <StylePicker style={style} onChange={onStyleChange} />
         <ColorPicker color={color} onChange={onColorChange} />
         <RemoveButton onRemove={onRemove} />
       </div>
@@ -642,7 +750,7 @@ export function TravelWidget({
   color: string;
   onColorChange: (color: string) => void;
   style: string;
-  onStyleChange: () => void;
+  onStyleChange: (style: string) => void;
   onRemove: () => void;
 }) {
   const tint = GLASS_TINT[color] ?? GLASS_TINT.blue;
@@ -654,7 +762,7 @@ export function TravelWidget({
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/40 px-4 py-2.5 dark:border-white/10">
         <span className="font-medium">Travel</span>
         <div className="flex items-center gap-2">
-          <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
+          <StylePicker style={style} onChange={onStyleChange} />
           <ColorPicker color={color} onChange={onColorChange} />
           <RemoveButton onRemove={onRemove} />
         </div>
@@ -709,7 +817,7 @@ export function NotesWidget({
   color: string;
   onColorChange: (color: string) => void;
   style: string;
-  onStyleChange: () => void;
+  onStyleChange: (style: string) => void;
   onRemove: () => void;
   onSave: (value: string) => void;
 }) {
@@ -725,7 +833,7 @@ export function NotesWidget({
           Notes
         </span>
         <div className="flex items-center gap-1">
-          <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
+          <StylePicker style={style} onChange={onStyleChange} />
           <ColorPicker color={color} onChange={onColorChange} />
           <RemoveButton onRemove={onRemove} />
         </div>
@@ -756,7 +864,7 @@ export function StickyWidget({
   onSave: (value: string) => void;
   onColorChange: (color: string) => void;
   style: string;
-  onStyleChange: () => void;
+  onStyleChange: (style: string) => void;
   onRemove: () => void;
 }) {
   const [value, setValue] = useState(content);
@@ -768,7 +876,7 @@ export function StickyWidget({
     >
       <div className="mb-1 flex shrink-0 items-center justify-between">
         <div className="flex items-center gap-1">
-          <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
+          <StylePicker style={style} onChange={onStyleChange} />
           <ColorPicker color={color} onChange={onColorChange} />
         </div>
         <button

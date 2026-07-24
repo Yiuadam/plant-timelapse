@@ -17,6 +17,8 @@ import {
   type TravelSummary,
 } from "@/components/widget-content";
 import { InkSplash } from "@/components/ink-splash";
+import { SketchBorder } from "@/components/sketch-border";
+import { WashiFrame } from "@/components/washi-frame";
 import { WIDGET_LIBRARY } from "@/lib/default-widgets";
 
 const DESIGN_WIDTH = 1000;
@@ -370,10 +372,9 @@ export default function WidgetBoard({
     persist(id, { color });
   }
 
-  function toggleStyle(id: string, current: string | null) {
-    const next = current === "ink" ? "clean" : "ink";
-    updateLocal(id, { style: next });
-    persist(id, { style: next });
+  function setWidgetStyle(id: string, style: string) {
+    updateLocal(id, { style });
+    persist(id, { style });
   }
 
   return (
@@ -423,23 +424,28 @@ export default function WidgetBoard({
                     : "drop-shadow(0 4px 8px rgb(0 0 0 / 0.12))",
               }}
             >
-              {widget.style === "ink" && (
-                <InkSplash
-                  seed={widget.id}
-                  accent={
-                    ACCENT_HEX[
-                      widget.color ?? DEFAULT_COLOR_BY_TYPE[widget.type]
-                    ] ?? ACCENT_HEX.slate
-                  }
-                />
-              )}
+              {(() => {
+                if (widget.style !== "ink" && widget.style !== "sketch" && widget.style !== "frame") {
+                  return null;
+                }
+                const accent =
+                  ACCENT_HEX[widget.color ?? DEFAULT_COLOR_BY_TYPE[widget.type]] ??
+                  ACCENT_HEX.slate;
+                if (widget.style === "sketch") {
+                  return <SketchBorder seed={widget.id} accent={accent} />;
+                }
+                if (widget.style === "frame") {
+                  return <WashiFrame seed={widget.id} accent={accent} />;
+                }
+                return <InkSplash seed={widget.id} accent={accent} />;
+              })()}
               {widget.type === "trips" && (
                 <TripsWidget
                   trips={trips}
                   color={widget.color ?? "violet"}
                   onColorChange={(color) => saveColor(widget.id, color)}
                   style={widget.style ?? "clean"}
-                  onStyleChange={() => toggleStyle(widget.id, widget.style)}
+                  onStyleChange={(style) => setWidgetStyle(widget.id, style)}
                   onRemove={() => removeWidget(widget.id)}
                 />
               )}
@@ -448,7 +454,7 @@ export default function WidgetBoard({
                   color={widget.color ?? "slate"}
                   onColorChange={(color) => saveColor(widget.id, color)}
                   style={widget.style ?? "clean"}
-                  onStyleChange={() => toggleStyle(widget.id, widget.style)}
+                  onStyleChange={(style) => setWidgetStyle(widget.id, style)}
                   onRemove={() => removeWidget(widget.id)}
                 />
               )}
@@ -458,7 +464,7 @@ export default function WidgetBoard({
                   color={widget.color ?? "slate"}
                   onColorChange={(color) => saveColor(widget.id, color)}
                   style={widget.style ?? "clean"}
-                  onStyleChange={() => toggleStyle(widget.id, widget.style)}
+                  onStyleChange={(style) => setWidgetStyle(widget.id, style)}
                   onRemove={() => removeWidget(widget.id)}
                   trips={trips}
                   onUploaded={() => router.refresh()}
@@ -470,7 +476,7 @@ export default function WidgetBoard({
                   color={widget.color ?? "blue"}
                   onColorChange={(color) => saveColor(widget.id, color)}
                   style={widget.style ?? "clean"}
-                  onStyleChange={() => toggleStyle(widget.id, widget.style)}
+                  onStyleChange={(style) => setWidgetStyle(widget.id, style)}
                   onRemove={() => removeWidget(widget.id)}
                 />
               )}
@@ -480,7 +486,7 @@ export default function WidgetBoard({
                   color={widget.color ?? "blue"}
                   onColorChange={(color) => saveColor(widget.id, color)}
                   style={widget.style ?? "clean"}
-                  onStyleChange={() => toggleStyle(widget.id, widget.style)}
+                  onStyleChange={(style) => setWidgetStyle(widget.id, style)}
                   onRemove={() => removeWidget(widget.id)}
                 />
               )}
@@ -490,7 +496,7 @@ export default function WidgetBoard({
                   color={widget.color ?? "yellow"}
                   onColorChange={(color) => saveColor(widget.id, color)}
                   style={widget.style ?? "clean"}
-                  onStyleChange={() => toggleStyle(widget.id, widget.style)}
+                  onStyleChange={(style) => setWidgetStyle(widget.id, style)}
                   onRemove={() => removeWidget(widget.id)}
                   onSave={(value) => saveContent(widget.id, value)}
                 />
@@ -502,7 +508,7 @@ export default function WidgetBoard({
                   onSave={(value) => saveContent(widget.id, value)}
                   onColorChange={(color) => saveColor(widget.id, color)}
                   style={widget.style ?? "clean"}
-                  onStyleChange={() => toggleStyle(widget.id, widget.style)}
+                  onStyleChange={(style) => setWidgetStyle(widget.id, style)}
                   onRemove={() => removeWidget(widget.id)}
                 />
               )}

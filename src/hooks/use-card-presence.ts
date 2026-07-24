@@ -45,7 +45,11 @@ export function useCardPresence(
   }, [active, resourceType, resourceId, cardKey, session?.user?.id]);
 
   useEffect(() => {
-    if (!resourceId) return;
+    // Only the front/visible card is worth polling -- with 4 cards always
+    // mounted in the drum, polling every one of them regardless of which
+    // is actually in view would be 4x the necessary requests for avatars
+    // nobody can see.
+    if (!active || !resourceId) return;
     let cancelled = false;
     async function poll() {
       const res = await fetch(
@@ -60,8 +64,12 @@ export function useCardPresence(
     return () => {
       cancelled = true;
       clearInterval(id);
+      // Card is going inactive (swiped away) or unmounting -- drop any
+      // stale viewer avatars rather than leaving the last poll's result
+      // showing on a card nobody's looking at anymore.
+      setViewers([]);
     };
-  }, [resourceType, resourceId, cardKey]);
+  }, [active, resourceType, resourceId, cardKey]);
 
   return viewers;
 }
