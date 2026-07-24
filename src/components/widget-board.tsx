@@ -212,7 +212,17 @@ export default function WidgetBoard({
       keepalive: true,
     })
       .then((res) => {
-        if (!res.ok && !isRetry) persist(id, patch, true);
+        if (!res.ok && !isRetry) {
+          persist(id, patch, true);
+          return;
+        }
+        if (res.ok) {
+          // Invalidates Next's client-side router cache for this route so
+          // a later navigation away and back doesn't remount WidgetBoard
+          // with the pre-edit snapshot (only a hard reload bypassed that
+          // cache, which is why the change looked "remembered" only then).
+          router.refresh();
+        }
       })
       .catch(() => {
         // One retry covers a transient network blip; a repeat failure means
@@ -332,12 +342,15 @@ export default function WidgetBoard({
     if (res.ok) {
       const data = await res.json();
       setWidgets((prev) => [...prev, data.widget]);
+      router.refresh();
     }
   }
 
   function removeWidget(id: string) {
     setWidgets((prev) => prev.filter((w) => w.id !== id));
-    fetch(`/api/widgets/${id}`, { method: "DELETE" }).catch(() => {});
+    fetch(`/api/widgets/${id}`, { method: "DELETE" })
+      .then(() => router.refresh())
+      .catch(() => {});
   }
 
   function saveContent(id: string, content: string) {
