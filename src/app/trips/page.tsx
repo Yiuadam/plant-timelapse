@@ -45,6 +45,7 @@ export default async function TripsPage() {
         rotation: w.rotation,
         zIndex: w.zIndex,
         color: w.color,
+        style: w.style,
         content: w.content,
       }))}
       trips={trips.map((t) => ({

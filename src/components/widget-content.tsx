@@ -51,7 +51,7 @@ export const SWATCH_CLASSES: Record<string, string> = {
   violet: "bg-violet-300",
 };
 
-const ACCENT_HEX: Record<string, string> = {
+export const ACCENT_HEX: Record<string, string> = {
   slate: "#64748b",
   blue: "#0284c7",
   pink: "#db2777",

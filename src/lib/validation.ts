@@ -53,6 +53,8 @@ export const WIDGET_COLORS = [
   "violet",
 ] as const;
 
+export const WIDGET_STYLES = ["clean", "ink"] as const;
+
 export const widgetCreateSchema = z.object({
   type: z.enum(WIDGET_TYPES),
   x: z.number().min(0).max(100).optional(),
@@ -69,5 +71,6 @@ export const widgetUpdateSchema = z.object({
   rotation: z.number().min(-15).max(15).optional(),
   zIndex: z.number().int().min(1).max(1000).optional(),
   color: z.enum(WIDGET_COLORS).optional(),
+  style: z.enum(WIDGET_STYLES).optional(),
   content: z.string().max(2000).optional(),
 });
