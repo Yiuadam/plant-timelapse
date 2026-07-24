@@ -1,60 +1,65 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getOrCreateWidgets } from "@/lib/widgets";
+import WidgetBoard from "@/components/widget-board";
 
 export default async function TripsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
 
-  const trips = await prisma.trip.findMany({
-    where: { userId: session.user.id },
-    orderBy: { createdAt: "desc" },
-  });
+  const [trips, widgets, recentPhotos, visitedLocations] = await Promise.all([
+    prisma.trip.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, title: true, destination: true, startDate: true },
+    }),
+    getOrCreateWidgets(userId),
+    prisma.photo.findMany({
+      where: { trip: { userId } },
+      orderBy: { createdAt: "desc" },
+      take: 3,
+      select: {
+        id: true,
+        filePath: true,
+        caption: true,
+        trip: { select: { title: true } },
+      },
+    }),
+    prisma.location.findMany({
+      where: { visited: true, trip: { userId } },
+      select: { id: true, name: true, lat: true, lng: true },
+    }),
+  ]);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Your trips</h1>
-        <Link
-          href="/trips/new"
-          className="rounded-xl bg-foreground px-4 py-2 text-sm text-background"
-        >
-          New trip
-        </Link>
-      </div>
-
-      {trips.length === 0 ? (
-        <p className="text-black/60 dark:text-white/60">
-          No trips yet.{" "}
-          <Link href="/trips/new" className="underline">
-            Log your first trip
-          </Link>
-          .
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {trips.map((trip) => (
-            <li key={trip.id}>
-              <Link
-                href={`/trips/${trip.id}`}
-                className="block rounded-xl border border-black/10 px-4 py-3 hover:bg-black/[.03] dark:border-white/20 dark:hover:bg-white/[.05]"
-              >
-                <div className="font-medium">{trip.title}</div>
-                <div className="text-sm text-black/60 dark:text-white/60">
-                  {trip.destination}
-                  {trip.startDate &&
-                    ` · ${trip.startDate.toLocaleDateString()}${
-                      trip.endDate
-                        ? ` – ${trip.endDate.toLocaleDateString()}`
-                        : ""
-                    }`}
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+    <WidgetBoard
+      initialWidgets={widgets.map((w) => ({
+        id: w.id,
+        type: w.type,
+        x: w.x,
+        y: w.y,
+        w: w.w,
+        h: w.h,
+        rotation: w.rotation,
+        zIndex: w.zIndex,
+        color: w.color,
+        content: w.content,
+      }))}
+      trips={trips.map((t) => ({
+        id: t.id,
+        title: t.title,
+        destination: t.destination,
+        startDate: t.startDate ? t.startDate.toISOString() : null,
+      }))}
+      recentPhotos={recentPhotos.map((p) => ({
+        id: p.id,
+        filePath: p.filePath,
+        caption: p.caption,
+        tripTitle: p.trip.title,
+      }))}
+      mapLocations={visitedLocations}
+    />
   );
 }
