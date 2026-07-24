@@ -14,7 +14,7 @@ export default function DeleteTripButton({ tripId }: { tripId: string }) {
     setLoading(true);
     try {
       await fetch(`/api/trips/${tripId}`, { method: "DELETE" });
-      router.push("/trips");
+      router.push("/");
       router.refresh();
     } finally {
       setLoading(false);

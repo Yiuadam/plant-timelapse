@@ -38,7 +38,7 @@ export default function OAuthButtons() {
       {available.google && (
         <button
           type="button"
-          onClick={() => signIn("google", { callbackUrl: "/trips" })}
+          onClick={() => signIn("google", { callbackUrl: "/" })}
           className="flex items-center justify-center gap-2 rounded-xl border border-black/10 px-4 py-2 text-sm dark:border-white/20"
         >
           <GoogleIcon />
@@ -49,7 +49,7 @@ export default function OAuthButtons() {
       {available.apple && (
         <button
           type="button"
-          onClick={() => signIn("apple", { callbackUrl: "/trips" })}
+          onClick={() => signIn("apple", { callbackUrl: "/" })}
           className="flex items-center justify-center gap-2 rounded-xl border border-black/10 px-4 py-2 text-sm dark:border-white/20"
         >
           <AppleIcon />
