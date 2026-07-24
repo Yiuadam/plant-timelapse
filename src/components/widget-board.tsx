@@ -142,6 +142,7 @@ function AddWidgetMenu({ onAdd }: { onAdd: (type: string) => void }) {
 }
 
 export default function WidgetBoard({
+  device,
   initialWidgets,
   trips,
   recentPhotos,
@@ -149,6 +150,7 @@ export default function WidgetBoard({
   travelItems,
   passportStamps,
 }: {
+  device: "desktop" | "mobile";
   initialWidgets: Widget[];
   trips: TripSummary[];
   recentPhotos: PhotoSummary[];
@@ -348,6 +350,7 @@ export default function WidgetBoard({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type,
+        device,
         x: 10 + Math.random() * 55,
         y: 10 + Math.random() * 55,
         ...(color ? { color } : {}),

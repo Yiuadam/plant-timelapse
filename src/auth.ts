@@ -6,7 +6,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { buildAppleClientSecret } from "@/lib/apple-client-secret";
-import { DEFAULT_WIDGETS } from "@/lib/default-widgets";
+import { seedWidgetsData } from "@/lib/default-widgets";
 
 const appleClientSecret = buildAppleClientSecret();
 
@@ -65,7 +65,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async createUser({ user }) {
       if (!user.id) return;
       await prisma.widget.createMany({
-        data: DEFAULT_WIDGETS.map((w) => ({ ...w, userId: user.id as string })),
+        data: seedWidgetsData(user.id as string),
       });
     },
   },

@@ -4,14 +4,18 @@ import { prisma } from "@/lib/prisma";
 import { widgetCreateSchema } from "@/lib/validation";
 import { getOrCreateWidgets } from "@/lib/widgets";
 import { WIDGET_LIBRARY } from "@/lib/default-widgets";
+import type { WidgetDevice } from "@/lib/device";
 
-export async function GET() {
+export async function GET(request: Request) {
   const userId = await requireUserId();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const widgets = await getOrCreateWidgets(userId);
+  const { searchParams } = new URL(request.url);
+  const device: WidgetDevice = searchParams.get("device") === "mobile" ? "mobile" : "desktop";
+
+  const widgets = await getOrCreateWidgets(userId, device);
   return NextResponse.json({ widgets });
 }
 
@@ -35,14 +39,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unknown widget type" }, { status: 400 });
   }
 
+  const device: WidgetDevice = parsed.data.device ?? "desktop";
+
   const maxZ = await prisma.widget.aggregate({
-    where: { userId },
+    where: { userId, device },
     _max: { zIndex: true },
   });
 
   const widget = await prisma.widget.create({
     data: {
       userId,
+      device,
       type: parsed.data.type,
       x: parsed.data.x ?? 10,
       y: parsed.data.y ?? 10,

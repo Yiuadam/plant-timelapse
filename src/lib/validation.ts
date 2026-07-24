@@ -95,6 +95,7 @@ export const WIDGET_STYLES = ["clean", "ink", "sketch", "frame"] as const;
 
 export const widgetCreateSchema = z.object({
   type: z.enum(WIDGET_TYPES),
+  device: z.enum(["desktop", "mobile"]).optional(),
   x: z.number().min(0).max(100).optional(),
   y: z.number().min(0).max(100).optional(),
   color: z.enum(WIDGET_COLORS).optional(),
