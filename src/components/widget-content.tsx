@@ -183,6 +183,23 @@ export function StyleToggle({
   );
 }
 
+export function RemoveButton({ onRemove }: { onRemove: () => void }) {
+  return (
+    <button
+      type="button"
+      data-no-drag
+      onClick={onRemove}
+      aria-label="Remove widget"
+      className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-black/10 bg-white/80 text-black/50 shadow-sm hover:text-red-600 dark:border-white/20 dark:bg-black/40 dark:text-white/60 dark:hover:text-red-400"
+    >
+      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+        <line x1="18" y1="6" x2="6" y2="18" />
+        <line x1="6" y1="6" x2="18" y2="18" />
+      </svg>
+    </button>
+  );
+}
+
 function UploadButton({
   trips,
   onUploaded,
@@ -297,12 +314,14 @@ export function TripsWidget({
   onColorChange,
   style,
   onStyleChange,
+  onRemove,
 }: {
   trips: TripSummary[];
   color: string;
   onColorChange: (color: string) => void;
   style: string;
   onStyleChange: () => void;
+  onRemove: () => void;
 }) {
   const tint = GLASS_TINT[color] ?? GLASS_TINT.violet;
 
@@ -315,6 +334,7 @@ export function TripsWidget({
         <div className="flex items-center gap-2">
           <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
           <ColorPicker color={color} onChange={onColorChange} />
+          <RemoveButton onRemove={onRemove} />
           <Link
             href="/trips/new"
             prefetch={true}
@@ -358,11 +378,13 @@ export function ClockWidget({
   onColorChange,
   style,
   onStyleChange,
+  onRemove,
 }: {
   color: string;
   onColorChange: (color: string) => void;
   style: string;
   onStyleChange: () => void;
+  onRemove: () => void;
 }) {
   const [now, setNow] = useState<Date | null>(null);
   const tint = GLASS_TINT[color] ?? GLASS_TINT.slate;
@@ -390,6 +412,7 @@ export function ClockWidget({
       <div className="absolute top-1 right-1 z-10 flex items-center gap-1">
         <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
         <ColorPicker color={color} onChange={onColorChange} />
+        <RemoveButton onRemove={onRemove} />
       </div>
       <div
         className={`flex h-full w-full items-center justify-center rounded-full border-[6px] border-white/70 bg-gradient-to-br shadow-xl dark:border-white/15 ${tint}`}
@@ -435,6 +458,7 @@ export function PhotosWidget({
   onColorChange,
   style,
   onStyleChange,
+  onRemove,
   trips,
   onUploaded,
 }: {
@@ -443,6 +467,7 @@ export function PhotosWidget({
   onColorChange: (color: string) => void;
   style: string;
   onStyleChange: () => void;
+  onRemove: () => void;
   trips: TripSummary[];
   onUploaded: () => void;
 }) {
@@ -457,6 +482,7 @@ export function PhotosWidget({
           <UploadButton trips={trips} onUploaded={onUploaded} />
           <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
           <ColorPicker color={color} onChange={onColorChange} />
+          <RemoveButton onRemove={onRemove} />
         </div>
         <div className="flex h-full w-full items-center justify-center rounded-lg border-8 border-white bg-white text-center text-sm text-black/40 shadow-xl dark:border-white/90">
           No photos yet
@@ -480,6 +506,7 @@ export function PhotosWidget({
         <UploadButton trips={trips} onUploaded={onUploaded} />
         <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
         <ColorPicker color={color} onChange={onColorChange} />
+        <RemoveButton onRemove={onRemove} />
       </div>
       {rest.map((photo, i) => (
         <div
@@ -559,12 +586,14 @@ export function MapWidget({
   onColorChange,
   style,
   onStyleChange,
+  onRemove,
 }: {
   locations: MapLoc[];
   color: string;
   onColorChange: (color: string) => void;
   style: string;
   onStyleChange: () => void;
+  onRemove: () => void;
 }) {
   const accent = ACCENT_HEX[color] ?? ACCENT_HEX.blue;
 
@@ -573,6 +602,7 @@ export function MapWidget({
       <div className="absolute top-1 right-1 z-[1200] flex items-center gap-1">
         <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
         <ColorPicker color={color} onChange={onColorChange} />
+        <RemoveButton onRemove={onRemove} />
       </div>
       <div
         className="h-full w-full overflow-hidden rounded-2xl shadow-xl"
@@ -590,6 +620,7 @@ export function NotesWidget({
   onColorChange,
   style,
   onStyleChange,
+  onRemove,
   onSave,
 }: {
   content: string;
@@ -597,6 +628,7 @@ export function NotesWidget({
   onColorChange: (color: string) => void;
   style: string;
   onStyleChange: () => void;
+  onRemove: () => void;
   onSave: (value: string) => void;
 }) {
   const [value, setValue] = useState(content);
@@ -613,6 +645,7 @@ export function NotesWidget({
         <div className="flex items-center gap-1">
           <StyleToggle active={style === "ink"} onToggle={onStyleChange} />
           <ColorPicker color={color} onChange={onColorChange} />
+          <RemoveButton onRemove={onRemove} />
         </div>
       </div>
       <textarea

@@ -50,13 +50,6 @@ export async function DELETE(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  if (widget.type !== "sticky") {
-    return NextResponse.json(
-      { error: "Only sticky notes can be removed" },
-      { status: 400 },
-    );
-  }
-
   await prisma.widget.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

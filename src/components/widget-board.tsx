@@ -15,6 +15,7 @@ import {
   type MapLoc,
 } from "@/components/widget-content";
 import { InkSplash } from "@/components/ink-splash";
+import { WIDGET_LIBRARY } from "@/lib/default-widgets";
 
 const DESIGN_WIDTH = 1000;
 const DESIGN_HEIGHT = 880;
@@ -80,6 +81,52 @@ function ResizeHandle({
           strokeLinecap="round"
         />
       </svg>
+    </div>
+  );
+}
+
+function AddWidgetMenu({ onAdd }: { onAdd: (type: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="rounded-xl border border-black/10 px-3 py-1.5 text-sm dark:border-white/20"
+      >
+        + Add widget
+      </button>
+      {open && (
+        <div className="absolute top-full right-0 z-50 mt-2 flex w-44 flex-col gap-1 rounded-xl border border-black/10 bg-white p-2 shadow-lg dark:border-white/20 dark:bg-neutral-800">
+          {Object.entries(WIDGET_LIBRARY).map(([type, def]) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => {
+                onAdd(type);
+                setOpen(false);
+              }}
+              className="rounded-lg px-2 py-1.5 text-left text-sm hover:bg-black/5 dark:hover:bg-white/10"
+            >
+              {def.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -253,17 +300,21 @@ export default function WidgetBoard({
     persist(rs.id, { w: rs.currentW, h: rs.currentH });
   }
 
-  async function addStickyNote() {
+  async function addWidget(type: string) {
     const color =
-      STICKY_COLOR_CYCLE[Math.floor(Math.random() * STICKY_COLOR_CYCLE.length)];
+      type === "sticky"
+        ? STICKY_COLOR_CYCLE[
+            Math.floor(Math.random() * STICKY_COLOR_CYCLE.length)
+          ]
+        : undefined;
     const res = await fetch("/api/widgets", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        type: "sticky",
+        type,
         x: 10 + Math.random() * 55,
         y: 10 + Math.random() * 55,
-        color,
+        ...(color ? { color } : {}),
       }),
     });
     if (res.ok) {
@@ -272,7 +323,7 @@ export default function WidgetBoard({
     }
   }
 
-  function removeSticky(id: string) {
+  function removeWidget(id: string) {
     setWidgets((prev) => prev.filter((w) => w.id !== id));
     fetch(`/api/widgets/${id}`, { method: "DELETE" }).catch(() => {});
   }
@@ -297,13 +348,7 @@ export default function WidgetBoard({
     <div className="mx-auto max-w-5xl px-4 py-8">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Your board</h1>
-        <button
-          type="button"
-          onClick={addStickyNote}
-          className="rounded-xl border border-black/10 px-3 py-1.5 text-sm dark:border-white/20"
-        >
-          + Sticky note
-        </button>
+        <AddWidgetMenu onAdd={addWidget} />
       </div>
 
       <div
@@ -367,6 +412,7 @@ export default function WidgetBoard({
                   onColorChange={(color) => saveColor(widget.id, color)}
                   style={widget.style ?? "clean"}
                   onStyleChange={() => toggleStyle(widget.id, widget.style)}
+                  onRemove={() => removeWidget(widget.id)}
                 />
               )}
               {widget.type === "clock" && (
@@ -375,6 +421,7 @@ export default function WidgetBoard({
                   onColorChange={(color) => saveColor(widget.id, color)}
                   style={widget.style ?? "clean"}
                   onStyleChange={() => toggleStyle(widget.id, widget.style)}
+                  onRemove={() => removeWidget(widget.id)}
                 />
               )}
               {widget.type === "photos" && (
@@ -384,6 +431,7 @@ export default function WidgetBoard({
                   onColorChange={(color) => saveColor(widget.id, color)}
                   style={widget.style ?? "clean"}
                   onStyleChange={() => toggleStyle(widget.id, widget.style)}
+                  onRemove={() => removeWidget(widget.id)}
                   trips={trips}
                   onUploaded={() => router.refresh()}
                 />
@@ -395,6 +443,7 @@ export default function WidgetBoard({
                   onColorChange={(color) => saveColor(widget.id, color)}
                   style={widget.style ?? "clean"}
                   onStyleChange={() => toggleStyle(widget.id, widget.style)}
+                  onRemove={() => removeWidget(widget.id)}
                 />
               )}
               {widget.type === "notes" && (
@@ -404,6 +453,7 @@ export default function WidgetBoard({
                   onColorChange={(color) => saveColor(widget.id, color)}
                   style={widget.style ?? "clean"}
                   onStyleChange={() => toggleStyle(widget.id, widget.style)}
+                  onRemove={() => removeWidget(widget.id)}
                   onSave={(value) => saveContent(widget.id, value)}
                 />
               )}
@@ -415,7 +465,7 @@ export default function WidgetBoard({
                   onColorChange={(color) => saveColor(widget.id, color)}
                   style={widget.style ?? "clean"}
                   onStyleChange={() => toggleStyle(widget.id, widget.style)}
-                  onRemove={() => removeSticky(widget.id)}
+                  onRemove={() => removeWidget(widget.id)}
                 />
               )}
               <ResizeHandle
