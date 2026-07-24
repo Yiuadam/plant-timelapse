@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import AddTimelineEntry from "@/components/add-timeline-entry";
 
 const RING_TINTS = [
   "from-sky-200 to-sky-100 text-sky-900 dark:from-sky-400/30 dark:to-sky-300/10 dark:text-sky-100",
@@ -19,13 +20,20 @@ export default async function TimelinePage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const locations = await prisma.location.findMany({
-    where: { visited: true, trip: { userId: session.user.id } },
-    include: {
-      photos: { take: 1, orderBy: { createdAt: "asc" } },
-      trip: { select: { id: true, title: true } },
-    },
-  });
+  const [locations, trips] = await Promise.all([
+    prisma.location.findMany({
+      where: { visited: true, trip: { userId: session.user.id } },
+      include: {
+        photos: { take: 1, orderBy: { createdAt: "asc" } },
+        trip: { select: { id: true, title: true } },
+      },
+    }),
+    prisma.trip.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, title: true },
+    }),
+  ]);
 
   const entries = locations
     .map((loc) => ({
@@ -36,12 +44,15 @@ export default async function TimelinePage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="mb-6 text-2xl font-semibold">Timeline</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Timeline</h1>
+        <AddTimelineEntry trips={trips} />
+      </div>
 
       {entries.length === 0 ? (
         <p className="text-black/60 dark:text-white/60">
           Places you mark as visited will show up here in order, oldest to
-          newest.
+          newest. Use &quot;Add event&quot; above to add your first one.
         </p>
       ) : (
         <div className="snap-x snap-mandatory overflow-x-auto pb-4">
