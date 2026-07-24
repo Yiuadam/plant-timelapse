@@ -4,6 +4,21 @@ import "./globals.css";
 import AuthProvider from "@/components/auth-provider";
 import NavBar from "@/components/nav-bar";
 import AssistantWidget from "@/components/assistant-widget";
+import ThemeToggle from "@/components/theme-toggle";
+
+// Runs before paint so the stored/system theme applies immediately —
+// without this, the page would flash the opposite theme for a frame
+// while React hydrates and the toggle component reads localStorage.
+const THEME_INIT_SCRIPT = `
+(function () {
+  try {
+    var stored = localStorage.getItem("theme");
+    var dark = stored ? stored === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.classList.toggle("dark", dark);
+    document.documentElement.classList.toggle("light", !dark);
+  } catch (e) {}
+})();
+`;
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,6 +46,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
           <div className="absolute -top-16 -left-16 h-72 w-72 rounded-full bg-sky-300/30 blur-3xl dark:bg-sky-500/15" />
           <div className="absolute top-56 right-0 h-72 w-72 rounded-full bg-fuchsia-300/25 blur-3xl dark:bg-fuchsia-500/15" />
@@ -41,6 +57,7 @@ export default function RootLayout({
           <main className="flex-1">{children}</main>
           <AssistantWidget />
         </AuthProvider>
+        <ThemeToggle />
       </body>
     </html>
   );
