@@ -111,25 +111,65 @@ export async function POST(
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  const message = await anthropic.messages.create({
-    model: "claude-sonnet-5",
-    max_tokens: 700,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: { type: "base64", media_type: mediaType, data: base64 },
-          },
-          { type: "text", text: EXTRACTION_PROMPT },
-        ],
-      },
-    ],
-  });
+  let raw: string | null;
+  try {
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-5",
+      max_tokens: 700,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: { type: "base64", media_type: mediaType, data: base64 },
+            },
+            { type: "text", text: EXTRACTION_PROMPT },
+          ],
+        },
+      ],
+    });
+    const textBlock = message.content.find((block) => block.type === "text");
+    raw = textBlock?.type === "text" ? textBlock.text : null;
+  } catch (err) {
+    // Nothing here was previously caught, so any failure calling
+    // Anthropic — a bad/expired API key, no credits, a rate limit, an
+    // outage — crashed the route handler uncaught. Next.js then returned
+    // a generic non-JSON error page, which the client could only report
+    // as a vague, misleading upload failure. Surface the real cause
+    // instead, both server-side (Vercel function logs) and to the
+    // client, so config problems don't masquerade as "photo too big."
+    console.error("travel scan: Anthropic request failed", err);
+    if (err instanceof Anthropic.AuthenticationError) {
+      return NextResponse.json(
+        { error: "Photo scanning is misconfigured (invalid ANTHROPIC_API_KEY)" },
+        { status: 503 },
+      );
+    }
+    if (err instanceof Anthropic.PermissionDeniedError) {
+      return NextResponse.json(
+        { error: "Photo scanning is misconfigured (API key lacks permission)" },
+        { status: 503 },
+      );
+    }
+    if (err instanceof Anthropic.RateLimitError) {
+      return NextResponse.json(
+        { error: "Rate limited — wait a moment and try again" },
+        { status: 429 },
+      );
+    }
+    if (err instanceof Anthropic.APIError) {
+      return NextResponse.json(
+        { error: `AI service error (${err.status ?? "unknown"}) — try again` },
+        { status: 502 },
+      );
+    }
+    return NextResponse.json(
+      { error: "Something went wrong scanning that photo — try again" },
+      { status: 500 },
+    );
+  }
 
-  const textBlock = message.content.find((block) => block.type === "text");
-  const raw = textBlock?.type === "text" ? textBlock.text : null;
   const parsed = raw ? parseExtractedJson(raw) : null;
 
   if (!parsed || typeof parsed !== "object") {
