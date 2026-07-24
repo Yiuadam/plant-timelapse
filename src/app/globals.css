@@ -257,3 +257,100 @@ select {
 :root[data-flavor="sketch"] .flavor-blob-3 {
   background: color-mix(in srgb, #78716c 25%, transparent);
 }
+
+/* Site style ("flavor") -- a lighter-weight alternative to a full
+   per-page reskin: swaps the shared design tokens (corner radius, the
+   decorative background blob palette, and for Sketch, the base font)
+   that every page already inherits, rather than restyling each page's
+   markup individually. Set via FlavorPicker, stored in localStorage,
+   applied as data-flavor on <html>.
+
+   Note: these override rounded-* CLASSES directly rather than the
+   --radius-* custom properties -- Tailwind v4's `@theme inline` bakes
+   those into literal border-radius values on the generated utility
+   classes at build time, so redefining the custom property at runtime
+   under a different selector has no effect on already-compiled CSS. */
+:root[data-flavor="playful"] .rounded-md {
+  border-radius: 0.75rem;
+}
+:root[data-flavor="playful"] .rounded-lg {
+  border-radius: 1.125rem;
+}
+:root[data-flavor="playful"] .rounded-xl {
+  border-radius: 1.5rem;
+}
+:root[data-flavor="playful"] .rounded-2xl {
+  border-radius: 2rem;
+}
+:root[data-flavor="playful"] .rounded-3xl {
+  border-radius: 2.75rem;
+}
+:root[data-flavor="playful"] .flavor-blob-1 {
+  background: color-mix(in srgb, #f472b6 45%, transparent);
+}
+:root[data-flavor="playful"] .flavor-blob-2 {
+  background: color-mix(in srgb, #facc15 45%, transparent);
+}
+:root[data-flavor="playful"] .flavor-blob-3 {
+  background: color-mix(in srgb, #34d399 40%, transparent);
+}
+:root[data-flavor="playful"] button,
+:root[data-flavor="playful"] a {
+  transition-property: transform, background-color, border-color, opacity, box-shadow;
+}
+:root[data-flavor="playful"] button:hover,
+:root[data-flavor="playful"] a:hover {
+  transform: scale(1.03);
+}
+
+:root[data-flavor="ink"] .rounded-md {
+  border-radius: 0.25rem;
+}
+:root[data-flavor="ink"] .rounded-lg {
+  border-radius: 0.35rem;
+}
+:root[data-flavor="ink"] .rounded-xl {
+  border-radius: 0.5rem;
+}
+:root[data-flavor="ink"] .rounded-2xl {
+  border-radius: 0.65rem;
+}
+:root[data-flavor="ink"] .rounded-3xl {
+  border-radius: 0.9rem;
+}
+:root[data-flavor="ink"] .flavor-blob-1,
+:root[data-flavor="ink"] .flavor-blob-2,
+:root[data-flavor="ink"] .flavor-blob-3 {
+  background: color-mix(in srgb, #57534e 30%, transparent);
+  filter: blur(48px) saturate(0.6);
+}
+
+:root[data-flavor="sketch"] .rounded-md {
+  border-radius: 0.5rem;
+}
+:root[data-flavor="sketch"] .rounded-lg {
+  border-radius: 0.6rem;
+}
+:root[data-flavor="sketch"] .rounded-xl {
+  border-radius: 0.75rem;
+}
+:root[data-flavor="sketch"] .rounded-2xl {
+  border-radius: 1rem;
+}
+:root[data-flavor="sketch"] .rounded-3xl {
+  border-radius: 1.4rem;
+}
+:root[data-flavor="sketch"] body {
+  font-family: var(--font-caveat), cursive;
+}
+:root[data-flavor="sketch"] input,
+:root[data-flavor="sketch"] textarea,
+:root[data-flavor="sketch"] select,
+:root[data-flavor="sketch"] button {
+  font-family: var(--font-caveat), cursive;
+}
+:root[data-flavor="sketch"] .flavor-blob-1,
+:root[data-flavor="sketch"] .flavor-blob-2,
+:root[data-flavor="sketch"] .flavor-blob-3 {
+  background: color-mix(in srgb, #78716c 25%, transparent);
+}
