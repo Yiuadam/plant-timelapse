@@ -450,7 +450,6 @@ export function PhotosWidget({
             fill
             sizes="220px"
             className="object-cover"
-            unoptimized
           />
         </div>
         <div
