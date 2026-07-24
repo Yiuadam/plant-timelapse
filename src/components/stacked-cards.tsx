@@ -8,7 +8,7 @@ export type StackCardDef = {
   content: React.ReactNode;
 };
 
-const CARD_HEIGHT = 520;
+const CARD_HEIGHT = 620;
 const CARD_WIDTH_RATIO = 0.82; // card width as a fraction of container width
 const STEP_DEG = 42; // rotation between adjacent drum slots
 const SWIPE_THRESHOLD_RATIO = 0.18;
@@ -185,7 +185,7 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
   }
 
   const cardHeight = viewportHeight
-    ? clamp(viewportHeight * 0.6, 380, CARD_HEIGHT)
+    ? clamp(viewportHeight * 0.75, 480, CARD_HEIGHT)
     : CARD_HEIGHT;
   const width = containerWidth || 1;
   const cardWidthPx = width * CARD_WIDTH_RATIO;
@@ -199,7 +199,13 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
   return (
     <div
       ref={containerRef}
-      className="relative touch-pan-y select-none overflow-hidden"
+      // Horizontal-only clipping: cards that have drifted far off to the
+      // side during a swipe still need clipping so they don't visibly
+      // fly outside the page's content width, but clipping vertically
+      // too left no room for the front card's own drop shadow to paint
+      // (the container's height exactly equals the card's, zero slack),
+      // which is why the card looked visually flat with no 3D lift.
+      className="relative touch-pan-y overflow-x-hidden overflow-y-visible select-none"
       style={{ height: cardHeight, perspective: 1600 }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -297,7 +303,7 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
                   )}
                 </div>
                 <div
-                  className={`min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-5 pb-5 ${
+                  className={`min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-5 pt-4 pb-5 ${
                     isFront ? "" : "invisible"
                   }`}
                 >
