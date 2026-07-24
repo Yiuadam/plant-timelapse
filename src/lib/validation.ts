@@ -44,11 +44,20 @@ export const WIDGET_TYPES = [
   "sticky",
 ] as const;
 
+export const WIDGET_COLORS = [
+  "slate",
+  "blue",
+  "pink",
+  "green",
+  "yellow",
+  "violet",
+] as const;
+
 export const widgetCreateSchema = z.object({
   type: z.enum(WIDGET_TYPES),
   x: z.number().min(0).max(100).optional(),
   y: z.number().min(0).max(100).optional(),
-  color: z.string().max(30).optional(),
+  color: z.enum(WIDGET_COLORS).optional(),
   content: z.string().max(2000).optional(),
 });
 
@@ -59,6 +68,6 @@ export const widgetUpdateSchema = z.object({
   h: z.number().min(100).max(600).optional(),
   rotation: z.number().min(-15).max(15).optional(),
   zIndex: z.number().int().min(1).max(1000).optional(),
-  color: z.string().max(30).optional(),
+  color: z.enum(WIDGET_COLORS).optional(),
   content: z.string().max(2000).optional(),
 });

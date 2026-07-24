@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   TripsWidget,
   ClockWidget,
@@ -13,8 +13,9 @@ import {
   type MapLoc,
 } from "@/components/widget-content";
 
-const CANVAS_WIDTH = 1000;
-const CANVAS_HEIGHT = 880;
+const DESIGN_WIDTH = 1000;
+const DESIGN_HEIGHT = 880;
+const MIN_SCALE = 0.36;
 const STICKY_COLOR_CYCLE = ["yellow", "pink", "blue", "green"];
 
 type Widget = {
@@ -47,6 +48,23 @@ export default function WidgetBoard({
 }) {
   const [widgets, setWidgets] = useState(initialWidgets);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(DESIGN_WIDTH);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (width) setContainerWidth(width);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const scale = clamp(containerWidth / DESIGN_WIDTH, MIN_SCALE, 1);
+  const canvasHeight = DESIGN_HEIGHT * scale;
+
   const dragState = useRef<{
     id: string;
     startClientX: number;
@@ -96,10 +114,10 @@ export default function WidgetBoard({
     if (!drag || drag.id !== widget.id) return;
     const dx = e.clientX - drag.startClientX;
     const dy = e.clientY - drag.startClientY;
-    const maxX = 100 - (widget.w / CANVAS_WIDTH) * 100;
-    const maxY = 100 - (widget.h / CANVAS_HEIGHT) * 100;
-    const nextX = clamp(drag.startX + (dx / CANVAS_WIDTH) * 100, 0, maxX);
-    const nextY = clamp(drag.startY + (dy / CANVAS_HEIGHT) * 100, 0, maxY);
+    const maxX = 100 - (widget.w / DESIGN_WIDTH) * 100;
+    const maxY = 100 - (widget.h / DESIGN_HEIGHT) * 100;
+    const nextX = clamp(drag.startX + (dx / containerWidth) * 100, 0, maxX);
+    const nextY = clamp(drag.startY + (dy / canvasHeight) * 100, 0, maxY);
     drag.currentX = nextX;
     drag.currentY = nextY;
     updateLocal(widget.id, { x: nextX, y: nextY });
@@ -142,6 +160,11 @@ export default function WidgetBoard({
     persist(id, { content });
   }
 
+  function saveColor(id: string, color: string) {
+    updateLocal(id, { color });
+    persist(id, { color });
+  }
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <div className="mb-4 flex items-center justify-between">
@@ -155,32 +178,40 @@ export default function WidgetBoard({
         </button>
       </div>
 
-      <div className="overflow-auto rounded-2xl">
-        <div
-          className="relative"
-          style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}
-        >
-          <div className="pointer-events-none absolute -top-16 -left-16 h-72 w-72 rounded-full bg-sky-300/30 blur-3xl dark:bg-sky-500/15" />
-          <div className="pointer-events-none absolute top-56 right-0 h-72 w-72 rounded-full bg-fuchsia-300/25 blur-3xl dark:bg-fuchsia-500/15" />
-          <div className="pointer-events-none absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-amber-200/30 blur-3xl dark:bg-amber-400/15" />
+      <div
+        ref={containerRef}
+        className="relative overflow-hidden rounded-2xl"
+        style={{ height: canvasHeight }}
+      >
+        <div className="pointer-events-none absolute -top-16 -left-16 h-72 w-72 rounded-full bg-sky-300/30 blur-3xl dark:bg-sky-500/15" />
+        <div className="pointer-events-none absolute top-56 right-0 h-72 w-72 rounded-full bg-fuchsia-300/25 blur-3xl dark:bg-fuchsia-500/15" />
+        <div className="pointer-events-none absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-amber-200/30 blur-3xl dark:bg-amber-400/15" />
 
-          {widgets.map((widget) => (
+        {widgets.map((widget) => (
+          <div
+            key={widget.id}
+            onPointerDown={(e) => handlePointerDown(e, widget)}
+            onPointerMove={(e) => handlePointerMove(e, widget)}
+            onPointerUp={(e) => handlePointerUp(e, widget)}
+            onPointerCancel={(e) => handlePointerUp(e, widget)}
+            className="absolute touch-none select-none"
+            style={{
+              left: `${widget.x}%`,
+              top: `${widget.y}%`,
+              width: widget.w,
+              height: widget.h,
+              zIndex: widget.zIndex,
+              transform: `scale(${scale})`,
+              transformOrigin: "top left",
+            }}
+          >
             <div
-              key={widget.id}
-              onPointerDown={(e) => handlePointerDown(e, widget)}
-              onPointerMove={(e) => handlePointerMove(e, widget)}
-              onPointerUp={(e) => handlePointerUp(e, widget)}
-              onPointerCancel={(e) => handlePointerUp(e, widget)}
-              className="absolute touch-none select-none"
+              className="h-full w-full"
               style={{
-                left: `${widget.x}%`,
-                top: `${widget.y}%`,
-                width: widget.w,
-                height: widget.h,
-                zIndex: widget.zIndex,
                 transform: `rotate(${widget.rotation}deg) scale(${
                   draggingId === widget.id ? 1.05 : 1
                 })`,
+                transformOrigin: "center",
                 transition:
                   draggingId === widget.id
                     ? "none"
@@ -191,17 +222,38 @@ export default function WidgetBoard({
                     : "drop-shadow(0 4px 8px rgb(0 0 0 / 0.12))",
               }}
             >
-              {widget.type === "trips" && <TripsWidget trips={trips} />}
-              {widget.type === "clock" && <ClockWidget />}
+              {widget.type === "trips" && (
+                <TripsWidget
+                  trips={trips}
+                  color={widget.color ?? "violet"}
+                  onColorChange={(color) => saveColor(widget.id, color)}
+                />
+              )}
+              {widget.type === "clock" && (
+                <ClockWidget
+                  color={widget.color ?? "slate"}
+                  onColorChange={(color) => saveColor(widget.id, color)}
+                />
+              )}
               {widget.type === "photos" && (
-                <PhotosWidget photos={recentPhotos} />
+                <PhotosWidget
+                  photos={recentPhotos}
+                  color={widget.color ?? "slate"}
+                  onColorChange={(color) => saveColor(widget.id, color)}
+                />
               )}
               {widget.type === "map" && (
-                <MapWidget locations={mapLocations} />
+                <MapWidget
+                  locations={mapLocations}
+                  color={widget.color ?? "blue"}
+                  onColorChange={(color) => saveColor(widget.id, color)}
+                />
               )}
               {widget.type === "notes" && (
                 <NotesWidget
                   content={widget.content ?? ""}
+                  color={widget.color ?? "yellow"}
+                  onColorChange={(color) => saveColor(widget.id, color)}
                   onSave={(value) => saveContent(widget.id, value)}
                 />
               )}
@@ -210,12 +262,13 @@ export default function WidgetBoard({
                   color={widget.color ?? "yellow"}
                   content={widget.content ?? ""}
                   onSave={(value) => saveContent(widget.id, value)}
+                  onColorChange={(color) => saveColor(widget.id, color)}
                   onRemove={() => removeSticky(widget.id)}
                 />
               )}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </div>
   );
