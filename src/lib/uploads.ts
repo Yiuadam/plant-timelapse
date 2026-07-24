@@ -49,3 +49,22 @@ export async function saveUploadedAvatar(
 
   return blob.url;
 }
+
+export async function saveUploadedTranslationImage(
+  file: File,
+  userId: string,
+): Promise<string> {
+  const ext = ALLOWED_TYPES[file.type];
+  if (!ext) {
+    throw new UploadError("Only JPEG, PNG, WEBP, and GIF images are allowed");
+  }
+  if (file.size > MAX_SIZE_BYTES) {
+    throw new UploadError("Image must be smaller than 10MB");
+  }
+
+  const blob = await put(`translations/${userId}/${randomUUID()}.${ext}`, file, {
+    access: "public",
+  });
+
+  return blob.url;
+}

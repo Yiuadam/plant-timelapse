@@ -40,6 +40,13 @@ export default function NavBar() {
                 Passport
               </Link>
               <Link
+                href="/translate"
+                prefetch={true}
+                className={pathname.startsWith("/translate") ? "underline" : ""}
+              >
+                Translate
+              </Link>
+              <Link
                 href="/profile"
                 prefetch={true}
                 className={pathname.startsWith("/profile") ? "underline" : ""}
