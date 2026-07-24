@@ -34,6 +34,7 @@ export default async function EditTripPage({
           startDate: toDateInputValue(trip.startDate),
           endDate: toDateInputValue(trip.endDate),
           notes: trip.notes ?? "",
+          mood: trip.mood ?? "",
         }}
       />
     </div>

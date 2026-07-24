@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { title, destination, startDate, endDate, notes } = parsed.data;
+  const { title, destination, startDate, endDate, notes, mood } = parsed.data;
 
   const trip = await prisma.trip.create({
     data: {
@@ -43,6 +43,7 @@ export async function POST(request: Request) {
       startDate: startDate ? new Date(startDate) : null,
       endDate: endDate ? new Date(endDate) : null,
       notes: notes || null,
+      mood: mood || null,
     },
   });
 

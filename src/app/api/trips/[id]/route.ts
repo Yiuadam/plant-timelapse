@@ -27,7 +27,7 @@ export async function PATCH(
     );
   }
 
-  const { title, destination, startDate, endDate, notes } = parsed.data;
+  const { title, destination, startDate, endDate, notes, mood } = parsed.data;
 
   const updated = await prisma.trip.update({
     where: { id },
@@ -37,6 +37,7 @@ export async function PATCH(
       startDate: startDate ? new Date(startDate) : null,
       endDate: endDate ? new Date(endDate) : null,
       notes: notes || null,
+      mood: mood || null,
     },
   });
 
