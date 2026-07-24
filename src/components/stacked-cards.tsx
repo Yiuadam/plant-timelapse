@@ -46,6 +46,16 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
   const justDraggedRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  // shortestOffset always picks the smaller-magnitude wrap-around
+  // representation, so with only 3 cards the one NOT involved in a swap
+  // (e.g. the still-departed neighbor) can have its offset label flip
+  // sign — say -1 to +1 — between one committed render and the next,
+  // even though it's a single discrete step conceptually. Animating that
+  // as a normal transition swings it visibly across the front instead of
+  // just reappearing on its new side. Comparing against the last
+  // COMMITTED offsets (updated post-render below) lets us snap only the
+  // card(s) that actually jumped, leaving the real swap animation intact.
+  const [prevOffsets, setPrevOffsets] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const el = containerRef.current;
@@ -56,6 +66,17 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    const kickoff = setTimeout(() => {
+      const next: Record<string, number> = {};
+      cards.forEach((card, index) => {
+        next[card.key] = shortestOffset(index, activeIndex, total);
+      });
+      setPrevOffsets(next);
+    }, 0);
+    return () => clearTimeout(kickoff);
+  }, [activeIndex, cards, total]);
 
   function go(delta: number) {
     setActiveIndex((i) => (i + delta + total) % total);
@@ -154,6 +175,8 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
           // rotateY is less reliable than Chromium's).
           const opacity = clamp(0.06 + 0.94 * Math.max(0, facing) ** 3, 0.06, 1);
           const depth = Math.round(facing * 1000);
+          const prevOffset = prevOffsets[card.key] ?? offset;
+          const justJumped = !isDragging && Math.abs(offset - prevOffset) > 1.5;
 
           return (
             <div
@@ -185,9 +208,10 @@ export default function StackedCards({ cards }: { cards: StackCardDef[] }) {
                 // expensive case, so drop it until motion settles.
                 backdropFilter: isDragging ? undefined : "blur(12px)",
                 WebkitBackdropFilter: isDragging ? undefined : "blur(12px)",
-                transition: isDragging
-                  ? "none"
-                  : "transform 300ms ease-out, opacity 300ms ease-out, box-shadow 300ms ease-out",
+                transition:
+                  isDragging || justJumped
+                    ? "none"
+                    : "transform 300ms ease-out, opacity 300ms ease-out, box-shadow 300ms ease-out",
               }}
             >
               <div
