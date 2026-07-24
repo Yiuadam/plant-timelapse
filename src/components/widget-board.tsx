@@ -188,6 +188,8 @@ export default function WidgetBoard({
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(DESIGN_WIDTH);
+  const [containerTop, setContainerTop] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(0);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -195,13 +197,30 @@ export default function WidgetBoard({
     const observer = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width;
       if (width) setContainerWidth(width);
+      setContainerTop(el.getBoundingClientRect().top);
     });
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    function update() {
+      setViewportHeight(window.innerHeight);
+      if (containerRef.current) {
+        setContainerTop(containerRef.current.getBoundingClientRect().top);
+      }
+    }
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
   const scale = clamp(containerWidth / DESIGN_WIDTH, MIN_SCALE, 1);
-  const canvasHeight = DESIGN_HEIGHT * scale;
+  const isMobile = containerWidth > 0 && containerWidth < 640;
+  const fillHeight = Math.max(0, viewportHeight - containerTop - 24);
+  const canvasHeight = isMobile
+    ? Math.max(DESIGN_HEIGHT * scale, fillHeight)
+    : DESIGN_HEIGHT * scale;
 
   const dragState = useRef<{
     id: string;
