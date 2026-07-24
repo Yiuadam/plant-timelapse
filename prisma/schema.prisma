@@ -248,3 +248,20 @@ model Translation {
 
   @@index([userId, createdAt])
 }
+
+// A camera/photo translation: an uploaded image of foreign-language text,
+// the language Claude detected, the transcribed original, and its English
+// translation. Kept as history so a user can revisit past translations.
+model Translation {
+  id               String   @id @default(cuid())
+  userId           String
+  imageUrl         String
+  detectedLanguage String?
+  originalText     String?
+  translatedText   String?
+  createdAt        DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
