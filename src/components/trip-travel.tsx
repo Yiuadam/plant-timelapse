@@ -286,8 +286,15 @@ export default function TripTravel({
             onChange={(e) => setLocation(e.target.value)}
           />
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <label className="w-full min-w-0 text-xs text-black/50 sm:flex-1 dark:text-white/50">
+        {/* Always stacked, never side-by-side: Safari's native
+            datetime-local control has an intrinsic width the engine
+            won't shrink to fit a 50% flex column, so at any two-column
+            width it renders oversized and squeezes/overlaps its sibling
+            (Chromium doesn't have this quirk, which is why this only
+            showed up on an actual iOS/Safari device, not automated
+            testing). Full width at any viewport size sidesteps it. */}
+        <div className="flex flex-col gap-2">
+          <label className="w-full min-w-0 text-xs text-black/50 dark:text-white/50">
             {type === "hotel" ? "Check-in" : "Departs"}
             <input
               type="datetime-local"
@@ -297,7 +304,7 @@ export default function TripTravel({
               required
             />
           </label>
-          <label className="w-full min-w-0 text-xs text-black/50 sm:flex-1 dark:text-white/50">
+          <label className="w-full min-w-0 text-xs text-black/50 dark:text-white/50">
             {type === "hotel" ? "Check-out" : "Arrives"} (optional)
             <input
               type="datetime-local"
