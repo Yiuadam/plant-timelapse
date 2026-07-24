@@ -49,10 +49,10 @@ export default function MobileTabBar() {
         style={{ paddingBottom: "max(env(safe-area-inset-bottom), 0px)" }}
       >
         <TabLink
-          href="/"
+          href="/trips"
           label="Trips"
           icon="🧳"
-          active={pathname === "/" || pathname.startsWith("/trips")}
+          active={pathname.startsWith("/trips")}
         />
         <TabLink
           href="/timeline"

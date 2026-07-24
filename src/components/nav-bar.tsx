@@ -17,13 +17,9 @@ export default function NavBar() {
         {status === "authenticated" && (
           <>
             <Link
-              href="/"
+              href="/trips"
               prefetch={true}
-              className={
-                pathname === "/" || pathname.startsWith("/trips")
-                  ? "underline"
-                  : ""
-              }
+              className={pathname.startsWith("/trips") ? "underline" : ""}
             >
               Trips
             </Link>
