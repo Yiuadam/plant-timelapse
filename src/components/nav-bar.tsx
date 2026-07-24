@@ -10,16 +10,20 @@ export default function NavBar() {
 
   return (
     <header className="flex items-center justify-between border-b border-black/10 px-4 py-3 dark:border-white/20">
-      <Link href={session ? "/trips" : "/"} className="font-semibold">
+      <Link href="/" className="font-semibold">
         Travel Log
       </Link>
       <nav className="hidden items-center gap-4 text-sm sm:flex">
         {status === "authenticated" && (
           <>
             <Link
-              href="/trips"
+              href="/"
               prefetch={true}
-              className={pathname.startsWith("/trips") ? "underline" : ""}
+              className={
+                pathname === "/" || pathname.startsWith("/trips")
+                  ? "underline"
+                  : ""
+              }
             >
               Trips
             </Link>
