@@ -65,9 +65,11 @@ function LandmarkIcon({ kind, ink }: { kind: (typeof LANDMARKS)[number]; ink: st
 }
 
 // The rubber-stamp handle itself, shown only for the instant a fresh stamp
-// is pressed: drops in from above, presses flat onto the page in sync with
-// the ink graphic's own reveal (see the `stamp-slam` animation's delay in
-// globals.css), then lifts back away.
+// is pressed: swoops in from the lower-left -- as if picked up off the
+// StampStand beside the "Ready to stamp" list -- presses flat onto the
+// page in sync with the ink graphic's own reveal (see the `stamp-slam`
+// animation's delay in globals.css), then lifts and carries off to the
+// upper-right, leaving the ink impression behind.
 function StampTool({ ink }: { ink: string }) {
   return (
     <div
@@ -82,6 +84,24 @@ function StampTool({ ink }: { ink: string }) {
         <rect x="7" y="28" width="26" height="19" rx="3" fill={ink} opacity="0.85" />
       </svg>
     </div>
+  );
+}
+
+// A small decorative stand holding a spare stamp, shown beside the "Ready
+// to stamp" list so the flying-stamp animation has somewhere it visually
+// reads as departing from.
+export function StampStand() {
+  return (
+    <svg width="30" height="36" viewBox="0 0 34 40" aria-hidden className="shrink-0">
+      <rect x="2" y="33" width="30" height="5" rx="2" fill="#57534e" />
+      <rect x="8" y="24" width="18" height="10" rx="2" fill="#78716c" />
+      <g transform="translate(17 20) rotate(-8)">
+        <rect x="-4" y="-20" width="8" height="14" rx="3" fill="#3f3f46" />
+        <rect x="-7" y="-8" width="14" height="6" rx="2" fill="#52525b" />
+        <rect x="-11" y="-3" width="22" height="12" rx="4" fill="#27272a" />
+        <rect x="-8" y="0" width="16" height="7" rx="2" fill="#b91c1c" opacity="0.85" />
+      </g>
+    </svg>
   );
 }
 
@@ -115,6 +135,10 @@ export function PassportStampGraphic({
   const landmark = LANDMARKS[Math.floor(rand() * LANDMARKS.length)];
   const rotation = (rand() - 0.5) * 22;
   const ticks = 28;
+  // The text overlay uses fixed px/Tailwind sizes tuned for the 140px
+  // default -- scale them down for smaller renders (e.g. the 64px stamp
+  // in the dashboard Passport widget) so text doesn't overflow the ring.
+  const scale = size / 140;
 
   return (
     <div
@@ -139,17 +163,36 @@ export function PassportStampGraphic({
           })}
           <LandmarkIcon kind={landmark} ink={ink} />
         </svg>
+        {/* Font size and padding scale with `size` (fixed px/Tailwind sizes
+            were tuned for the 140px default and badly overflowed the ring
+            at the 64px size the dashboard widget renders) -- clip-path is a
+            hard backstop so a long city name can never poke past the ring
+            regardless of font metrics. */}
         <div
-          className="absolute inset-0 flex flex-col items-center justify-end gap-0.5 px-4 pb-4 text-center"
-          style={{ color: ink }}
+          className="absolute inset-0 flex flex-col items-center justify-end text-center"
+          style={{
+            color: ink,
+            padding: `${4 * scale}px ${13 * scale}px`,
+            gap: 2 * scale,
+            clipPath: "circle(44% at 50% 50%)",
+          }}
         >
-          <span className="text-[9px] font-semibold tracking-widest uppercase opacity-80">
+          <span
+            className="font-semibold tracking-widest uppercase opacity-80"
+            style={{ fontSize: Math.max(6, 9 * scale) }}
+          >
             Visited
           </span>
-          <span className="text-xs leading-tight font-bold break-words uppercase">
+          <span
+            className="leading-tight font-bold break-words uppercase"
+            style={{ fontSize: Math.max(7, 12 * scale) }}
+          >
             {city}
           </span>
-          <span className="text-[8px] font-medium opacity-75">
+          <span
+            className="font-medium opacity-75"
+            style={{ fontSize: Math.max(5, 8 * scale) }}
+          >
             {formatDate(stampedAt)}
           </span>
         </div>
