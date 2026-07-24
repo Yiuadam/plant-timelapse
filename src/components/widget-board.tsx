@@ -18,6 +18,10 @@ import { InkSplash } from "@/components/ink-splash";
 
 const DESIGN_WIDTH = 1000;
 const DESIGN_HEIGHT = 880;
+// On phones the board scales against a narrower reference width than the
+// desktop 1000px canvas, so widget text/controls land near their natural
+// size instead of shrinking to ~0.35x (unreadable) alongside the layout.
+const MOBILE_DESIGN_WIDTH = 460;
 const MIN_SCALE = 0.36;
 const STICKY_COLOR_CYCLE = ["yellow", "pink", "blue", "green"];
 const DEFAULT_COLOR_BY_TYPE: Record<string, string> = {
@@ -80,36 +84,6 @@ function ResizeHandle({
   );
 }
 
-function StyleToggle({
-  active,
-  scale,
-  onToggle,
-}: {
-  active: boolean;
-  scale: number;
-  onToggle: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      data-no-drag
-      onClick={onToggle}
-      aria-label={active ? "Use clean style" : "Use ink-splash style"}
-      aria-pressed={active}
-      className={`absolute top-0 left-0 flex h-6 w-6 items-center justify-center rounded-full border shadow-sm ${
-        active
-          ? "border-black/20 bg-black/80 text-white dark:border-white/30 dark:bg-white/80 dark:text-black"
-          : "border-black/10 bg-white/80 text-black/50 dark:border-white/20 dark:bg-black/40 dark:text-white/60"
-      }`}
-      style={{ transform: `scale(${1 / scale})`, transformOrigin: "top left" }}
-    >
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M7 21c-1.1 0-2-.9-2-2 0-.4.1-.7.3-1L9 12l6-6 3 3-6 6-6.3 3.7c-.3.2-.7.3-1 .3zM14.5 4.5l3-3a1 1 0 0 1 1.4 0l2.6 2.6a1 1 0 0 1 0 1.4l-3 3-4-4z" />
-      </svg>
-    </button>
-  );
-}
-
 export default function WidgetBoard({
   initialWidgets,
   trips,
@@ -153,8 +127,12 @@ export default function WidgetBoard({
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  const scale = clamp(containerWidth / DESIGN_WIDTH, MIN_SCALE, 1);
   const isMobile = containerWidth > 0 && containerWidth < 640;
+  const scale = clamp(
+    containerWidth / (isMobile ? MOBILE_DESIGN_WIDTH : DESIGN_WIDTH),
+    MIN_SCALE,
+    1,
+  );
   const fillHeight = Math.max(0, viewportHeight - containerTop - 24);
   const canvasHeight = isMobile
     ? Math.max(DESIGN_HEIGHT * scale, fillHeight)
@@ -186,7 +164,10 @@ export default function WidgetBoard({
   }
 
   function handlePointerDown(e: React.PointerEvent, widget: Widget) {
-    if ((e.target as HTMLElement).closest("[data-no-drag]")) return;
+    if (
+      (e.target as HTMLElement).closest("[data-no-drag], .leaflet-container")
+    )
+      return;
     e.currentTarget.setPointerCapture(e.pointerId);
     const maxZ = widgets.reduce((m, w) => Math.max(m, w.zIndex), 1);
     const newZ = maxZ + 1;
@@ -384,12 +365,16 @@ export default function WidgetBoard({
                   trips={trips}
                   color={widget.color ?? "violet"}
                   onColorChange={(color) => saveColor(widget.id, color)}
+                  style={widget.style ?? "clean"}
+                  onStyleChange={() => toggleStyle(widget.id, widget.style)}
                 />
               )}
               {widget.type === "clock" && (
                 <ClockWidget
                   color={widget.color ?? "slate"}
                   onColorChange={(color) => saveColor(widget.id, color)}
+                  style={widget.style ?? "clean"}
+                  onStyleChange={() => toggleStyle(widget.id, widget.style)}
                 />
               )}
               {widget.type === "photos" && (
@@ -397,6 +382,8 @@ export default function WidgetBoard({
                   photos={recentPhotos}
                   color={widget.color ?? "slate"}
                   onColorChange={(color) => saveColor(widget.id, color)}
+                  style={widget.style ?? "clean"}
+                  onStyleChange={() => toggleStyle(widget.id, widget.style)}
                   trips={trips}
                   onUploaded={() => router.refresh()}
                 />
@@ -406,6 +393,8 @@ export default function WidgetBoard({
                   locations={mapLocations}
                   color={widget.color ?? "blue"}
                   onColorChange={(color) => saveColor(widget.id, color)}
+                  style={widget.style ?? "clean"}
+                  onStyleChange={() => toggleStyle(widget.id, widget.style)}
                 />
               )}
               {widget.type === "notes" && (
@@ -413,6 +402,8 @@ export default function WidgetBoard({
                   content={widget.content ?? ""}
                   color={widget.color ?? "yellow"}
                   onColorChange={(color) => saveColor(widget.id, color)}
+                  style={widget.style ?? "clean"}
+                  onStyleChange={() => toggleStyle(widget.id, widget.style)}
                   onSave={(value) => saveContent(widget.id, value)}
                 />
               )}
@@ -422,14 +413,11 @@ export default function WidgetBoard({
                   content={widget.content ?? ""}
                   onSave={(value) => saveContent(widget.id, value)}
                   onColorChange={(color) => saveColor(widget.id, color)}
+                  style={widget.style ?? "clean"}
+                  onStyleChange={() => toggleStyle(widget.id, widget.style)}
                   onRemove={() => removeSticky(widget.id)}
                 />
               )}
-              <StyleToggle
-                active={widget.style === "ink"}
-                scale={scale}
-                onToggle={() => toggleStyle(widget.id, widget.style)}
-              />
               <ResizeHandle
                 scale={scale}
                 onPointerDown={(e) => handleResizeDown(e, widget)}
