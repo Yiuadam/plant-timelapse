@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   MapContainer,
   TileLayer,
   Marker,
   Popup,
+  useMap,
   useMapEvents,
 } from "react-leaflet";
 import L from "leaflet";
@@ -41,6 +42,20 @@ function ClickHandler({
   return null;
 }
 
+function ResizeWatcher() {
+  const map = useMap();
+  const containerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    containerRef.current = map.getContainer();
+    const observer = new ResizeObserver(() => map.invalidateSize());
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [map]);
+
+  return null;
+}
+
 export default function TripMap({
   locations,
   onMapClick,
@@ -69,6 +84,7 @@ export default function TripMap({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      <ResizeWatcher />
       {onMapClick && <ClickHandler onMapClick={onMapClick} />}
       {locations.map((loc) => (
         <Marker key={loc.id} position={[loc.lat, loc.lng]} icon={markerIcon}>
