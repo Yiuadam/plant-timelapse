@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export type TravelItemData = {
@@ -52,6 +52,52 @@ export default function TripTravel({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [scanNote, setScanNote] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  async function handleScan(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setScanning(true);
+    setScanError(null);
+    setScanNote(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`/api/trips/${tripId}/travel/scan`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setScanError(data.error ?? "Couldn't read that image");
+        return;
+      }
+      if (data.type && TRAVEL_TYPES.includes(data.type)) setType(data.type);
+      if (data.title) setTitle(data.title);
+      if (data.detail) setDetail(data.detail);
+      if (data.location) setLocation(data.location);
+      if (data.startAt) setStartAt(data.startAt);
+      if (data.endAt) setEndAt(data.endAt);
+      if (data.notes) setNotes(data.notes);
+      const missing = [
+        !data.title && "title",
+        !data.startAt && "date/time",
+      ].filter(Boolean);
+      setScanNote(
+        missing.length > 0
+          ? `Filled what I could read — double-check ${missing.join(" and ")} before adding.`
+          : "Filled from the photo — double-check before adding.",
+      );
+    } catch {
+      setScanError("Couldn't read that image");
+    } finally {
+      setScanning(false);
+      if (fileInput.current) fileInput.current.value = "";
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -82,6 +128,7 @@ export default function TripTravel({
       setStartAt("");
       setEndAt("");
       setNotes("");
+      setScanNote(null);
       router.refresh();
     } finally {
       setSubmitting(false);
@@ -108,6 +155,23 @@ export default function TripTravel({
         onSubmit={handleSubmit}
         className="flex flex-col gap-2 rounded-xl border border-black/10 p-3 dark:border-white/20"
       >
+        <div className="flex items-center justify-between gap-2">
+          <label className="cursor-pointer rounded-lg border border-dashed border-black/20 px-2 py-1.5 text-xs text-black/60 hover:bg-black/5 dark:border-white/30 dark:text-white/60 dark:hover:bg-white/10">
+            {scanning ? "Scanning..." : "📷 Scan a boarding pass, confirmation, or ticket"}
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={handleScan}
+              disabled={scanning}
+            />
+          </label>
+        </div>
+        {scanError && <p className="text-xs text-red-600">{scanError}</p>}
+        {scanNote && (
+          <p className="text-xs text-black/50 dark:text-white/50">{scanNote}</p>
+        )}
         <div className="flex gap-2">
           <select
             value={type}
