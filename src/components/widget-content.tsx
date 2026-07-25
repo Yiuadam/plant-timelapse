@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { PassportStampGraphic } from "@/components/passport-stamp";
+import { useLanguage } from "@/lib/i18n/context";
 
 const TripMap = dynamic(() => import("@/components/trip-map"), {
   ssr: false,
@@ -472,13 +473,14 @@ export function TripsWidget({
   onRemove: () => void;
 }) {
   const tint = GLASS_TINT[color] ?? GLASS_TINT.violet;
+  const { t } = useLanguage();
 
   return (
     <div
       className={`flex h-full flex-col overflow-hidden rounded-2xl border border-white/60 bg-gradient-to-br shadow-xl backdrop-blur-md dark:border-white/15 ${tint}`}
     >
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/40 px-4 py-2.5 dark:border-white/10">
-        <span className="font-medium">Trips</span>
+        <span className="font-medium">{t("widget_trips")}</span>
         <div className="flex items-center gap-2">
           <StylePicker style={style} onChange={onStyleChange} />
           <ColorPicker color={color} onChange={onColorChange} />
@@ -489,7 +491,7 @@ export function TripsWidget({
             data-no-drag
             className="rounded-lg bg-black/10 px-2 py-1 text-xs font-medium dark:bg-white/15"
           >
-            + New
+            {t("widget_new_trip")}
           </Link>
         </div>
       </div>
@@ -499,7 +501,7 @@ export function TripsWidget({
       >
         {trips.length === 0 ? (
           <p className="text-sm text-black/50 dark:text-white/50">
-            No trips yet — add your first one.
+            {t("widget_no_trips")}
           </p>
         ) : (
           trips.map((trip) => (
@@ -620,6 +622,7 @@ export function PhotosWidget({
   onUploaded: () => void;
 }) {
   const accent = ACCENT_HEX[color] ?? ACCENT_HEX.slate;
+  const { t } = useLanguage();
   const [index, setIndex] = useState(0);
   const safeIndex = photos.length === 0 ? 0 : index % photos.length;
 
@@ -633,7 +636,7 @@ export function PhotosWidget({
           <RemoveButton onRemove={onRemove} />
         </div>
         <div className="flex h-full w-full items-center justify-center rounded-lg border-8 border-white bg-white text-center text-sm text-black/40 shadow-xl dark:border-white/90">
-          No photos yet
+          {t("widget_no_photos")}
         </div>
       </div>
     );
@@ -792,13 +795,14 @@ export function TravelWidget({
   onRemove: () => void;
 }) {
   const tint = GLASS_TINT[color] ?? GLASS_TINT.blue;
+  const { t } = useLanguage();
 
   return (
     <div
       className={`flex h-full flex-col overflow-hidden rounded-2xl border border-white/60 bg-gradient-to-br shadow-xl backdrop-blur-md dark:border-white/15 ${tint}`}
     >
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/40 px-4 py-2.5 dark:border-white/10">
-        <span className="font-medium">Travel</span>
+        <span className="font-medium">{t("widget_travel")}</span>
         <div className="flex items-center gap-2">
           <StylePicker style={style} onChange={onStyleChange} />
           <ColorPicker color={color} onChange={onColorChange} />
@@ -959,6 +963,7 @@ export function PassportWidget({
   // it keeps the real passport cover's own color instead of a
   // user-pickable tint, and adds a spine + peeking page edges to sell
   // the "book," not "card," shape.
+  const { t } = useLanguage();
   return (
     <div className="relative h-full w-full">
       <div
@@ -970,7 +975,7 @@ export function PassportWidget({
         <div className="absolute inset-y-0 left-0 w-2.5 bg-black/25" />
         <div className="flex shrink-0 items-center justify-between gap-2 py-2 pr-3 pl-5 text-[#e9d9b8]">
           <span className="flex items-center gap-1.5 text-sm font-medium tracking-wide">
-            <span aria-hidden>🧭</span> Passport
+            <span aria-hidden>🧭</span> {t("widget_passport")}
           </span>
           <div className="flex items-center gap-2">
             <StylePicker style={style} onChange={onStyleChange} />
@@ -981,7 +986,7 @@ export function PassportWidget({
               data-no-drag
               className="rounded-lg bg-white/15 px-2 py-1 text-xs font-medium"
             >
-              Open
+              {t("open")}
             </Link>
           </div>
         </div>
@@ -991,7 +996,7 @@ export function PassportWidget({
         >
           {stamps.length === 0 ? (
             <p className="text-sm text-black/50 dark:text-white/50">
-              No stamps yet — visit the Passport page once you&apos;ve been.
+              {t("widget_no_stamps")}
             </p>
           ) : (
             <div className="flex flex-wrap justify-center gap-2">

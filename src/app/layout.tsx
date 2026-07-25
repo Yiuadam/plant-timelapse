@@ -5,6 +5,8 @@ import AuthProvider from "@/components/auth-provider";
 import NavBar from "@/components/nav-bar";
 import AssistantWidget from "@/components/assistant-widget";
 import MobileTabBar from "@/components/mobile-tab-bar";
+import { LanguageProvider } from "@/lib/i18n/context";
+import { getLang } from "@/lib/i18n/server";
 
 // Runs before paint so the stored/system theme applies immediately —
 // without this, the page would flash the opposite theme for a frame
@@ -54,14 +56,15 @@ export const viewport: Viewport = {
   themeColor: "#38bdf8",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const lang = await getLang();
   return (
     <html
-      lang="en"
+      lang={lang}
       className={`${geistSans.variable} ${geistMono.variable} ${caveat.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
@@ -71,12 +74,14 @@ export default function RootLayout({
           <div className="flavor-blob-2 absolute top-56 right-0 h-72 w-72 rounded-full bg-fuchsia-300/25 blur-3xl dark:bg-fuchsia-500/15" />
           <div className="flavor-blob-3 absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-amber-200/30 blur-3xl dark:bg-amber-400/15" />
         </div>
-        <AuthProvider>
-          <NavBar />
-          <main className="flex-1 pb-20 sm:pb-0">{children}</main>
-          <AssistantWidget />
-          <MobileTabBar />
-        </AuthProvider>
+        <LanguageProvider initialLang={lang}>
+          <AuthProvider>
+            <NavBar />
+            <main className="flex-1 pb-20 sm:pb-0">{children}</main>
+            <AssistantWidget />
+            <MobileTabBar />
+          </AuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

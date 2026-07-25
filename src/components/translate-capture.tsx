@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "@/lib/i18n/context";
 
 type Result = {
   detectedLanguage: string | null;
@@ -11,6 +12,7 @@ type Result = {
 
 export default function TranslateCapture() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export default function TranslateCapture() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? "Translation failed");
+        setError(data.error ?? t("translate_failed"));
         return;
       }
       setResult(data.translation);
@@ -47,7 +49,7 @@ export default function TranslateCapture() {
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Type a word or phrase in any language..."
+          placeholder={t("translate_placeholder")}
           rows={3}
           maxLength={500}
           className="resize-none rounded-2xl border-2 border-dashed border-black/15 bg-black/[0.02] px-4 py-3 text-base focus:border-black/30 focus:outline-none dark:border-white/20 dark:bg-white/[0.03] dark:focus:border-white/40"
@@ -57,10 +59,10 @@ export default function TranslateCapture() {
           disabled={loading || !text.trim()}
           className="rounded-xl bg-foreground px-4 py-2.5 text-sm font-medium text-background disabled:opacity-50"
         >
-          {loading ? "Translating..." : "Translate"}
+          {loading ? t("translate_translating") : t("translate_button")}
         </button>
         <p className="text-center text-xs text-black/50 dark:text-white/50">
-          Language is detected automatically
+          {t("translate_auto_detect")}
         </p>
       </form>
 
@@ -74,13 +76,13 @@ export default function TranslateCapture() {
             </span>
           ) : (
             <p className="text-sm text-black/50 dark:text-white/50">
-              Couldn&apos;t make out any text there.
+              {t("translate_no_text")}
             </p>
           )}
           {result.translatedText && (
             <div>
               <div className="mb-1 text-xs font-medium text-black/50 dark:text-white/50">
-                Translation
+                {t("translate_result_translation")}
               </div>
               <p className="text-lg font-medium whitespace-pre-wrap">
                 {result.translatedText}
@@ -90,7 +92,7 @@ export default function TranslateCapture() {
           {result.explanation && (
             <div>
               <div className="mb-1 text-xs font-medium text-black/50 dark:text-white/50">
-                Explanation
+                {t("translate_result_explanation")}
               </div>
               <p className="text-sm whitespace-pre-wrap text-black/70 dark:text-white/70">
                 {result.explanation}

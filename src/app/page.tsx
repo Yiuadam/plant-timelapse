@@ -6,17 +6,18 @@ import { getOrCreateWidgets } from "@/lib/widgets";
 import { tripAccessWhere } from "@/lib/trip-access";
 import { detectWidgetDevice } from "@/lib/device";
 import WidgetBoard from "@/components/widget-board";
+import { getT } from "@/lib/i18n/server";
 
 export default async function Home() {
   const session = await auth();
+  const { t } = await getT();
 
   if (!session?.user?.id) {
     return (
       <div className="mx-auto flex min-h-[70vh] max-w-2xl flex-col items-center justify-center gap-6 px-4 text-center">
         <h1 className="text-4xl font-semibold tracking-tight">Travel Log</h1>
         <p className="max-w-md text-lg text-black/60 dark:text-white/60">
-          Record your trips, pin the places you visit, keep your photos, and
-          track what you spend along the way.
+          {t("landing_tagline")}
         </p>
         <div className="flex gap-4">
           <Link
@@ -24,14 +25,14 @@ export default async function Home() {
             prefetch={true}
             className="rounded-xl bg-foreground px-5 py-2.5 text-background"
           >
-            Get started
+            {t("landing_get_started")}
           </Link>
           <Link
             href="/login"
             prefetch={true}
             className="rounded-xl border border-black/10 px-5 py-2.5 dark:border-white/20"
           >
-            Log in
+            {t("nav_login")}
           </Link>
         </div>
       </div>

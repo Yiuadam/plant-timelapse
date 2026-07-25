@@ -4,11 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { tripAccessWhere } from "@/lib/trip-access";
 import { getPassportNumber } from "@/lib/passport-number";
 import PassportBook from "@/components/passport-book";
+import { getT } from "@/lib/i18n/server";
 
 export default async function PassportPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
   const userId = session.user.id;
+  const { t } = await getT();
 
   const [user, trips, stamps] = await Promise.all([
     prisma.user.findUnique({
@@ -34,9 +36,9 @@ export default async function PassportPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="mb-1 text-2xl font-semibold">Passport</h1>
+      <h1 className="mb-1 text-2xl font-semibold">{t("passport_title")}</h1>
       <p className="mb-6 text-sm text-black/60 dark:text-white/60">
-        Every trip with a destination can be stamped once you&apos;ve been.
+        {t("passport_subtitle")}
       </p>
 
       <PassportBook

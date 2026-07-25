@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "@/lib/i18n/context";
 
 export default function StampButton({
   tripId,
@@ -13,6 +14,7 @@ export default function StampButton({
   destination: string;
 }) {
   const router = useRouter();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,7 +53,7 @@ export default function StampButton({
         disabled={loading}
         className="shrink-0 rounded-xl bg-foreground px-3 py-1.5 text-sm text-background disabled:opacity-50"
       >
-        {loading ? "Stamping..." : "Stamp it"}
+        {loading ? t("passport_stamping") : t("passport_stamp_it")}
       </button>
     </div>
   );

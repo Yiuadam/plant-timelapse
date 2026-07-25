@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { forceRepaint } from "@/lib/force-repaint";
+import { useLanguage } from "@/lib/i18n/context";
 
 const STORAGE_KEY = "theme";
 
@@ -15,6 +16,7 @@ function applyTheme(theme: "light" | "dark") {
 
 export default function ThemeToggle() {
   const [theme, setTheme] = useState<"light" | "dark" | null>(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const kickoff = setTimeout(() => {
@@ -33,18 +35,18 @@ export default function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      aria-label="Toggle dark and light mode"
+      aria-label={t("nav_toggle_theme")}
       className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-black/10 bg-white/70 px-3 text-sm font-medium shadow-sm backdrop-blur-md transition hover:bg-white/90 dark:border-white/15 dark:bg-black/40 dark:hover:bg-black/60"
     >
       {theme === "dark" ? (
         <>
           <span aria-hidden>🌙</span>
-          <span className="hidden sm:inline">Dark</span>
+          <span className="hidden sm:inline">{t("theme_dark")}</span>
         </>
       ) : (
         <>
           <span aria-hidden>☀️</span>
-          <span className="hidden sm:inline">Light</span>
+          <span className="hidden sm:inline">{t("theme_light")}</span>
         </>
       )}
     </button>

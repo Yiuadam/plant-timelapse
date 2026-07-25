@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "@/lib/i18n/context";
 
 export type TripListItemData = {
   id: string;
@@ -33,6 +34,7 @@ export default function TripListItem({
   isShared: boolean;
 }) {
   const router = useRouter();
+  const { t } = useLanguage();
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -74,7 +76,7 @@ export default function TripListItem({
   }
 
   async function handleDelete() {
-    if (!confirm(`Delete "${trip.title}"? This can't be undone.`)) return;
+    if (!confirm(t("trips_delete_confirm", { title: trip.title }))) return;
     setDeleting(true);
     try {
       await fetch(`/api/trips/${trip.id}`, { method: "DELETE" });
@@ -91,11 +93,11 @@ export default function TripListItem({
           type="button"
           onClick={handleDelete}
           disabled={deleting}
-          aria-label={`Delete ${trip.title}`}
+          aria-label={`${t("delete")} ${trip.title}`}
           className="absolute inset-y-0 right-0 flex items-center justify-center bg-red-600 text-sm font-medium text-white disabled:opacity-60"
           style={{ width: DELETE_WIDTH }}
         >
-          {deleting ? "…" : "Delete"}
+          {deleting ? "…" : t("delete")}
         </button>
       )}
       <Link
@@ -129,7 +131,7 @@ export default function TripListItem({
         </div>
         {isShared && (
           <span className="shrink-0 rounded-full bg-black/5 px-2 py-1 text-xs text-black/50 dark:bg-white/10 dark:text-white/50">
-            Shared
+            {t("trips_shared")}
           </span>
         )}
       </Link>
