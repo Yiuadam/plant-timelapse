@@ -17,8 +17,8 @@ const COLUMN_WIDTH_STORAGE_KEY = "timeline-column-width";
 export type TimelineEntryData = {
   id: string;
   name: string;
-  lat: number;
-  lng: number;
+  lat: number | null;
+  lng: number | null;
   dateLabel: string;
   tripId: string;
   tripTitle: string;

@@ -2,34 +2,24 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
-import { saveUploadedTranslationImage, UploadError } from "@/lib/uploads";
 
-// A vision call on a large photo can take longer than the platform's
-// default serverless timeout.
-export const maxDuration = 60;
+// A dictionary-style explanation can take a moment to generate.
+export const maxDuration = 30;
 
-const ALLOWED_TYPES: Record<
-  string,
-  "image/jpeg" | "image/png" | "image/webp" | "image/gif"
-> = {
-  "image/jpeg": "image/jpeg",
-  "image/png": "image/png",
-  "image/webp": "image/webp",
-  "image/gif": "image/gif",
-};
+const MAX_TEXT_LENGTH = 500;
 
-const TRANSLATE_PROMPT = `This photo contains text in a language the viewer doesn't read. Detect the language automatically -- do not ask, just decide. Then:
-1. Transcribe the original text exactly as written (preserve line breaks where meaningful).
-2. Translate it into natural, fluent English.
+const TRANSLATE_PROMPT = `The user typed a word or short phrase, possibly in a language other than English. Detect the language automatically -- do not ask, just decide (if it's already English, detect "English" and translate to itself or the closest natural phrasing). Then:
+1. Give a direct, literal translation into English.
+2. Give a short explanation, dictionary-entry style: part of speech if applicable, any nuance a literal translation misses, and/or a short usage example. Keep it to 1-3 sentences.
 
 Respond with ONLY a single JSON object, nothing else -- no markdown code fences, no explanation before or after -- matching exactly this shape:
 {
   "language": string | null,
-  "originalText": string | null,
-  "translation": string | null
+  "translation": string | null,
+  "explanation": string | null
 }
 
-"language" is the human-readable name of the detected language (e.g. "Japanese", "French", "Thai"). If there is no legible text in the image at all, respond with all three fields set to null. Do not include any other keys.`;
+"language" is the human-readable name of the detected source language (e.g. "Japanese", "French", "Thai"). If the input is empty or not real text in any language, respond with all three fields set to null.`;
 
 function parseExtractedJson(text: string) {
   let cleaned = text
@@ -70,7 +60,7 @@ export async function POST(request: Request) {
   } catch (err) {
     console.error("translate: unexpected error", err);
     return NextResponse.json(
-      { error: "Something went wrong translating that photo — try again" },
+      { error: "Something went wrong translating that — try again" },
       { status: 500 },
     );
   }
@@ -89,32 +79,17 @@ async function handlePost(request: Request) {
     );
   }
 
-  const formData = await request.formData().catch(() => null);
-  const file = formData?.get("file");
-  if (!(file instanceof File)) {
-    return NextResponse.json({ error: "No file provided" }, { status: 400 });
+  const body = await request.json().catch(() => null);
+  const text = typeof body?.text === "string" ? body.text.trim() : "";
+  if (!text) {
+    return NextResponse.json({ error: "Type something to translate" }, { status: 400 });
   }
-
-  const mediaType = ALLOWED_TYPES[file.type];
-  if (!mediaType) {
+  if (text.length > MAX_TEXT_LENGTH) {
     return NextResponse.json(
-      { error: "Only JPEG, PNG, WEBP, and GIF images are allowed" },
+      { error: `Keep it under ${MAX_TEXT_LENGTH} characters` },
       { status: 400 },
     );
   }
-
-  let imageUrl: string;
-  try {
-    imageUrl = await saveUploadedTranslationImage(file, userId);
-  } catch (err) {
-    if (err instanceof UploadError) {
-      return NextResponse.json({ error: err.message }, { status: 400 });
-    }
-    throw err;
-  }
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const base64 = buffer.toString("base64");
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -122,13 +97,12 @@ async function handlePost(request: Request) {
   try {
     const message = await anthropic.messages.create({
       model: "claude-sonnet-5",
-      max_tokens: 1200,
+      max_tokens: 600,
       messages: [
         {
           role: "user",
           content: [
-            { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
-            { type: "text", text: TRANSLATE_PROMPT },
+            { type: "text", text: `${TRANSLATE_PROMPT}\n\nText: ${text}` },
           ],
         },
       ],
@@ -166,11 +140,17 @@ async function handlePost(request: Request) {
 
   const parsed = raw ? parseExtractedJson(raw) : null;
   const detectedLanguage: string | null = parsed?.language ?? null;
-  const originalText: string | null = parsed?.originalText ?? null;
   const translatedText: string | null = parsed?.translation ?? null;
+  const explanation: string | null = parsed?.explanation ?? null;
 
   const translation = await prisma.translation.create({
-    data: { userId, imageUrl, detectedLanguage, originalText, translatedText },
+    data: {
+      userId,
+      originalText: text,
+      detectedLanguage,
+      translatedText,
+      explanation,
+    },
   });
 
   return NextResponse.json({ translation }, { status: 201 });

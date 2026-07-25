@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { tripAccessWhere } from "@/lib/trip-access";
+import TripListItem from "@/components/trip-list-item";
 
 export default async function TripsPage() {
   const session = await auth();
@@ -43,33 +44,18 @@ export default async function TripsPage() {
       ) : (
         <ul className="flex flex-col gap-3">
           {trips.map((trip) => (
-            <li key={trip.id}>
-              <Link
-                href={`/trips/${trip.id}`}
-                prefetch={true}
-                className="flex items-center justify-between gap-4 rounded-2xl border border-black/10 bg-white/50 px-5 py-4 shadow-sm transition hover:bg-white/80 dark:border-white/15 dark:bg-black/20 dark:hover:bg-black/30"
-              >
-                <div className="min-w-0">
-                  <div className="truncate font-medium">{trip.title}</div>
-                  {(trip.destination || trip.startDate) && (
-                    <div className="truncate text-sm text-black/60 dark:text-white/60">
-                      {trip.destination}
-                      {trip.startDate &&
-                        `${trip.destination ? " · " : ""}${trip.startDate.toLocaleDateString()}${
-                          trip.endDate
-                            ? ` – ${trip.endDate.toLocaleDateString()}`
-                            : ""
-                        }`}
-                    </div>
-                  )}
-                </div>
-                {trip.userId !== userId && (
-                  <span className="shrink-0 rounded-full bg-black/5 px-2 py-1 text-xs text-black/50 dark:bg-white/10 dark:text-white/50">
-                    Shared
-                  </span>
-                )}
-              </Link>
-            </li>
+            <TripListItem
+              key={trip.id}
+              trip={{
+                id: trip.id,
+                title: trip.title,
+                destination: trip.destination,
+                startDate: trip.startDate ? trip.startDate.toISOString() : null,
+                endDate: trip.endDate ? trip.endDate.toISOString() : null,
+              }}
+              isOwner={trip.userId === userId}
+              isShared={trip.userId !== userId}
+            />
           ))}
         </ul>
       )}

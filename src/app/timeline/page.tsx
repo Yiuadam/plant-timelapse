@@ -13,6 +13,19 @@ const RING_TINTS = [
 
 const ACCENT_CYCLE = ["#0284c7", "#c026d3", "#d97706"];
 
+type RawEntry = {
+  id: string;
+  name: string;
+  lat: number | null;
+  lng: number | null;
+  effectiveDate: Date;
+  tripId: string;
+  tripTitle: string;
+  photoUrl: string | null;
+  cardStyle: string | null;
+  cardSize: string | null;
+};
+
 export default async function TimelinePage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
@@ -28,15 +41,52 @@ export default async function TimelinePage() {
     prisma.trip.findMany({
       where: tripAccessWhere(session.user.id),
       orderBy: { createdAt: "desc" },
-      select: { id: true, title: true },
+      select: {
+        id: true,
+        title: true,
+        destination: true,
+        startDate: true,
+        createdAt: true,
+      },
     }),
   ]);
 
-  const entries = locations
-    .map((loc) => ({
-      ...loc,
-      effectiveDate: loc.visitedAt ?? loc.createdAt,
-    }))
+  // Every trip with a destination shows up on the timeline automatically,
+  // not just ones where the user went through the separate "Add event"
+  // flow to mark a specific Location visited -- that flow is for pinning
+  // an exact spot on the map, but most trips are only ever given a
+  // destination string, and previously those never appeared here at all.
+  const tripIdsWithVisitedLocation = new Set(locations.map((l) => l.tripId));
+
+  const locationEntries: RawEntry[] = locations.map((loc) => ({
+    id: loc.id,
+    name: loc.name,
+    lat: loc.lat,
+    lng: loc.lng,
+    effectiveDate: loc.visitedAt ?? loc.createdAt,
+    tripId: loc.trip.id,
+    tripTitle: loc.trip.title,
+    photoUrl: loc.photos[0]?.filePath ?? null,
+    cardStyle: loc.cardStyle,
+    cardSize: loc.cardSize,
+  }));
+
+  const syntheticEntries: RawEntry[] = trips
+    .filter((t) => t.destination?.trim() && !tripIdsWithVisitedLocation.has(t.id))
+    .map((t) => ({
+      id: `trip-${t.id}`,
+      name: t.destination!.trim(),
+      lat: null,
+      lng: null,
+      effectiveDate: t.startDate ?? t.createdAt,
+      tripId: t.id,
+      tripTitle: t.title,
+      photoUrl: null,
+      cardStyle: null,
+      cardSize: null,
+    }));
+
+  const entries = [...locationEntries, ...syntheticEntries]
     .sort((a, b) => a.effectiveDate.getTime() - b.effectiveDate.getTime())
     .map((entry, i) => ({
       id: entry.id,
@@ -44,9 +94,9 @@ export default async function TimelinePage() {
       lat: entry.lat,
       lng: entry.lng,
       dateLabel: entry.effectiveDate.toLocaleDateString(),
-      tripId: entry.trip.id,
-      tripTitle: entry.trip.title,
-      photoUrl: entry.photos[0]?.filePath ?? null,
+      tripId: entry.tripId,
+      tripTitle: entry.tripTitle,
+      photoUrl: entry.photoUrl,
       initial: entry.name.charAt(0).toUpperCase(),
       ringTint: RING_TINTS[i % RING_TINTS.length],
       accent: ACCENT_CYCLE[i % ACCENT_CYCLE.length],
@@ -64,8 +114,9 @@ export default async function TimelinePage() {
 
       {entries.length === 0 ? (
         <p className="text-black/60 dark:text-white/60">
-          Places you mark as visited will show up here in order, oldest to
-          newest. Use &quot;Add event&quot; above to add your first one.
+          Trips with a destination show up here automatically, in order.
+          Create a trip, or use &quot;Add event&quot; above to pin an exact
+          spot on the map.
         </p>
       ) : (
         <TimelineBoard entries={entries} />
