@@ -945,59 +945,69 @@ export function StickyWidget({
 
 export function PassportWidget({
   stamps,
-  color,
-  onColorChange,
   style,
   onStyleChange,
   onRemove,
 }: {
   stamps: PassportStampSummary[];
-  color: string;
-  onColorChange: (color: string) => void;
   style: string;
   onStyleChange: (style: string) => void;
   onRemove: () => void;
 }) {
-  const tint = GLASS_TINT[color] ?? GLASS_TINT.indigo ?? GLASS_TINT.violet;
-
+  // Deliberately not a colorable glass card like the other widgets --
+  // the whole point is that this one reads as a little leather-bound
+  // book sitting on the dashboard, not another interchangeable tile, so
+  // it keeps the real passport cover's own color instead of a
+  // user-pickable tint, and adds a spine + peeking page edges to sell
+  // the "book," not "card," shape.
   return (
-    <div
-      className={`flex h-full flex-col overflow-hidden rounded-2xl border border-white/60 bg-gradient-to-br shadow-xl backdrop-blur-md dark:border-white/15 ${tint}`}
-    >
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/40 px-4 py-2.5 dark:border-white/10">
-        <span className="font-medium">Passport</span>
-        <div className="flex items-center gap-2">
-          <StylePicker style={style} onChange={onStyleChange} />
-          <ColorPicker color={color} onChange={onColorChange} />
-          <RemoveButton onRemove={onRemove} />
-          <Link
-            href="/passport"
-            prefetch={true}
-            data-no-drag
-            className="rounded-lg bg-black/10 px-2 py-1 text-xs font-medium dark:bg-white/15"
-          >
-            Open
-          </Link>
-        </div>
-      </div>
-      <div data-no-drag className="flex-1 overflow-y-auto p-3">
-        {stamps.length === 0 ? (
-          <p className="text-sm text-black/50 dark:text-white/50">
-            No stamps yet — visit the Passport page once you&apos;ve been.
-          </p>
-        ) : (
-          <div className="flex flex-wrap justify-center gap-2">
-            {stamps.map((s) => (
-              <PassportStampGraphic
-                key={s.id}
-                city={s.city}
-                stampedAt={s.stampedAt}
-                seed={s.tripId}
-                size={64}
-              />
-            ))}
+    <div className="relative h-full w-full">
+      <div
+        aria-hidden
+        className="absolute top-[3px] left-[3px] h-full w-full rounded-2xl border border-black/10 bg-[#f0e9d8] dark:border-white/10 dark:bg-neutral-800"
+      />
+      <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-black/15 bg-gradient-to-br from-[#3b1f1f] to-[#1a0f0f] shadow-xl">
+        {/* Spine. */}
+        <div className="absolute inset-y-0 left-0 w-2.5 bg-black/25" />
+        <div className="flex shrink-0 items-center justify-between gap-2 py-2 pr-3 pl-5 text-[#e9d9b8]">
+          <span className="flex items-center gap-1.5 text-sm font-medium tracking-wide">
+            <span aria-hidden>🧭</span> Passport
+          </span>
+          <div className="flex items-center gap-2">
+            <StylePicker style={style} onChange={onStyleChange} />
+            <RemoveButton onRemove={onRemove} />
+            <Link
+              href="/passport"
+              prefetch={true}
+              data-no-drag
+              className="rounded-lg bg-white/15 px-2 py-1 text-xs font-medium"
+            >
+              Open
+            </Link>
           </div>
-        )}
+        </div>
+        <div
+          data-no-drag
+          className="flex-1 overflow-y-auto rounded-tl-xl bg-[#fdfaf3] p-3 pl-5 dark:bg-neutral-900"
+        >
+          {stamps.length === 0 ? (
+            <p className="text-sm text-black/50 dark:text-white/50">
+              No stamps yet — visit the Passport page once you&apos;ve been.
+            </p>
+          ) : (
+            <div className="flex flex-wrap justify-center gap-2">
+              {stamps.map((s) => (
+                <PassportStampGraphic
+                  key={s.id}
+                  city={s.city}
+                  stampedAt={s.stampedAt}
+                  seed={s.tripId}
+                  size={64}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

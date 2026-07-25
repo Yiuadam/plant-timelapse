@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { forceRepaint } from "@/lib/force-repaint";
 
 const STORAGE_KEY = "theme";
 
@@ -9,6 +10,7 @@ function applyTheme(theme: "light" | "dark") {
   root.classList.toggle("dark", theme === "dark");
   root.classList.toggle("light", theme === "light");
   localStorage.setItem(STORAGE_KEY, theme);
+  forceRepaint();
 }
 
 export default function ThemeToggle() {

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { forceRepaint } from "@/lib/force-repaint";
 
 const FLAVORS = [
   { key: "minimalist", label: "Minimalist", swatch: "bg-slate-300" },
@@ -15,6 +16,7 @@ const STORAGE_KEY = "flavor";
 function applyFlavor(flavor: string) {
   document.documentElement.setAttribute("data-flavor", flavor);
   localStorage.setItem(STORAGE_KEY, flavor);
+  forceRepaint();
 }
 
 export default function FlavorPicker() {
