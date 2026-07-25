@@ -13,7 +13,7 @@ export default async function TranslatePage() {
         <div>
           <h1 className="text-2xl font-semibold">Translate</h1>
           <p className="text-sm text-black/60 dark:text-white/60">
-            Point your camera at a sign, menu, or ticket.
+            Type a word or phrase to translate it, with a short explanation.
           </p>
         </div>
         <Link

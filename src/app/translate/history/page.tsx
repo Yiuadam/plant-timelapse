@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -32,36 +31,36 @@ export default async function TranslateHistoryPage() {
           {translations.map((t) => (
             <div
               key={t.id}
-              className="flex gap-3 rounded-2xl border border-black/10 bg-white/60 p-3 shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-black/20"
+              className="rounded-2xl border border-black/10 bg-white/60 p-3 shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-black/20"
             >
-              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-black/10 dark:border-white/20">
-                <Image src={t.imageUrl} alt="" fill className="object-cover" sizes="64px" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  {t.detectedLanguage && (
-                    <span className="rounded-full bg-black/10 px-2 py-0.5 text-[10px] font-medium dark:bg-white/15">
-                      {t.detectedLanguage}
-                    </span>
-                  )}
-                  <span className="text-xs text-black/40 dark:text-white/40">
-                    {t.createdAt.toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
+              <div className="flex items-center gap-2">
+                {t.detectedLanguage && (
+                  <span className="rounded-full bg-black/10 px-2 py-0.5 text-[10px] font-medium dark:bg-white/15">
+                    {t.detectedLanguage}
                   </span>
-                </div>
-                <p className="mt-1 truncate text-sm font-medium">
-                  {t.translatedText ?? "No text detected"}
-                </p>
-                {t.originalText && (
-                  <p className="truncate text-xs text-black/50 dark:text-white/50">
-                    {t.originalText}
-                  </p>
                 )}
+                <span className="text-xs text-black/40 dark:text-white/40">
+                  {t.createdAt.toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </span>
               </div>
+              {t.originalText && (
+                <p className="mt-1 truncate text-sm text-black/60 dark:text-white/60">
+                  {t.originalText}
+                </p>
+              )}
+              <p className="mt-0.5 truncate text-base font-medium">
+                {t.translatedText ?? "No translation found"}
+              </p>
+              {t.explanation && (
+                <p className="mt-1 text-xs text-black/50 dark:text-white/50">
+                  {t.explanation}
+                </p>
+              )}
             </div>
           ))}
         </div>

@@ -709,31 +709,30 @@ export function PhotosWidget({
         // Always visible rather than hover-only -- opacity-0 + group-hover
         // never becomes visible on a touchscreen at all (there's no hover
         // state to trigger it), so these were effectively undiscoverable
-        // on mobile. Bigger buttons too, for an easier tap target.
+        // on mobile. Anchored to the left/right edges (justify-between)
+        // rather than centered -- centered buttons sat directly on top of
+        // the trip name, which is also centered on this same row.
         <div
           data-no-drag
-          className="absolute inset-x-0 bottom-1 z-30 flex items-center justify-center gap-2"
+          className="absolute inset-x-2 bottom-1.5 z-30 flex items-center justify-between"
         >
           <button
             type="button"
             onClick={() => go(-1)}
             aria-label="Previous photo"
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-white/95 text-black/70 shadow-sm dark:border-white/20 dark:bg-black/70 dark:text-white/80"
+            className="flex h-7 w-7 items-center justify-center rounded-full border border-black/10 bg-white/95 text-black/70 shadow-sm dark:border-white/20 dark:bg-black/70 dark:text-white/80"
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
-          <span className="rounded-full bg-black/50 px-2 py-0.5 text-[10px] text-white">
-            {safeIndex + 1}/{photos.length}
-          </span>
           <button
             type="button"
             onClick={() => go(1)}
             aria-label="Next photo"
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-white/95 text-black/70 shadow-sm dark:border-white/20 dark:bg-black/70 dark:text-white/80"
+            className="flex h-7 w-7 items-center justify-center rounded-full border border-black/10 bg-white/95 text-black/70 shadow-sm dark:border-white/20 dark:bg-black/70 dark:text-white/80"
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>

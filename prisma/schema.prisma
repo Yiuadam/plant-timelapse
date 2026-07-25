@@ -238,10 +238,11 @@ model Widget {
 model Translation {
   id               String   @id @default(cuid())
   userId           String
-  imageUrl         String
+  imageUrl         String?
   detectedLanguage String?
   originalText     String?
   translatedText   String?
+  explanation      String?
   createdAt        DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -58,6 +58,11 @@ export default function MobileTabBar() {
           label="Passport"
           active={pathname.startsWith("/passport")}
         />
+        <TabLink
+          href="/translate"
+          label="Translate"
+          active={pathname.startsWith("/translate")}
+        />
         <button
           type="button"
           onClick={() => setAccountOpen(true)}
@@ -83,16 +88,9 @@ export default function MobileTabBar() {
                 {session?.user?.name ?? session?.user?.email}
               </div>
               <Link
-                href="/translate"
-                onClick={() => setAccountOpen(false)}
-                className="mb-2 block w-full rounded-xl border border-black/10 py-3 text-center text-sm dark:border-white/20"
-              >
-                Translate
-              </Link>
-              <Link
                 href="/profile"
                 onClick={() => setAccountOpen(false)}
-                className="block w-full rounded-xl border border-black/10 py-3 text-center text-sm dark:border-white/20"
+                className="mb-2 block w-full rounded-xl border border-black/10 py-3 text-center text-sm dark:border-white/20"
               >
                 Edit profile
               </Link>

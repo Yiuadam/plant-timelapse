@@ -34,8 +34,8 @@ export default function TimelineEntryCard({
 }: {
   id: string;
   name: string;
-  lat: number;
-  lng: number;
+  lat: number | null;
+  lng: number | null;
   dateLabel: string;
   tripId: string;
   tripTitle: string;
@@ -142,11 +142,20 @@ export default function TimelineEntryCard({
             className="overflow-hidden rounded-xl border-2 border-background shadow ring-1 ring-black/10 dark:ring-white/15"
             style={{ width: squareSize, height: squareSize }}
           >
-            {mapVisible && (
-              <TripMap
-                locations={[{ id, name, lat, lng }]}
-                interactive={false}
-              />
+            {lat !== null && lng !== null ? (
+              mapVisible && (
+                <TripMap
+                  locations={[{ id, name, lat, lng }]}
+                  interactive={false}
+                />
+              )
+            ) : (
+              <div
+                className={`flex h-full w-full items-center justify-center bg-gradient-to-br text-lg ${ringTint}`}
+                aria-hidden
+              >
+                🧳
+              </div>
             )}
           </div>
         </div>
