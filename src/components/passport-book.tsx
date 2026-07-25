@@ -32,14 +32,20 @@ const GENDER_LABELS: Record<string, string> = {
   "prefer-not-to-say": "—",
 };
 
-// The interior is drawn at this fixed landscape size (matching a real
-// ID-3 passport's ~125:88 aspect ratio) and scaled to fit whatever width
-// is actually available -- the same "design at one size, scale down"
-// approach WidgetBoard uses -- rather than trying to reflow this much
-// content responsively at every width.
-const REF_WIDTH = 640;
-const REF_HEIGHT = Math.round((REF_WIDTH * 88) / 125);
-const STAMPS_PER_PAGE = 8;
+// The interior is drawn at this fixed size and CSS-scaled to fit whatever
+// width is actually available -- the same "design at one size, scale
+// down" approach WidgetBoard uses, rather than trying to reflow this much
+// structured content responsively at every width. REF_WIDTH is
+// deliberately close to a real phone's content width (not a desktop
+// size): scaling *down* from something desktop-sized compounded with
+// PassportStampGraphic's own internal font scaling and made everything
+// on mobile -- where this app is mostly used -- nearly unreadable.
+// MAX_DISPLAY_WIDTH is a separate, larger cap so the card still gets to
+// scale *up* and look substantial on wider screens.
+const REF_WIDTH = 380;
+const REF_HEIGHT = Math.round(REF_WIDTH / 0.92);
+const MAX_DISPLAY_WIDTH = 640;
+const STAMPS_PER_PAGE = 6;
 
 export default function PassportBook({
   passportNumber,
@@ -129,13 +135,27 @@ export default function PassportBook({
   const emptySlots = Math.max(0, STAMPS_PER_PAGE - pageStamps.length);
 
   return (
-    <div ref={outerRef} className="mx-auto w-full" style={{ maxWidth: REF_WIDTH }}>
+    <div ref={outerRef} className="mx-auto w-full" style={{ maxWidth: MAX_DISPLAY_WIDTH }}>
       <div className="relative" style={{ height: bookHeight }}>
+        {/* A couple of thin page edges peeking out from behind the cover
+            -- suggests this is a bound booklet with pages inside, not a
+            flat card. */}
+        <div
+          aria-hidden
+          className="absolute top-[9px] left-[9px] rounded-2xl border border-black/10 bg-[#f0e9d8] dark:border-white/10 dark:bg-neutral-800"
+          style={{ width: REF_WIDTH * scale, height: REF_HEIGHT * scale }}
+        />
+        <div
+          aria-hidden
+          className="absolute top-[5px] left-[5px] rounded-2xl border border-black/10 bg-[#f6f0e2] dark:border-white/10 dark:bg-neutral-700"
+          style={{ width: REF_WIDTH * scale, height: REF_HEIGHT * scale }}
+        />
+
         {/* The interior (bio page + stamps page) is a static block, always
             in the document flow -- only the cover below rotates, hinged on
             its left edge, so it looks like it swings open to reveal this. */}
         <div
-          className="absolute top-0 left-0 overflow-hidden rounded-2xl border border-black/10 bg-[#fdfaf3] shadow-xl dark:border-white/15 dark:bg-neutral-900"
+          className="absolute top-0 left-0 z-10 overflow-hidden rounded-2xl border border-black/10 bg-[#fdfaf3] shadow-xl dark:border-white/15 dark:bg-neutral-900"
           style={{
             width: REF_WIDTH,
             height: REF_HEIGHT,
@@ -145,59 +165,59 @@ export default function PassportBook({
         >
         <div className="flex h-full flex-col">
           {/* Top page: bio data. */}
-          <div className="flex shrink-0 gap-5 px-7 pt-6 pb-4">
-            <div className="h-[92px] w-[80px] shrink-0 overflow-hidden rounded-md border-2 border-black/20 bg-black/5 dark:border-white/25 dark:bg-white/10">
+          <div className="flex shrink-0 gap-4 px-5 pt-5 pb-3">
+            <div className="h-16 w-14 shrink-0 overflow-hidden rounded-md border-2 border-black/20 bg-black/5 dark:border-white/25 dark:bg-white/10">
               {image ? (
-                <Image src={image} alt={name} width={80} height={92} className="h-full w-full object-cover" />
+                <Image src={image} alt={name} width={56} height={64} className="h-full w-full object-cover" />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-2xl font-semibold text-black/30 dark:text-white/30">
+                <div className="flex h-full w-full items-center justify-center text-xl font-semibold text-black/30 dark:text-white/30">
                   {name.charAt(0).toUpperCase() || "?"}
                 </div>
               )}
             </div>
-            <dl className="grid flex-1 grid-cols-2 gap-x-4 gap-y-1 text-sm">
-              <dt className="col-span-2 text-[9px] tracking-widest text-black/40 uppercase dark:text-white/40">
+            <dl className="grid flex-1 grid-cols-2 gap-x-3 gap-y-0.5 text-sm">
+              <dt className="col-span-2 text-[10px] tracking-widest text-black/40 uppercase dark:text-white/40">
                 Name
               </dt>
-              <dd className="col-span-2 -mt-0.5 font-semibold">{name}</dd>
-              <dt className="text-[9px] tracking-widest text-black/40 uppercase dark:text-white/40">
+              <dd className="col-span-2 -mt-0.5 truncate font-semibold">{name}</dd>
+              <dt className="text-[10px] tracking-widest text-black/40 uppercase dark:text-white/40">
                 Sex
               </dt>
-              <dt className="text-[9px] tracking-widest text-black/40 uppercase dark:text-white/40">
-                Date of birth
+              <dt className="text-[10px] tracking-widest text-black/40 uppercase dark:text-white/40">
+                Birth
               </dt>
               <dd className="-mt-0.5 font-medium">{gender ? (GENDER_LABELS[gender] ?? "—") : "—"}</dd>
               <dd className="-mt-0.5 font-medium">{formatDate(birthday)}</dd>
-              <dt className="col-span-2 mt-0.5 text-[9px] tracking-widest text-black/40 uppercase dark:text-white/40">
+              <dt className="col-span-2 mt-0.5 text-[10px] tracking-widest text-black/40 uppercase dark:text-white/40">
                 Passport No.
               </dt>
               <dd className="col-span-2 -mt-0.5 font-mono font-semibold tracking-wider">
                 {passportNumber}
               </dd>
-              <dt className="text-[9px] tracking-widest text-black/40 uppercase dark:text-white/40">
-                Date of issue
+              <dt className="text-[10px] tracking-widest text-black/40 uppercase dark:text-white/40">
+                Issued
               </dt>
-              <dt className="text-[9px] tracking-widest text-black/40 uppercase dark:text-white/40">
+              <dt className="text-[10px] tracking-widest text-black/40 uppercase dark:text-white/40">
                 Authority
               </dt>
-              <dd className="-mt-0.5 font-medium">{formatDate(issuedAt)}</dd>
-              <dd className="-mt-0.5 font-medium">Travel Log</dd>
+              <dd className="-mt-0.5 truncate font-medium">{formatDate(issuedAt)}</dd>
+              <dd className="-mt-0.5 truncate font-medium">Travel Log</dd>
             </dl>
           </div>
 
-          <div className="mx-7 border-t border-dashed border-black/15 dark:border-white/15" />
+          <div className="mx-5 border-t border-dashed border-black/15 dark:border-white/15" />
 
           {/* Bottom page: stamps, paginated -- Next/Previous only swap
               this half, the bio page above stays put. */}
-          <div className="flex min-h-0 flex-1 flex-col px-7 pt-3 pb-3">
-            <div className="grid flex-1 grid-cols-4 place-items-center content-center gap-x-2 gap-y-1">
+          <div className="flex min-h-0 flex-1 flex-col px-5 pt-2 pb-2">
+            <div className="grid flex-1 grid-cols-3 place-items-center content-center gap-x-1 gap-y-1">
               {pageStamps.map((s) => (
                 <PassportStampGraphic
                   key={s.id}
                   city={s.city}
                   stampedAt={s.stampedAt}
                   seed={s.tripId}
-                  size={78}
+                  size={84}
                   animate={justStampedIds.has(s.id)}
                 />
               ))}
@@ -206,13 +226,13 @@ export default function PassportBook({
                   key={`blank-${i}`}
                   aria-hidden
                   className="rounded-full border border-dashed border-black/10 dark:border-white/10"
-                  style={{ width: 78, height: 78 }}
+                  style={{ width: 84, height: 84 }}
                 />
               ))}
             </div>
 
             {totalPages > 1 && (
-              <div className="mt-2 flex shrink-0 items-center justify-center gap-3 text-xs">
+              <div className="mt-1 flex shrink-0 items-center justify-center gap-3 text-xs">
                 <button
                   type="button"
                   data-no-drag
@@ -240,33 +260,52 @@ export default function PassportBook({
             )}
           </div>
         </div>
-      </div>
+        </div>
 
-      {/* The cover -- hinged on the left edge, swings open like a real
-          passport when clicked. */}
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-label={open ? "Close passport" : "Open passport"}
-        className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-2xl border border-black/10 bg-gradient-to-br from-[#3b1f1f] to-[#1a0f0f] text-[#e9d9b8] shadow-2xl"
-        style={{
-          transformOrigin: "left center",
-          transform: open ? "rotateY(-150deg)" : "rotateY(0deg)",
-          transition: "transform 0.9s cubic-bezier(0.22, 1, 0.36, 1)",
-          backfaceVisibility: "hidden",
-        }}
-      >
-        <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#e9d9b8]/70 text-2xl">
-          🧭
-        </div>
-        <div className="text-center">
-          <div className="text-xl font-bold tracking-[0.2em]">TRAVEL LOG</div>
-          <div className="mt-1 text-[10px] tracking-[0.35em] text-[#e9d9b8]/70">PASSPORT</div>
-        </div>
-        <div className="mt-2 text-[9px] tracking-widest text-[#e9d9b8]/50">
-          Tap to open
-        </div>
-      </button>
+        {/* A small tab poking out past the interior's top-right corner --
+            the only way to close the passport again once it's open, since
+            the cover itself (below) rotates out of its own clickable area
+            once open and can no longer be tapped to close. */}
+        {open && (
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label="Close passport"
+            className="absolute z-20 flex h-8 w-8 items-center justify-center rounded-full border border-black/15 bg-white text-base font-medium text-black/70 shadow-lg dark:border-white/25 dark:bg-neutral-800 dark:text-white/80"
+            style={{ top: -12, right: -12 }}
+          >
+            ✕
+          </button>
+        )}
+
+        {/* The cover -- hinged on the left edge, swings open like a real
+            passport when clicked. */}
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Open passport"
+          aria-hidden={open}
+          tabIndex={open ? -1 : 0}
+          className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-2xl border border-black/10 bg-gradient-to-br from-[#3b1f1f] to-[#1a0f0f] text-[#e9d9b8] shadow-2xl"
+          style={{
+            transformOrigin: "left center",
+            transform: open ? "rotateY(-150deg)" : "rotateY(0deg)",
+            transition: "transform 0.9s cubic-bezier(0.22, 1, 0.36, 1)",
+            backfaceVisibility: "hidden",
+            pointerEvents: open ? "none" : "auto",
+          }}
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-[#e9d9b8]/70 text-xl">
+            🧭
+          </div>
+          <div className="text-center">
+            <div className="text-lg font-bold tracking-[0.2em]">TRAVEL LOG</div>
+            <div className="mt-1 text-[10px] tracking-[0.35em] text-[#e9d9b8]/70">PASSPORT</div>
+          </div>
+          <div className="mt-1 text-[9px] tracking-widest text-[#e9d9b8]/50">
+            Tap to open
+          </div>
+        </button>
       </div>
 
       {available.length > 0 && (

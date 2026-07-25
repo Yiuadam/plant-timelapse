@@ -552,8 +552,6 @@ export default function WidgetBoard({
               {widget.type === "passport" && (
                 <PassportWidget
                   stamps={passportStamps}
-                  color={widget.color ?? "indigo"}
-                  onColorChange={(color) => saveColor(widget.id, color)}
                   style={widget.style ?? "clean"}
                   onStyleChange={(style) => setWidgetStyle(widget.id, style)}
                   onRemove={() => removeWidget(widget.id)}

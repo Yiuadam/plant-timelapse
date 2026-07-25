@@ -19,7 +19,7 @@ function TabLink({
     <Link
       href={href}
       prefetch={true}
-      className={`flex flex-1 items-center justify-center py-3 text-sm font-medium ${
+      className={`flex flex-1 items-center justify-center py-3 text-base font-medium ${
         active
           ? "text-foreground"
           : "text-black/45 dark:text-white/45"
@@ -61,7 +61,7 @@ export default function MobileTabBar() {
         <button
           type="button"
           onClick={() => setAccountOpen(true)}
-          className={`flex flex-1 items-center justify-center py-3 text-sm font-medium ${
+          className={`flex flex-1 items-center justify-center py-3 text-base font-medium ${
             accountOpen ? "text-foreground" : "text-black/45 dark:text-white/45"
           }`}
         >
