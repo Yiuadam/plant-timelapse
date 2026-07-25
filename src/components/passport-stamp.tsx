@@ -1,6 +1,8 @@
 "use client";
 
 import { hashSeed, mulberry32 } from "@/lib/seeded-random";
+import { findCityLandmark, LANDMARK_INK_OVERRIDE } from "@/lib/city-landmarks";
+import { CuratedLandmarkIcon } from "@/components/landmark-icons";
 
 // A curated set of classic ink-stamp colors rather than fully random hues,
 // so every stamp still reads as "stamp ink" instead of an arbitrary color.
@@ -131,10 +133,17 @@ export function PassportStampGraphic({
   animate?: boolean;
 }) {
   const rand = mulberry32(hashSeed(seed));
-  const ink = INK_COLORS[Math.floor(rand() * INK_COLORS.length)];
+  const seededInk = INK_COLORS[Math.floor(rand() * INK_COLORS.length)];
   const landmark = LANDMARKS[Math.floor(rand() * LANDMARKS.length)];
   const rotation = (rand() - 0.5) * 22;
   const ticks = 28;
+  // A curated set of famous tourist cities get their actual real-world
+  // landmark instead of one of the six generic abstract silhouettes above
+  // -- the Eiffel Tower for Paris, Big Ben for London, etc. Everything
+  // else keeps the seeded generic icon so it still reads as "a place"
+  // rather than a blank stamp.
+  const curatedLandmark = findCityLandmark(city);
+  const ink = (curatedLandmark && LANDMARK_INK_OVERRIDE[curatedLandmark]) || seededInk;
   // The text overlay uses fixed px/Tailwind sizes tuned for the 140px
   // default -- scale them down for smaller renders (e.g. the 64px stamp
   // in the dashboard Passport widget) so text doesn't overflow the ring.
@@ -161,7 +170,11 @@ export function PassportStampGraphic({
               <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={ink} strokeWidth="1.2" opacity="0.7" />
             );
           })}
-          <LandmarkIcon kind={landmark} ink={ink} />
+          {curatedLandmark ? (
+            <CuratedLandmarkIcon landmarkKey={curatedLandmark} ink={ink} />
+          ) : (
+            <LandmarkIcon kind={landmark} ink={ink} />
+          )}
         </svg>
         {/* Font size and padding scale with `size` (fixed px/Tailwind sizes
             were tuned for the 140px default and badly overflowed the ring
