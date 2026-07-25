@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import AddTimelineEntry from "@/components/add-timeline-entry";
 import TimelineBoard from "@/components/timeline-board";
 import { tripAccessWhere } from "@/lib/trip-access";
+import { getT } from "@/lib/i18n/server";
 
 const RING_TINTS = [
   "from-sky-200 to-sky-100 text-sky-900 dark:from-sky-400/30 dark:to-sky-300/10 dark:text-sky-100",
@@ -29,6 +30,7 @@ type RawEntry = {
 export default async function TimelinePage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
+  const { t } = await getT();
 
   const [locations, trips] = await Promise.all([
     prisma.location.findMany({
@@ -72,15 +74,15 @@ export default async function TimelinePage() {
   }));
 
   const syntheticEntries: RawEntry[] = trips
-    .filter((t) => t.destination?.trim() && !tripIdsWithVisitedLocation.has(t.id))
-    .map((t) => ({
-      id: `trip-${t.id}`,
-      name: t.destination!.trim(),
+    .filter((trip) => trip.destination?.trim() && !tripIdsWithVisitedLocation.has(trip.id))
+    .map((trip) => ({
+      id: `trip-${trip.id}`,
+      name: trip.destination!.trim(),
       lat: null,
       lng: null,
-      effectiveDate: t.startDate ?? t.createdAt,
-      tripId: t.id,
-      tripTitle: t.title,
+      effectiveDate: trip.startDate ?? trip.createdAt,
+      tripId: trip.id,
+      tripTitle: trip.title,
       photoUrl: null,
       cardStyle: null,
       cardSize: null,
@@ -108,15 +110,13 @@ export default async function TimelinePage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Timeline</h1>
+        <h1 className="text-2xl font-semibold">{t("timeline_title")}</h1>
         <AddTimelineEntry trips={trips} />
       </div>
 
       {entries.length === 0 ? (
         <p className="text-black/60 dark:text-white/60">
-          Trips with a destination show up here automatically, in order.
-          Create a trip, or use &quot;Add event&quot; above to pin an exact
-          spot on the map.
+          {t("timeline_empty")}
         </p>
       ) : (
         <TimelineBoard entries={entries} />

@@ -5,10 +5,13 @@ import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import ThemeToggle from "@/components/theme-toggle";
 import FlavorPicker from "@/components/flavor-picker";
+import LanguagePicker from "@/components/language-picker";
+import { useLanguage } from "@/lib/i18n/context";
 
 export default function NavBar() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
+  const { t } = useLanguage();
 
   return (
     <header className="flex items-center justify-between border-b border-black/10 px-4 py-3 dark:border-white/20">
@@ -24,57 +27,58 @@ export default function NavBar() {
                 prefetch={true}
                 className={pathname.startsWith("/trips") ? "underline" : ""}
               >
-                Trips
+                {t("nav_trips")}
               </Link>
               <Link
                 href="/timeline"
                 prefetch={true}
                 className={pathname.startsWith("/timeline") ? "underline" : ""}
               >
-                Timeline
+                {t("nav_timeline")}
               </Link>
               <Link
                 href="/passport"
                 prefetch={true}
                 className={pathname.startsWith("/passport") ? "underline" : ""}
               >
-                Passport
+                {t("nav_passport")}
               </Link>
               <Link
                 href="/translate"
                 prefetch={true}
                 className={pathname.startsWith("/translate") ? "underline" : ""}
               >
-                Translate
+                {t("nav_translate")}
               </Link>
               <Link
                 href="/profile"
                 prefetch={true}
                 className={pathname.startsWith("/profile") ? "underline" : ""}
               >
-                Profile
+                {t("nav_profile")}
               </Link>
               <span className="text-black/50 dark:text-white/50">
                 {session.user?.name ?? session.user?.email}
               </span>
               <button onClick={() => signOut({ callbackUrl: "/" })}>
-                Log out
+                {t("nav_logout")}
               </button>
             </>
           )}
           {status === "unauthenticated" && (
             <>
-              <Link href="/login">Log in</Link>
-              <Link href="/register">Register</Link>
+              <Link href="/login">{t("nav_login")}</Link>
+              <Link href="/register">{t("nav_register")}</Link>
             </>
           )}
         </nav>
         {status === "unauthenticated" && (
           <nav className="flex items-center gap-4 text-sm sm:hidden">
-            <Link href="/login">Log in</Link>
-            <Link href="/register">Register</Link>
+            <Link href="/login">{t("nav_login")}</Link>
+            <Link href="/register">{t("nav_register")}</Link>
           </nav>
         )}
+        <LanguagePicker />
         <FlavorPicker />
         <ThemeToggle />
       </div>

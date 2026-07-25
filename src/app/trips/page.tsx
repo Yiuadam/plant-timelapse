@@ -4,11 +4,13 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { tripAccessWhere } from "@/lib/trip-access";
 import TripListItem from "@/components/trip-list-item";
+import { getT } from "@/lib/i18n/server";
 
 export default async function TripsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
   const userId = session.user.id;
+  const { t } = await getT();
 
   const trips = await prisma.trip.findMany({
     where: tripAccessWhere(userId),
@@ -26,20 +28,19 @@ export default async function TripsPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Your trips</h1>
+        <h1 className="text-2xl font-semibold">{t("trips_title")}</h1>
         <Link
           href="/trips/new"
           prefetch={true}
           className="rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background"
         >
-          + New trip
+          {t("trips_new")}
         </Link>
       </div>
 
       {trips.length === 0 ? (
         <p className="text-sm text-black/50 dark:text-white/50">
-          No trips yet — create your first one to start logging places,
-          photos, and bookings.
+          {t("trips_empty")}
         </p>
       ) : (
         <ul className="flex flex-col gap-3">

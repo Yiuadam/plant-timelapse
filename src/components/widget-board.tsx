@@ -22,6 +22,8 @@ import { InkSplash } from "@/components/ink-splash";
 import { SketchBorder } from "@/components/sketch-border";
 import { WashiFrame } from "@/components/washi-frame";
 import { WIDGET_LIBRARY } from "@/lib/default-widgets";
+import { useLanguage } from "@/lib/i18n/context";
+import type { DictKey } from "@/lib/i18n/dictionary";
 
 const DESIGN_WIDTH = 1000;
 const DESIGN_HEIGHT = 880;
@@ -99,9 +101,21 @@ function ResizeHandle({
   );
 }
 
+const WIDGET_TYPE_KEYS: Record<string, DictKey> = {
+  trips: "widget_trips",
+  clock: "widget_clock",
+  photos: "widget_photos",
+  map: "widget_map",
+  notes: "widget_notes",
+  sticky: "widget_sticky",
+  travel: "widget_travel",
+  passport: "widget_passport",
+};
+
 function AddWidgetMenu({ onAdd }: { onAdd: (type: string) => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (!open) return;
@@ -122,7 +136,7 @@ function AddWidgetMenu({ onAdd }: { onAdd: (type: string) => void }) {
         aria-expanded={open}
         className="rounded-xl border border-black/10 px-3 py-1.5 text-sm dark:border-white/20"
       >
-        + Add widget
+        {t("dashboard_add_widget")}
       </button>
       {open && (
         <div className="absolute top-full right-0 z-50 mt-2 flex w-44 flex-col gap-1 rounded-xl border border-black/10 bg-white p-2 shadow-lg dark:border-white/20 dark:bg-neutral-800">
@@ -136,7 +150,7 @@ function AddWidgetMenu({ onAdd }: { onAdd: (type: string) => void }) {
               }}
               className="rounded-lg px-2 py-1.5 text-left text-sm hover:bg-black/5 dark:hover:bg-white/10"
             >
-              {def.label}
+              {WIDGET_TYPE_KEYS[type] ? t(WIDGET_TYPE_KEYS[type]) : def.label}
             </button>
           ))}
         </div>
@@ -163,6 +177,7 @@ export default function WidgetBoard({
   passportStamps: PassportStampSummary[];
 }) {
   const router = useRouter();
+  const { t } = useLanguage();
   const [widgets, setWidgets] = useState(initialWidgets);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -428,7 +443,7 @@ export default function WidgetBoard({
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <div className="mb-4 flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold">Your board</h1>
+        <h1 className="text-2xl font-semibold">{t("dashboard_title")}</h1>
         <div className="flex items-center gap-2">
           {isMobile && widgets.length > 1 && (
             <button
@@ -436,7 +451,7 @@ export default function WidgetBoard({
               onClick={tidyUp}
               className="rounded-xl border border-black/10 px-3 py-1.5 text-sm dark:border-white/20"
             >
-              Tidy up
+              {t("dashboard_tidy_up")}
             </button>
           )}
           <AddWidgetMenu onAdd={addWidget} />

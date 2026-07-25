@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import OAuthButtons from "@/components/oauth-buttons";
+import { useLanguage } from "@/lib/i18n/context";
 
 export default function RegisterPage() {
   return (
@@ -16,6 +17,7 @@ export default function RegisterPage() {
 
 function RegisterForm() {
   const router = useRouter();
+  const { t } = useLanguage();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/";
   const [name, setName] = useState("");
@@ -38,7 +40,7 @@ function RegisterForm() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Registration failed");
+        setError(data.error ?? t("auth_registration_failed"));
         return;
       }
 
@@ -62,10 +64,10 @@ function RegisterForm() {
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-sm flex-col justify-center px-4">
-      <h1 className="mb-6 text-2xl font-semibold">Create an account</h1>
+      <h1 className="mb-6 text-2xl font-semibold">{t("auth_create_account")}</h1>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1 text-sm">
-          Name
+          {t("auth_name")}
           <input
             className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
             value={name}
@@ -74,7 +76,7 @@ function RegisterForm() {
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          Email
+          {t("auth_email")}
           <input
             type="email"
             className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
@@ -84,7 +86,7 @@ function RegisterForm() {
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          Password
+          {t("auth_password")}
           <input
             type="password"
             className="rounded-xl border border-black/10 px-3 py-2 dark:border-white/20"
@@ -100,20 +102,20 @@ function RegisterForm() {
           disabled={loading}
           className="rounded-xl bg-foreground px-4 py-2 text-background disabled:opacity-50"
         >
-          {loading ? "Creating..." : "Create account"}
+          {loading ? t("auth_creating") : t("auth_create_account")}
         </button>
       </form>
       <div className="mt-4">
         <OAuthButtons />
       </div>
       <p className="mt-4 text-sm">
-        Already have an account?{" "}
+        {t("auth_have_account")}{" "}
         <Link
           href={`/login?next=${encodeURIComponent(next)}`}
           prefetch={true}
           className="underline"
         >
-          Log in
+          {t("auth_login_title")}
         </Link>
       </p>
     </div>

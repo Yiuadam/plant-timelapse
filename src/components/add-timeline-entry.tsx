@@ -2,12 +2,14 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "@/lib/i18n/context";
 
 type SearchResult = { name: string; lat: number; lng: number };
 type TripOption = { id: string; title: string };
 
 export default function AddTimelineEntry({ trips }: { trips: TripOption[] }) {
   const router = useRouter();
+  const { t } = useLanguage();
   const fileInput = useRef<HTMLInputElement>(null);
 
   const [open, setOpen] = useState(false);
@@ -151,7 +153,7 @@ export default function AddTimelineEntry({ trips }: { trips: TripOption[] }) {
         onClick={() => setOpen(true)}
         className="rounded-xl bg-foreground px-4 py-2 text-sm text-background"
       >
-        + Add event
+        {t("timeline_add_event")}
       </button>
 
       {open && (

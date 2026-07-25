@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { PassportStampGraphic, StampStand } from "@/components/passport-stamp";
 import StampButton from "@/components/stamp-button";
+import { useLanguage } from "@/lib/i18n/context";
 
 export type PassportBookProps = {
   passportNumber: string;
@@ -57,6 +58,7 @@ export default function PassportBook({
   stamps,
   available,
 }: PassportBookProps) {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const outerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(REF_WIDTH);
@@ -177,28 +179,28 @@ export default function PassportBook({
             </div>
             <dl className="grid flex-1 grid-cols-2 gap-x-3 gap-y-0.5 text-sm">
               <dt className="col-span-2 text-[10px] tracking-widest text-black/40 uppercase dark:text-white/40">
-                Name
+                {t("passport_name")}
               </dt>
               <dd className="col-span-2 -mt-0.5 truncate font-semibold">{name}</dd>
               <dt className="text-[10px] tracking-widest text-black/40 uppercase dark:text-white/40">
-                Sex
+                {t("passport_sex")}
               </dt>
               <dt className="text-[10px] tracking-widest text-black/40 uppercase dark:text-white/40">
-                Birth
+                {t("passport_birth")}
               </dt>
               <dd className="-mt-0.5 font-medium">{gender ? (GENDER_LABELS[gender] ?? "—") : "—"}</dd>
               <dd className="-mt-0.5 font-medium">{formatDate(birthday)}</dd>
               <dt className="col-span-2 mt-0.5 text-[10px] tracking-widest text-black/40 uppercase dark:text-white/40">
-                Passport No.
+                {t("passport_no")}
               </dt>
               <dd className="col-span-2 -mt-0.5 font-mono font-semibold tracking-wider">
                 {passportNumber}
               </dd>
               <dt className="text-[10px] tracking-widest text-black/40 uppercase dark:text-white/40">
-                Issued
+                {t("passport_issued")}
               </dt>
               <dt className="text-[10px] tracking-widest text-black/40 uppercase dark:text-white/40">
-                Authority
+                {t("passport_authority")}
               </dt>
               <dd className="-mt-0.5 truncate font-medium">{formatDate(issuedAt)}</dd>
               <dd className="-mt-0.5 truncate font-medium">Travel Log</dd>
@@ -241,10 +243,10 @@ export default function PassportBook({
                   aria-label="Previous page"
                   className="rounded-full border border-black/10 px-2.5 py-1 disabled:opacity-30 dark:border-white/20"
                 >
-                  ‹ Prev
+                  {t("passport_prev_page")}
                 </button>
                 <span className="text-black/50 dark:text-white/50">
-                  Page {safePage + 1} of {totalPages}
+                  {t("passport_page_of", { current: safePage + 1, total: totalPages })}
                 </span>
                 <button
                   type="button"
@@ -254,7 +256,7 @@ export default function PassportBook({
                   aria-label="Next page"
                   className="rounded-full border border-black/10 px-2.5 py-1 disabled:opacity-30 dark:border-white/20"
                 >
-                  Next ›
+                  {t("passport_next_page")}
                 </button>
               </div>
             )}
@@ -270,7 +272,7 @@ export default function PassportBook({
           <button
             type="button"
             onClick={() => setOpen(false)}
-            aria-label="Close passport"
+            aria-label={t("passport_close")}
             className="absolute z-20 flex h-8 w-8 items-center justify-center rounded-full border border-black/15 bg-white text-base font-medium text-black/70 shadow-lg dark:border-white/25 dark:bg-neutral-800 dark:text-white/80"
             style={{ top: -12, right: -12 }}
           >
@@ -283,7 +285,7 @@ export default function PassportBook({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label="Open passport"
+          aria-label={t("passport_open")}
           aria-hidden={open}
           tabIndex={open ? -1 : 0}
           className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-2xl border border-black/10 bg-gradient-to-br from-[#3b1f1f] to-[#1a0f0f] text-[#e9d9b8] shadow-2xl"
@@ -303,7 +305,7 @@ export default function PassportBook({
             <div className="mt-1 text-[10px] tracking-[0.35em] text-[#e9d9b8]/70">PASSPORT</div>
           </div>
           <div className="mt-1 text-[9px] tracking-widest text-[#e9d9b8]/50">
-            Tap to open
+            {t("passport_tap_to_open")}
           </div>
         </button>
       </div>
@@ -312,11 +314,11 @@ export default function PassportBook({
         <div className="mt-6">
           <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-black/70 dark:text-white/70">
             <StampStand />
-            Ready to stamp
+            {t("passport_ready_to_stamp")}
           </h2>
           <div className="flex flex-col gap-2">
-            {available.map((t) => (
-              <StampButton key={t.id} tripId={t.id} title={t.title} destination={t.destination} />
+            {available.map((trip) => (
+              <StampButton key={trip.id} tripId={trip.id} title={trip.title} destination={trip.destination} />
             ))}
           </div>
         </div>

@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import { useLanguage } from "@/lib/i18n/context";
 
 function TabLink({
   href,
@@ -34,6 +35,7 @@ export default function MobileTabBar() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const [accountOpen, setAccountOpen] = useState(false);
+  const { t } = useLanguage();
 
   if (status !== "authenticated") return null;
 
@@ -45,22 +47,22 @@ export default function MobileTabBar() {
       >
         <TabLink
           href="/trips"
-          label="Trips"
+          label={t("nav_trips")}
           active={pathname.startsWith("/trips")}
         />
         <TabLink
           href="/timeline"
-          label="Timeline"
+          label={t("nav_timeline")}
           active={pathname.startsWith("/timeline")}
         />
         <TabLink
           href="/passport"
-          label="Passport"
+          label={t("nav_passport")}
           active={pathname.startsWith("/passport")}
         />
         <TabLink
           href="/translate"
-          label="Translate"
+          label={t("nav_translate")}
           active={pathname.startsWith("/translate")}
         />
         <button
@@ -70,7 +72,7 @@ export default function MobileTabBar() {
             accountOpen ? "text-foreground" : "text-black/45 dark:text-white/45"
           }`}
         >
-          You
+          {t("nav_you")}
         </button>
       </nav>
 
@@ -92,21 +94,21 @@ export default function MobileTabBar() {
                 onClick={() => setAccountOpen(false)}
                 className="mb-2 block w-full rounded-xl border border-black/10 py-3 text-center text-sm dark:border-white/20"
               >
-                Edit profile
+                {t("nav_edit_profile")}
               </Link>
               <button
                 type="button"
                 onClick={() => signOut({ callbackUrl: "/" })}
                 className="mt-2 w-full rounded-xl bg-foreground py-3 text-center text-sm font-medium text-background"
               >
-                Log out
+                {t("nav_logout")}
               </button>
               <button
                 type="button"
                 onClick={() => setAccountOpen(false)}
                 className="mt-2 w-full rounded-xl border border-black/10 py-3 text-center text-sm dark:border-white/20"
               >
-                Cancel
+                {t("cancel")}
               </button>
             </div>
           </div>,
