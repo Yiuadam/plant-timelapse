@@ -28,6 +28,14 @@ export default async function TranslatePage() {
         </Link>
       </div>
       <TranslateCapture />
+      <p className="mt-6 text-center text-xs text-black/60 dark:text-white/60">
+        Common words are matched instantly from a built-in 12-language
+        dictionary, publicly reusable at{" "}
+        <Link href="/api/dictionary" prefetch={false} className="underline">
+          /api/dictionary
+        </Link>
+        .
+      </p>
     </div>
   );
 }

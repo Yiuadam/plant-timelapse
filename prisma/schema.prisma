@@ -264,3 +264,19 @@ model Landmark {
   inkOverride String?
   createdAt   DateTime @default(now())
 }
+
+// A curated multilingual word/phrase dictionary, seeded from
+// src/data/dictionary-seed.json (see prisma/seed-dictionary.mjs). Backs
+// three things: (1) an instant, free lookup the /api/translate route tries
+// before falling back to the Claude API, (2) the site's own /translate
+// page, and (3) a public read-only API (/api/dictionary) meant to be
+// reused from other projects, not just this one.
+model DictionaryEntry {
+  id           String   @id @default(cuid())
+  key          String   @unique
+  category     String?
+  translations Json
+  createdAt    DateTime @default(now())
+
+  @@index([category])
+}

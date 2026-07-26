@@ -110,6 +110,7 @@ export const DICT = {
   translate_auto_detect: { en: "Language is detected automatically", zh: "自动识别语言" },
   translate_result_translation: { en: "Translation", zh: "翻译" },
   translate_result_explanation: { en: "Explanation", zh: "解释" },
+  translate_instant_match: { en: "Instant dictionary match", zh: "词典即时匹配" },
   translate_no_text: {
     en: "Couldn't make out any text there.",
     zh: "没能识别出文字。",

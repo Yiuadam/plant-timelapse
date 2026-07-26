@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
+import { DICTIONARY_LANG_NAMES, lookupDictionaryEntry } from "@/lib/dictionary";
 
 // A dictionary-style explanation can take a moment to generate.
 export const maxDuration = 30;
@@ -72,13 +73,6 @@ async function handlePost(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json(
-      { error: "Translation is not configured (missing ANTHROPIC_API_KEY)" },
-      { status: 503 },
-    );
-  }
-
   const body = await request.json().catch(() => null);
   const text = typeof body?.text === "string" ? body.text.trim() : "";
   if (!text) {
@@ -88,6 +82,39 @@ async function handlePost(request: Request) {
     return NextResponse.json(
       { error: `Keep it under ${MAX_TEXT_LENGTH} characters` },
       { status: 400 },
+    );
+  }
+
+  // Try the curated dictionary first -- instant, free, and works even
+  // without ANTHROPIC_API_KEY configured. Only short lookups match it in
+  // practice (it's ~130 common words/phrases, not a full-sentence
+  // translator), so anything it misses just falls through to Claude below.
+  const dictHit = await lookupDictionaryEntry(text);
+  if (dictHit) {
+    const { entry, matchedLang } = dictHit;
+    const translatedText = entry.translations.en ?? null;
+    const others = Object.entries(entry.translations)
+      .filter(([lang]) => lang !== matchedLang && lang !== "en")
+      .map(([lang, value]) => `${value} (${lang})`)
+      .join(", ");
+    const explanation = `From the built-in dictionary${entry.category ? ` (${entry.category})` : ""}. Also: ${others}.`;
+
+    const translation = await prisma.translation.create({
+      data: {
+        userId,
+        originalText: text,
+        detectedLanguage: DICTIONARY_LANG_NAMES[matchedLang],
+        translatedText,
+        explanation,
+      },
+    });
+    return NextResponse.json({ translation, source: "dictionary" }, { status: 201 });
+  }
+
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return NextResponse.json(
+      { error: "Translation is not configured (missing ANTHROPIC_API_KEY)" },
+      { status: 503 },
     );
   }
 
