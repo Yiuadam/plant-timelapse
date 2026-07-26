@@ -249,3 +249,18 @@ model Translation {
 
   @@index([userId, createdAt])
 }
+
+// Curated city -> landmark-icon mapping for passport stamps, seeded from
+// src/data/landmark-seed.json (see prisma/seed-landmarks.mjs, wired into
+// the build script). landmarkKey is either one of the ~25 bespoke keys
+// rendered by CuratedLandmarkIcon (e.g. "eiffel-tower") or one of the
+// broader archetype keys rendered by ArchetypeLandmarkIcon (e.g.
+// "cathedral-spire") -- both live in src/components/landmark-icons.tsx.
+model Landmark {
+  id          String   @id @default(cuid())
+  cityKey     String   @unique
+  displayName String
+  landmarkKey String
+  inkOverride String?
+  createdAt   DateTime @default(now())
+}

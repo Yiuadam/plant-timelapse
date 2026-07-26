@@ -22,32 +22,44 @@ export default function TripPhotos({
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [recognizingId, setRecognizingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Uploads one at a time (rather than Promise.all) so progress reflects
+  // real completions and a slow/failed photo doesn't hold up the others.
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
     setError(null);
     setUploading(true);
+    let failures = 0;
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await fetch(`/api/trips/${tripId}/photos`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Failed to upload photo");
-        return;
+      for (let i = 0; i < files.length; i++) {
+        setProgress({ done: i, total: files.length });
+        try {
+          const formData = new FormData();
+          formData.append("file", files[i]);
+          const res = await fetch(`/api/trips/${tripId}/photos`, {
+            method: "POST",
+            body: formData,
+          });
+          if (!res.ok) failures++;
+        } catch {
+          failures++;
+        }
       }
-
+      if (failures > 0) {
+        setError(
+          failures === files.length
+            ? "Failed to upload photo"
+            : `${failures} of ${files.length} photos failed to upload`,
+        );
+      }
       router.refresh();
     } finally {
+      setProgress(null);
       setUploading(false);
       if (fileInput.current) fileInput.current.value = "";
     }
@@ -80,11 +92,16 @@ export default function TripPhotos({
     <div className="flex flex-col gap-4">
       <div>
         <label className="inline-block cursor-pointer rounded-xl border border-black/10 px-3 py-1.5 text-sm dark:border-white/20">
-          {uploading ? "Uploading..." : "Add photo"}
+          {uploading
+            ? progress
+              ? `Uploading ${progress.done + 1}/${progress.total}...`
+              : "Uploading..."
+            : "Add photo"}
           <input
             ref={fileInput}
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif"
+            multiple
             className="hidden"
             onChange={handleUpload}
             disabled={uploading}

@@ -1,4 +1,5 @@
 import type { LandmarkKey } from "@/lib/city-landmarks";
+import type { ArchetypeKey } from "@/lib/landmark-archetypes";
 
 // Line-art silhouettes for a curated set of famous tourist-city landmarks
 // -- same drawing convention as the generic LandmarkIcon in
@@ -321,6 +322,241 @@ export function CuratedLandmarkIcon({
           {/* The tower's mid-shaft observation ring and treed-hill texture at the base. */}
           <path d="M-1.6 -1 L1.6 -1 L1.6 1.4 L-1.6 1.4 Z" {...fine} />
           <path d="M-8 9 L-6 6 M-3 9.5 L-1 6.5 M4 9.5 L6 6.5 M8 9 L10 6" {...fine} />
+        </g>
+      );
+  }
+}
+
+// Landmark-type icons for the broader curated-city set (see
+// src/data/landmark-seed.json) that don't have a fully bespoke drawing --
+// each represents a real category of landmark (mosque, ski peak, ancient
+// ruins, ...) rather than one specific building, same drawing convention
+// (stroke-only outline plus a "fine" detail pass) as CuratedLandmarkIcon.
+export function ArchetypeLandmarkIcon({
+  archetypeKey,
+  ink,
+}: {
+  archetypeKey: ArchetypeKey;
+  ink: string;
+}) {
+  const common = { stroke: ink, strokeWidth: 1.6, strokeLinecap: "round" as const, fill: "none" };
+  const fine = { stroke: ink, strokeWidth: 1, strokeLinecap: "round" as const, fill: "none" };
+
+  switch (archetypeKey) {
+    case "clock-tower":
+      return (
+        <g transform="translate(50 34)">
+          <path d="M-5 14 L-5 -8 L5 -8 L5 14 M-5 -8 L-3 -12 L3 -12 L5 -8 M0 -12 L0 -16" {...common} />
+          <circle cx="0" cy="-3" r="2.2" {...fine} />
+          <path d="M0 -3 L0 -4.2 M0 -3 L1 -2.6" {...fine} />
+        </g>
+      );
+    case "minaret-mosque":
+      return (
+        <g transform="translate(50 34)">
+          <path
+            d="M-8 14 L-8 -2 M8 14 L8 -2 M-10 -2 L-6 -2 M6 -2 L10 -2 M-2 14 L-2 0 C -2 -6 2 -6 2 0 L2 14"
+            {...common}
+          />
+          <path d="M0 0 C -2.5 -1.5 -2.5 -4.5 0 -6 C 2.5 -4.5 2.5 -1.5 0 0" {...fine} />
+          <path d="M-8 -2 L-8 -6 M8 -2 L8 -6" {...fine} />
+        </g>
+      );
+    case "pagoda":
+      return (
+        <g transform="translate(50 34)">
+          <path
+            d="M-9 14 L9 14 M-7 14 L-7 8 L7 8 L7 14 M-9 8 L9 8 M-5 8 L-5 2 L5 2 L5 8 M-7 2 L7 2 M-3 2 L-3 -4 L3 -4 L3 2 M-5 -4 L5 -4 M0 -4 L0 -8"
+            {...common}
+          />
+          <path d="M-9 8 C -9 6 9 6 9 8 M-7 2 C -7 0.5 7 0.5 7 2 M-5 -4 C -5 -5 5 -5 5 -4" {...fine} />
+        </g>
+      );
+    case "cathedral-spire":
+      return (
+        <g transform="translate(50 34)">
+          <path
+            d="M-8 14 L-8 -4 L-8 -10 L-6 -14 L-4 -10 L-4 -4 M8 14 L8 -4 L8 -10 L6 -14 L4 -10 L4 -4 M-8 -4 L8 -4"
+            {...common}
+          />
+          <circle cx="0" cy="-7" r="2.4" {...fine} />
+          <path d="M-2 14 L-2 -4 M2 14 L2 -4" {...fine} />
+        </g>
+      );
+    case "castle-fortress":
+      return (
+        <g transform="translate(50 34)">
+          <path
+            d="M-11 14 L-11 -2 L-13 -2 L-13 -6 L-11 -6 L-11 -8 L-9 -8 L-9 -6 L-7 -6 L-7 -2 L-9 -2 M11 14 L11 -2 L13 -2 L13 -6 L11 -6 L11 -8 L9 -8 L9 -6 L7 -6 L7 -2 L9 -2 M-11 -2 L11 -2"
+            {...common}
+          />
+          <path d="M-4 14 L-4 4 L4 4 L4 14" {...fine} />
+          <path d="M-2 4 L-2 0 M2 4 L2 0" {...fine} />
+        </g>
+      );
+    case "obelisk-monument":
+      return (
+        <g transform="translate(50 34)">
+          <path d="M-3 14 L-2 -10 L0 -14 L2 -10 L3 14 Z" {...common} />
+          <path d="M-1.5 14 L-1.2 -6 M1.5 14 L1.2 -6" {...fine} />
+        </g>
+      );
+    case "harbor-lighthouse":
+      return (
+        <g transform="translate(50 34)">
+          <path
+            d="M-3 14 L-4 -2 L-2 -10 L2 -10 L4 -2 L3 14 Z M-2 -10 L-2 -13 L2 -13 L2 -10"
+            {...common}
+          />
+          <path d="M-6 -13 L-3 -11 M6 -13 L3 -11" {...fine} />
+          <path d="M-9 14 C -6 12 -3 15 0 13 C 3 15 6 12 9 14" {...fine} />
+        </g>
+      );
+    case "opera-shell":
+      return (
+        <g transform="translate(50 34)">
+          <path d="M-11 8 L11 8 M-8 8 C -8 0 -2 -6 3 -1 C -2 2 -5 5 -5 8" {...common} />
+          <path d="M-3 8 C -3 3 1 -1 5 2 C 1 4 -1 6 -1 8" {...fine} />
+        </g>
+      );
+    case "skyscraper-cluster":
+      return (
+        <g transform="translate(50 34)">
+          <path
+            d="M-12 8 L-12 -2 L-8 -2 L-8 8 M-4 8 L-4 -8 L0 -8 L0 8 M4 8 L4 -4 L8 -4 L8 8 M-12 8 L8 8"
+            {...common}
+          />
+          <path d="M-10 0 L-10 6 M-2 -4 L-2 6 M6 -1 L6 6" {...fine} />
+        </g>
+      );
+    case "suspension-bridge":
+      return (
+        <g transform="translate(50 34)">
+          <path
+            d="M-12 6 L12 6 M-9 6 L-9 -10 M9 6 L9 -10 M-9 -10 L-9 -12 M9 -10 L9 -12 M-9 -3 C -9 -8 9 -8 9 -3"
+            {...common}
+          />
+          <path d="M-6 -3 L-6 6 M-3 -6 L-3 6 M0 -7 L0 6 M3 -6 L3 6 M6 -3 L6 6" {...fine} />
+        </g>
+      );
+    case "ancient-ruins-columns":
+      return (
+        <g transform="translate(50 34)">
+          <path
+            d="M-12 8 L12 8 M-10 8 L-10 -6 M-6 8 L-6 -8 M-2 8 L-2 -6 M2 8 L2 -8 M6 8 L6 -6 M10 8 L10 -8"
+            {...common}
+          />
+          <path d="M-10 -6 L-10 -8 L-9.4 -8 M-6 -8 L-6.6 -8 M2 -8 L2.6 -8 M6 -6 L6 -8 L6.6 -8" {...fine} />
+        </g>
+      );
+    case "desert-dune-oasis":
+      return (
+        <g transform="translate(50 34)">
+          <path d="M-13 8 C -8 0 -2 8 3 2 C 6 -1 10 3 13 8" {...common} />
+          <path d="M6 8 L6 0 M6 0 C 4 -1 3 -3 4 -4 M6 0 C 8 -1 9 -3 8 -4" {...fine} />
+        </g>
+      );
+    case "ski-mountain-peak":
+      return (
+        <g transform="translate(50 34)">
+          <path d="M-13 8 L-6 -8 L-2 -1 L2 -9 L13 8 Z" {...common} />
+          <path d="M-6 -8 L-8 -3 L-4 -3 Z M2 -9 L0 -4 L5 -4 Z" {...fine} />
+        </g>
+      );
+    case "volcano":
+      return (
+        <g transform="translate(50 34)">
+          <path d="M-12 8 L-4 -10 L4 -10 L12 8 Z" {...common} />
+          <path d="M-2 -10 C -1 -12 1 -13 0 -15 M1 -10 C 2 -12 4 -12 3 -14" {...fine} />
+          <path d="M-2 -6 L2 -6 L1 0 L-1 0 Z" {...fine} />
+        </g>
+      );
+    case "waterfall-cliff":
+      return (
+        <g transform="translate(50 34)">
+          <path d="M-12 -6 L6 -6 M6 -6 L6 8" {...common} />
+          <path d="M-3 -6 L-3 8 M0 -6 L0 8 M3 -6 L3 8" {...fine} />
+        </g>
+      );
+    case "windmill":
+      return (
+        <g transform="translate(50 34)">
+          <path
+            d="M-3 14 L-2 -2 L2 -2 L3 14 Z M0 -2 L0 -14 M0 -14 L-6 -18 M0 -14 L6 -18 M0 -14 L-6 -10 M0 -14 L6 -10"
+            {...common}
+          />
+          <path d="M-1.5 8 L1.5 8 M-1.7 2 L1.7 2" {...fine} />
+        </g>
+      );
+    case "stadium-arena":
+      return (
+        <g transform="translate(50 34)">
+          <path d="M-13 4 C -13 -4 13 -4 13 4 C 13 9 -13 9 -13 4 Z" {...common} />
+          <path d="M-10 -3 L-10 -8 M10 -3 L10 -8 M-11 -8 L-9 -8 M9 -8 L11 -8" {...fine} />
+        </g>
+      );
+    case "market-souk":
+      return (
+        <g transform="translate(50 34)">
+          <path
+            d="M-12 8 L-12 0 C -12 -4 -8 -4 -8 0 L-8 8 M-4 8 L-4 0 C -4 -4 0 -4 0 0 L0 8 M4 8 L4 0 C 4 -4 8 -4 8 0 L8 8 M-12 8 L8 8"
+            {...common}
+          />
+          <path d="M-10 4 L-10 8 M-2 4 L-2 8 M6 4 L6 8" {...fine} />
+        </g>
+      );
+    case "temple-tiered":
+      return (
+        <g transform="translate(50 34)">
+          <path
+            d="M-13 8 L13 8 M-10 8 L-10 4 L10 4 L10 8 M-7 4 L-7 0 L7 0 L7 4 M-4 0 L-4 -4 L4 -4 L4 0 M-1.5 -4 L-1.5 -8 L1.5 -8 L1.5 -4"
+            {...common}
+          />
+          <path d="M0 -8 L0 -11" {...fine} />
+        </g>
+      );
+    case "modern-arch-monument":
+      return (
+        <g transform="translate(50 34)">
+          <path
+            d="M-8 14 L-8 2 C -8 -10 8 -10 8 2 L8 14 M-5 14 L-5 2 C -5 -6 5 -6 5 2 L5 14"
+            {...common}
+          />
+        </g>
+      );
+    case "canal-gondola":
+      return (
+        <g transform="translate(50 34)">
+          <path d="M-10 6 C -10 3 10 3 10 6 L8 8 L-8 8 Z M5 6 L5 -4" {...common} />
+          <path d="M-11 9.5 L11 9.5" {...fine} />
+        </g>
+      );
+    case "beach-palm":
+      return (
+        <g transform="translate(50 34)">
+          <path
+            d="M0 14 L0 -2 M0 -2 C -4 -4 -6 -8 -5 -10 M0 -2 C 4 -4 6 -8 5 -10 M0 -2 C -1 -6 -1 -9 1 -11 M0 -2 C 1 -6 2 -8 3 -10"
+            {...common}
+          />
+          <path d="M-13 12 C -9 9 -5 13 -1 10 C 3 13 7 9 11 12" {...fine} />
+          <circle cx="9" cy="-9" r="2.4" {...fine} />
+        </g>
+      );
+    case "generic-tower":
+      return (
+        <g transform="translate(50 34)">
+          <path d="M0 14 L-2 4 L-1 -6 L1 -6 L2 4 Z M-1 -6 L-5 -9 L5 -9 L1 -6" {...common} />
+          <path d="M-3.5 -9 C -3.5 -11 3.5 -11 3.5 -9" {...fine} />
+        </g>
+      );
+    case "statue-monument":
+      return (
+        <g transform="translate(50 34)">
+          <path
+            d="M-5 14 L5 14 L5 10 L-5 10 Z M0 10 L0 -4 M0 -4 C -2 -6 -2 -9 0 -10 C 2 -9 2 -6 0 -4 M-3 2 L-3 -2 L0 -1 M3 2 L3 0 L0 -1"
+            {...common}
+          />
+          <path d="M-4 14 L-4 10 M4 14 L4 10" {...fine} />
         </g>
       );
   }

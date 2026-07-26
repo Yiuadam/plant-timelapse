@@ -401,19 +401,50 @@ export default function WidgetBoard({
     }
   }
 
-  // Re-lays-out every widget into a single non-overlapping vertical stack --
-  // an escape hatch for boards that already got jumbled from the old random
-  // mobile placement (or from dragging things on top of each other).
+  // Re-lays-out every widget with no overlaps. On a narrow phone that's
+  // still a single vertical stack (there's no useful horizontal space to
+  // fill). On desktop it's a shelf bin-pack -- widgets sorted tallest
+  // first, placed left to right until one would run past the canvas
+  // width, then wrapping to a new row below the tallest item so far --
+  // which fills the board's width instead of lining every widget up in
+  // one column regardless of how much horizontal room is available.
   function tidyUp() {
-    const margin = 4;
-    let y = margin;
-    const next = [...widgets]
-      .sort((a, b) => a.y - b.y)
-      .map((w) => {
-        const patch = { x: margin, y };
-        y = y + (w.h / DESIGN_HEIGHT) * 100 + 3;
-        return { ...w, ...patch };
-      });
+    if (isMobile) {
+      const margin = 4;
+      let y = margin;
+      const next = [...widgets]
+        .sort((a, b) => a.y - b.y)
+        .map((w) => {
+          const patch = { x: margin, y };
+          y = y + (w.h / DESIGN_HEIGHT) * 100 + 3;
+          return { ...w, ...patch };
+        });
+      setWidgets(next);
+      next.forEach((w) => persist(w.id, { x: w.x, y: w.y }));
+      return;
+    }
+
+    const margin = 16;
+    const sorted = [...widgets].sort((a, b) => b.h - a.h || b.w - a.w);
+    let shelfX = margin;
+    let shelfY = margin;
+    let shelfHeight = 0;
+    const placedPx = new Map<string, { x: number; y: number }>();
+    for (const w of sorted) {
+      if (shelfX > margin && shelfX + w.w > DESIGN_WIDTH - margin) {
+        shelfY += shelfHeight + margin;
+        shelfX = margin;
+        shelfHeight = 0;
+      }
+      placedPx.set(w.id, { x: shelfX, y: shelfY });
+      shelfX += w.w + margin;
+      shelfHeight = Math.max(shelfHeight, w.h);
+    }
+    const next = widgets.map((w) => {
+      const p = placedPx.get(w.id);
+      if (!p) return w;
+      return { ...w, x: (p.x / DESIGN_WIDTH) * 100, y: (p.y / DESIGN_HEIGHT) * 100 };
+    });
     setWidgets(next);
     next.forEach((w) => persist(w.id, { x: w.x, y: w.y }));
   }
@@ -445,7 +476,7 @@ export default function WidgetBoard({
       <div className="mb-4 flex items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold">{t("dashboard_title")}</h1>
         <div className="flex items-center gap-2">
-          {isMobile && widgets.length > 1 && (
+          {widgets.length > 1 && (
             <button
               type="button"
               onClick={tidyUp}
