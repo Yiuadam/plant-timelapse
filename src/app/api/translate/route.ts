@@ -97,7 +97,12 @@ async function handlePost(request: Request) {
   try {
     const message = await anthropic.messages.create({
       model: "claude-sonnet-5",
-      max_tokens: 600,
+      max_tokens: 1024,
+      // Claude Sonnet 5 runs adaptive thinking by default when `thinking` is
+      // omitted, and max_tokens caps thinking + response combined -- for a
+      // quick translation lookup that risked truncating the JSON response
+      // before it finished. Disable thinking; this task doesn't need it.
+      thinking: { type: "disabled" },
       messages: [
         {
           role: "user",
