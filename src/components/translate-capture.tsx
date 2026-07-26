@@ -10,6 +10,8 @@ type Result = {
   explanation: string | null;
 };
 
+type TranslateResponse = { translation: Result; source?: "dictionary" | "ai" };
+
 export default function TranslateCapture() {
   const router = useRouter();
   const { t } = useLanguage();
@@ -17,6 +19,7 @@ export default function TranslateCapture() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
+  const [source, setSource] = useState<"dictionary" | "ai" | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,12 +34,13 @@ export default function TranslateCapture() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: text.trim() }),
       });
-      const data = await res.json().catch(() => ({}));
+      const data: TranslateResponse & { error?: string } = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(data.error ?? t("translate_failed"));
         return;
       }
       setResult(data.translation);
+      setSource(data.source ?? "ai");
       router.refresh();
     } finally {
       setLoading(false);
@@ -71,9 +75,16 @@ export default function TranslateCapture() {
       {result && (
         <div className="flex flex-col gap-4 rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-black/20">
           {result.detectedLanguage ? (
-            <span className="inline-block w-fit rounded-full bg-foreground px-3 py-1 text-xs font-medium text-background">
-              {result.detectedLanguage}
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-block w-fit rounded-full bg-foreground px-3 py-1 text-xs font-medium text-background">
+                {result.detectedLanguage}
+              </span>
+              {source === "dictionary" && (
+                <span className="inline-block w-fit rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                  ⚡ {t("translate_instant_match")}
+                </span>
+              )}
+            </div>
           ) : (
             <p className="text-sm text-black/50 dark:text-white/50">
               {t("translate_no_text")}
