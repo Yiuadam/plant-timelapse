@@ -135,8 +135,13 @@ async function handlePost(request: Request) {
       );
     }
     if (err instanceof Anthropic.APIError) {
+      // Temporarily include the underlying status/message so we can see
+      // exactly what Anthropic rejected -- this route was returning this
+      // generic branch in production with no way to tell why. Revert to a
+      // plain message once the real cause is confirmed.
+      const detail = `${err.status ?? "?"}: ${err.message ?? "unknown"}`;
       return NextResponse.json(
-        { error: "Translation service error — try again" },
+        { error: `Translation service error — try again (${detail})` },
         { status: 502 },
       );
     }
