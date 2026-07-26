@@ -11,6 +11,8 @@ import {
 import { isArchetypeKey } from "@/lib/landmark-archetypes";
 import { CuratedLandmarkIcon, ArchetypeLandmarkIcon } from "@/components/landmark-icons";
 import { useLandmarkMap } from "@/lib/use-landmark-map";
+import { localizeCityName } from "@/lib/city-i18n";
+import { useLanguage } from "@/lib/i18n/context";
 
 const BESPOKE_KEY_SET: Set<string> = new Set(LANDMARK_KEYS);
 
@@ -176,7 +178,14 @@ export function PassportStampGraphic({
   // Angeles"), but never cut characters off the name itself; long ones
   // shrink and wrap instead (see the text block below, positioned where
   // the clip circle is at its widest so a wrapped line has real room).
-  const displayCity = (city.split(",")[0] ?? city).trim();
+  const rawDisplayCity = (city.split(",")[0] ?? city).trim();
+  // Show the city name in whichever language the site is currently set
+  // to, not necessarily the language it was originally typed in -- e.g.
+  // a trip destination typed as "Sydney" still reads "悉尼" once the site
+  // language is switched to Chinese. Only covers the curated city set
+  // (see city-i18n.ts); anything else keeps the text as typed.
+  const { lang } = useLanguage();
+  const displayCity = localizeCityName(rawDisplayCity, lang);
   // Shrink further, on top of the size-based scale, as the name gets
   // longer so a short city and a long one both read at a comparable
   // physical width instead of both using the same base font size.

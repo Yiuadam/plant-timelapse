@@ -401,13 +401,22 @@ export default function WidgetBoard({
     }
   }
 
-  // Re-lays-out every widget with no overlaps. On a narrow phone that's
-  // still a single vertical stack (there's no useful horizontal space to
-  // fill). On desktop it's a shelf bin-pack -- widgets sorted tallest
-  // first, placed left to right until one would run past the canvas
-  // width, then wrapping to a new row below the tallest item so far --
-  // which fills the board's width instead of lining every widget up in
-  // one column regardless of how much horizontal room is available.
+  // Re-lays-out every widget with no overlaps, shrinking each one by 15%
+  // (down to the same min size the resize handle enforces) so more of them
+  // fit on one page without scrolling. On a narrow phone that's still a
+  // single vertical stack (there's no useful horizontal space to fill),
+  // just at the smaller size. On desktop it's a shelf bin-pack -- widgets
+  // sorted tallest first, placed left to right until one would run past
+  // the canvas width, then wrapping to a new row below the tallest item so
+  // far -- which fills the board's width instead of lining every widget up
+  // in one column regardless of how much horizontal room is available.
+  function shrunk(w: Widget) {
+    return {
+      w: clamp(Math.round(w.w * 0.85), 120, 480),
+      h: clamp(Math.round(w.h * 0.85), 100, 480),
+    };
+  }
+
   function tidyUp() {
     if (isMobile) {
       const margin = 4;
@@ -415,38 +424,46 @@ export default function WidgetBoard({
       const next = [...widgets]
         .sort((a, b) => a.y - b.y)
         .map((w) => {
-          const patch = { x: margin, y };
-          y = y + (w.h / DESIGN_HEIGHT) * 100 + 3;
+          const { w: nw, h: nh } = shrunk(w);
+          const patch = { x: margin, y, w: nw, h: nh };
+          y = y + (nh / DESIGN_HEIGHT) * 100 + 3;
           return { ...w, ...patch };
         });
       setWidgets(next);
-      next.forEach((w) => persist(w.id, { x: w.x, y: w.y }));
+      next.forEach((w) => persist(w.id, { x: w.x, y: w.y, w: w.w, h: w.h }));
       return;
     }
 
     const margin = 16;
-    const sorted = [...widgets].sort((a, b) => b.h - a.h || b.w - a.w);
+    const sizes = new Map(widgets.map((w) => [w.id, shrunk(w)]));
+    const sorted = [...widgets].sort((a, b) => {
+      const sa = sizes.get(a.id)!;
+      const sb = sizes.get(b.id)!;
+      return sb.h - sa.h || sb.w - sa.w;
+    });
     let shelfX = margin;
     let shelfY = margin;
     let shelfHeight = 0;
     const placedPx = new Map<string, { x: number; y: number }>();
     for (const w of sorted) {
-      if (shelfX > margin && shelfX + w.w > DESIGN_WIDTH - margin) {
+      const size = sizes.get(w.id)!;
+      if (shelfX > margin && shelfX + size.w > DESIGN_WIDTH - margin) {
         shelfY += shelfHeight + margin;
         shelfX = margin;
         shelfHeight = 0;
       }
       placedPx.set(w.id, { x: shelfX, y: shelfY });
-      shelfX += w.w + margin;
-      shelfHeight = Math.max(shelfHeight, w.h);
+      shelfX += size.w + margin;
+      shelfHeight = Math.max(shelfHeight, size.h);
     }
     const next = widgets.map((w) => {
       const p = placedPx.get(w.id);
+      const size = sizes.get(w.id)!;
       if (!p) return w;
-      return { ...w, x: (p.x / DESIGN_WIDTH) * 100, y: (p.y / DESIGN_HEIGHT) * 100 };
+      return { ...w, x: (p.x / DESIGN_WIDTH) * 100, y: (p.y / DESIGN_HEIGHT) * 100, w: size.w, h: size.h };
     });
     setWidgets(next);
-    next.forEach((w) => persist(w.id, { x: w.x, y: w.y }));
+    next.forEach((w) => persist(w.id, { x: w.x, y: w.y, w: w.w, h: w.h }));
   }
 
   function removeWidget(id: string) {

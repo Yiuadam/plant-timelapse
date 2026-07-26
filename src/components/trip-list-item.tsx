@@ -71,7 +71,10 @@ export default function TripListItem({
     if (!dragState.current) return;
     dragState.current = null;
     setDragging(false);
-    setDragAmount(0);
+    // Sticky-open: past a third of the way, the tab stays pulled all the
+    // way open instead of springing back closed, so the enlarged delete
+    // button stays put for the user to tap. Below that, it springs shut.
+    setDragAmount((prev) => (prev > MAX_DRAG * 0.35 ? MAX_DRAG : 0));
   }
 
   function handleClick(e: React.MouseEvent) {
@@ -80,11 +83,17 @@ export default function TripListItem({
     if (draggedRef.current) {
       e.preventDefault();
       draggedRef.current = false;
+      return;
+    }
+    // Tapping the card while the delete tab is stuck open closes it again
+    // instead of navigating away, matching the usual swipe-to-delete pattern.
+    if (dragAmount > 0) {
+      e.preventDefault();
+      setDragAmount(0);
     }
   }
 
   async function handleDelete() {
-    if (!confirm(t("trips_delete_confirm", { title: trip.title }))) return;
     setDeleting(true);
     try {
       await fetch(`/api/trips/${trip.id}`, { method: "DELETE" });
