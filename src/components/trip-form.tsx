@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFieldLocks, useFieldEditing } from "@/hooks/use-field-lock";
 import { TRIP_MOODS } from "@/lib/validation";
@@ -58,6 +58,11 @@ export default function TripForm({
   const [mood, setMood] = useState(initialValues?.mood ?? "");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // A ref guard, not just the `loading` state, because a fast double-tap on
+  // mobile can fire two submit events before React re-renders the button's
+  // `disabled` attribute -- the ref updates instantly, so the second submit
+  // is dropped even within the same tick.
+  const submittingRef = useRef(false);
 
   const resourceId = mode === "edit" ? (tripId ?? "") : "";
   const editors = useFieldLocks(FIELD_RESOURCE_TYPE, resourceId);
@@ -76,6 +81,8 @@ export default function TripForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setError(null);
     setLoading(true);
 
@@ -101,6 +108,7 @@ export default function TripForm({
       router.refresh();
     } finally {
       setLoading(false);
+      submittingRef.current = false;
     }
   }
 

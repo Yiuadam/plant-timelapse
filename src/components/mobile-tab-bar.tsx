@@ -92,7 +92,7 @@ export default function MobileTabBar() {
               <Link
                 href="/profile"
                 onClick={() => setAccountOpen(false)}
-                className="mb-2 block w-full rounded-xl border border-black/10 py-3 text-center text-sm dark:border-white/20"
+                className="mb-2 block w-full rounded-xl border border-black/10 py-3 text-center text-sm text-black dark:border-white/20 dark:text-white"
               >
                 {t("nav_edit_profile")}
               </Link>
@@ -106,7 +106,7 @@ export default function MobileTabBar() {
               <button
                 type="button"
                 onClick={() => setAccountOpen(false)}
-                className="mt-2 w-full rounded-xl border border-black/10 py-3 text-center text-sm dark:border-white/20"
+                className="mt-2 w-full rounded-xl border border-black/10 py-3 text-center text-sm text-black dark:border-white/20 dark:text-white"
               >
                 {t("cancel")}
               </button>

@@ -75,35 +75,62 @@ export const LANDMARK_INK_OVERRIDE: Partial<Record<LandmarkKey, string>> = {
 
 const CITY_LANDMARKS: Record<string, LandmarkKey> = {
   paris: "eiffel-tower",
+  巴黎: "eiffel-tower",
   london: "big-ben",
+  伦敦: "big-ben",
   "new york": "statue-of-liberty",
   nyc: "statue-of-liberty",
+  纽约: "statue-of-liberty",
   "san francisco": "golden-gate-bridge",
   sf: "golden-gate-bridge",
+  旧金山: "golden-gate-bridge",
+  三藩市: "golden-gate-bridge",
   rome: "colosseum",
+  罗马: "colosseum",
   barcelona: "sagrada-familia",
+  巴塞罗那: "sagrada-familia",
   beijing: "great-wall",
+  北京: "great-wall",
   tokyo: "tokyo-tower",
+  东京: "tokyo-tower",
   shanghai: "oriental-pearl-tower",
+  上海: "oriental-pearl-tower",
   singapore: "marina-bay-sands",
+  新加坡: "marina-bay-sands",
   sydney: "sydney-opera-house",
+  悉尼: "sydney-opera-house",
   "rio de janeiro": "christ-the-redeemer",
   rio: "christ-the-redeemer",
+  里约热内卢: "christ-the-redeemer",
   dubai: "burj-khalifa",
+  迪拜: "burj-khalifa",
   cairo: "pyramids-of-giza",
   giza: "pyramids-of-giza",
+  开罗: "pyramids-of-giza",
+  吉萨: "pyramids-of-giza",
   berlin: "brandenburg-gate",
+  柏林: "brandenburg-gate",
   athens: "parthenon",
+  雅典: "parthenon",
   istanbul: "hagia-sophia",
+  伊斯坦布尔: "hagia-sophia",
   moscow: "saint-basils",
+  莫斯科: "saint-basils",
   bangkok: "wat-arun",
+  曼谷: "wat-arun",
   taipei: "taipei-101",
+  台北: "taipei-101",
   "cape town": "table-mountain",
+  开普敦: "table-mountain",
   venice: "venice-canal",
+  威尼斯: "venice-canal",
   amsterdam: "amsterdam-canal-houses",
+  阿姆斯特丹: "amsterdam-canal-houses",
   "hong kong": "hong-kong-skyline",
   hk: "hong-kong-skyline",
+  香港: "hong-kong-skyline",
   seoul: "namsan-tower",
+  首尔: "namsan-tower",
 };
 
 export function normalizeCityText(text: string): string {
@@ -111,7 +138,12 @@ export function normalizeCityText(text: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // strip accents (e.g. "Köln" -> "koln")
     .toLowerCase()
-    .replace(/[^a-z\s]/g, " ") // punctuation/digits -> space
+    // Punctuation/digits -> space, but keep every *letter* -- not just
+    // a-z. The old `[^a-z\s]` here stripped entire non-Latin scripts
+    // (Chinese, Japanese, Korean, Arabic, ...), so a destination typed
+    // in any of those always normalized to an empty string and could
+    // never match a curated city. \p{L} covers all of them.
+    .replace(/[^\p{L}\s]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -132,6 +164,19 @@ export function matchCityInMap<T>(destination: string, map: Record<string, T>): 
   const padded = ` ${normalized} `;
   for (const [city, value] of Object.entries(map)) {
     if (padded.includes(` ${city} `)) return value;
+  }
+
+  // Scripts like Chinese/Japanese don't use spaces between words, so the
+  // space-padded word-boundary check above can never match them (e.g.
+  // "悉尼一日游" never contains " 悉尼 " as a substring). Fall back to a
+  // plain substring match, restricted to non-ASCII text on both sides so
+  // this doesn't loosen matching for short Latin keys like "sf" or "hk".
+  if (/[^\x00-\x7f]/.test(normalized)) {
+    for (const [city, value] of Object.entries(map)) {
+      if (city.length >= 2 && /[^\x00-\x7f]/.test(city) && normalized.includes(city)) {
+        return value;
+      }
+    }
   }
   return null;
 }

@@ -177,29 +177,29 @@ export default function PassportBook({
                 </div>
               )}
             </div>
-            <dl className="grid flex-1 grid-cols-2 gap-x-3 gap-y-0.5 text-sm">
-              <dt className="col-span-2 text-[10px] tracking-widest text-black/40 uppercase dark:text-white/40">
+            <dl className="grid flex-1 grid-cols-2 gap-x-3 gap-y-0.5 text-sm text-black/90 dark:text-white/90">
+              <dt className="col-span-2 text-[10px] tracking-widest text-black/55 uppercase dark:text-white/55">
                 {t("passport_name")}
               </dt>
               <dd className="col-span-2 -mt-0.5 truncate font-semibold">{name}</dd>
-              <dt className="text-[10px] tracking-widest text-black/40 uppercase dark:text-white/40">
+              <dt className="text-[10px] tracking-widest text-black/55 uppercase dark:text-white/55">
                 {t("passport_sex")}
               </dt>
-              <dt className="text-[10px] tracking-widest text-black/40 uppercase dark:text-white/40">
+              <dt className="text-[10px] tracking-widest text-black/55 uppercase dark:text-white/55">
                 {t("passport_birth")}
               </dt>
               <dd className="-mt-0.5 font-medium">{gender ? (GENDER_LABELS[gender] ?? "—") : "—"}</dd>
               <dd className="-mt-0.5 font-medium">{formatDate(birthday)}</dd>
-              <dt className="col-span-2 mt-0.5 text-[10px] tracking-widest text-black/40 uppercase dark:text-white/40">
+              <dt className="col-span-2 mt-0.5 text-[10px] tracking-widest text-black/55 uppercase dark:text-white/55">
                 {t("passport_no")}
               </dt>
               <dd className="col-span-2 -mt-0.5 font-mono font-semibold tracking-wider">
                 {passportNumber}
               </dd>
-              <dt className="text-[10px] tracking-widest text-black/40 uppercase dark:text-white/40">
+              <dt className="text-[10px] tracking-widest text-black/55 uppercase dark:text-white/55">
                 {t("passport_issued")}
               </dt>
-              <dt className="text-[10px] tracking-widest text-black/40 uppercase dark:text-white/40">
+              <dt className="text-[10px] tracking-widest text-black/55 uppercase dark:text-white/55">
                 {t("passport_authority")}
               </dt>
               <dd className="-mt-0.5 truncate font-medium">{formatDate(issuedAt)}</dd>

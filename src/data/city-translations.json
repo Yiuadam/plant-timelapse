@@ -1,0 +1,582 @@
+[
+  {
+    "en": "Paris",
+    "zh": "巴黎"
+  },
+  {
+    "en": "London",
+    "zh": "伦敦"
+  },
+  {
+    "en": "New York",
+    "zh": "纽约"
+  },
+  {
+    "en": "San Francisco",
+    "zh": "旧金山"
+  },
+  {
+    "en": "Rome",
+    "zh": "罗马"
+  },
+  {
+    "en": "Barcelona",
+    "zh": "巴塞罗那"
+  },
+  {
+    "en": "Beijing",
+    "zh": "北京"
+  },
+  {
+    "en": "Tokyo",
+    "zh": "东京"
+  },
+  {
+    "en": "Shanghai",
+    "zh": "上海"
+  },
+  {
+    "en": "Singapore",
+    "zh": "新加坡"
+  },
+  {
+    "en": "Sydney",
+    "zh": "悉尼"
+  },
+  {
+    "en": "Rio de Janeiro",
+    "zh": "里约热内卢"
+  },
+  {
+    "en": "Dubai",
+    "zh": "迪拜"
+  },
+  {
+    "en": "Cairo",
+    "zh": "开罗"
+  },
+  {
+    "en": "Berlin",
+    "zh": "柏林"
+  },
+  {
+    "en": "Athens",
+    "zh": "雅典"
+  },
+  {
+    "en": "Istanbul",
+    "zh": "伊斯坦布尔"
+  },
+  {
+    "en": "Moscow",
+    "zh": "莫斯科"
+  },
+  {
+    "en": "Bangkok",
+    "zh": "曼谷"
+  },
+  {
+    "en": "Taipei",
+    "zh": "台北"
+  },
+  {
+    "en": "Cape Town",
+    "zh": "开普敦"
+  },
+  {
+    "en": "Venice",
+    "zh": "威尼斯"
+  },
+  {
+    "en": "Amsterdam",
+    "zh": "阿姆斯特丹"
+  },
+  {
+    "en": "Hong Kong",
+    "zh": "香港"
+  },
+  {
+    "en": "Seoul",
+    "zh": "首尔"
+  },
+  {
+    "en": "Vienna",
+    "zh": "维也纳"
+  },
+  {
+    "en": "Prague",
+    "zh": "布拉格"
+  },
+  {
+    "en": "Budapest",
+    "zh": "布达佩斯"
+  },
+  {
+    "en": "Cologne",
+    "zh": "科隆"
+  },
+  {
+    "en": "Milan",
+    "zh": "米兰"
+  },
+  {
+    "en": "Florence",
+    "zh": "佛罗伦萨"
+  },
+  {
+    "en": "Edinburgh",
+    "zh": "爱丁堡"
+  },
+  {
+    "en": "Salzburg",
+    "zh": "萨尔茨堡"
+  },
+  {
+    "en": "Dublin",
+    "zh": "都柏林"
+  },
+  {
+    "en": "Copenhagen",
+    "zh": "哥本哈根"
+  },
+  {
+    "en": "Stockholm",
+    "zh": "斯德哥尔摩"
+  },
+  {
+    "en": "Oslo",
+    "zh": "奥斯陆"
+  },
+  {
+    "en": "Helsinki",
+    "zh": "赫尔辛基"
+  },
+  {
+    "en": "Reykjavik",
+    "zh": "雷克雅未克"
+  },
+  {
+    "en": "Zurich",
+    "zh": "苏黎世"
+  },
+  {
+    "en": "Geneva",
+    "zh": "日内瓦"
+  },
+  {
+    "en": "Lisbon",
+    "zh": "里斯本"
+  },
+  {
+    "en": "Porto",
+    "zh": "波尔图"
+  },
+  {
+    "en": "Madrid",
+    "zh": "马德里"
+  },
+  {
+    "en": "Seville",
+    "zh": "塞维利亚"
+  },
+  {
+    "en": "Granada",
+    "zh": "格拉纳达"
+  },
+  {
+    "en": "Brussels",
+    "zh": "布鲁塞尔"
+  },
+  {
+    "en": "Bruges",
+    "zh": "布鲁日"
+  },
+  {
+    "en": "Warsaw",
+    "zh": "华沙"
+  },
+  {
+    "en": "Krakow",
+    "zh": "克拉科夫"
+  },
+  {
+    "en": "Bucharest",
+    "zh": "布加勒斯特"
+  },
+  {
+    "en": "Belgrade",
+    "zh": "贝尔格莱德"
+  },
+  {
+    "en": "Munich",
+    "zh": "慕尼黑"
+  },
+  {
+    "en": "Frankfurt",
+    "zh": "法兰克福"
+  },
+  {
+    "en": "Hamburg",
+    "zh": "汉堡"
+  },
+  {
+    "en": "Nice",
+    "zh": "尼斯"
+  },
+  {
+    "en": "Marseille",
+    "zh": "马赛"
+  },
+  {
+    "en": "Santorini",
+    "zh": "圣托里尼"
+  },
+  {
+    "en": "Mykonos",
+    "zh": "米科诺斯"
+  },
+  {
+    "en": "Dubrovnik",
+    "zh": "杜布罗夫尼克"
+  },
+  {
+    "en": "Monaco",
+    "zh": "摩纳哥"
+  },
+  {
+    "en": "Liverpool",
+    "zh": "利物浦"
+  },
+  {
+    "en": "Manchester",
+    "zh": "曼彻斯特"
+  },
+  {
+    "en": "Glasgow",
+    "zh": "格拉斯哥"
+  },
+  {
+    "en": "Belfast",
+    "zh": "贝尔法斯特"
+  },
+  {
+    "en": "Kyoto",
+    "zh": "京都"
+  },
+  {
+    "en": "Osaka",
+    "zh": "大阪"
+  },
+  {
+    "en": "Hiroshima",
+    "zh": "广岛"
+  },
+  {
+    "en": "Sapporo",
+    "zh": "札幌"
+  },
+  {
+    "en": "Kuala Lumpur",
+    "zh": "吉隆坡"
+  },
+  {
+    "en": "Jakarta",
+    "zh": "雅加达"
+  },
+  {
+    "en": "Bali",
+    "zh": "巴厘岛"
+  },
+  {
+    "en": "Hanoi",
+    "zh": "河内"
+  },
+  {
+    "en": "Ho Chi Minh City",
+    "zh": "胡志明市"
+  },
+  {
+    "en": "Siem Reap",
+    "zh": "暹粒"
+  },
+  {
+    "en": "Phnom Penh",
+    "zh": "金边"
+  },
+  {
+    "en": "Yangon",
+    "zh": "仰光"
+  },
+  {
+    "en": "Kathmandu",
+    "zh": "加德满都"
+  },
+  {
+    "en": "Colombo",
+    "zh": "科伦坡"
+  },
+  {
+    "en": "Mumbai",
+    "zh": "孟买"
+  },
+  {
+    "en": "New Delhi",
+    "zh": "新德里"
+  },
+  {
+    "en": "Agra",
+    "zh": "阿格拉"
+  },
+  {
+    "en": "Jaipur",
+    "zh": "斋浦尔"
+  },
+  {
+    "en": "Varanasi",
+    "zh": "瓦拉纳西"
+  },
+  {
+    "en": "Karachi",
+    "zh": "卡拉奇"
+  },
+  {
+    "en": "Lahore",
+    "zh": "拉合尔"
+  },
+  {
+    "en": "Islamabad",
+    "zh": "伊斯兰堡"
+  },
+  {
+    "en": "Dhaka",
+    "zh": "达卡"
+  },
+  {
+    "en": "Ulaanbaatar",
+    "zh": "乌兰巴托"
+  },
+  {
+    "en": "Xian",
+    "zh": "西安"
+  },
+  {
+    "en": "Chengdu",
+    "zh": "成都"
+  },
+  {
+    "en": "Guilin",
+    "zh": "桂林"
+  },
+  {
+    "en": "Guangzhou",
+    "zh": "广州"
+  },
+  {
+    "en": "Shenzhen",
+    "zh": "深圳"
+  },
+  {
+    "en": "Chongqing",
+    "zh": "重庆"
+  },
+  {
+    "en": "Xiamen",
+    "zh": "厦门"
+  },
+  {
+    "en": "Qingdao",
+    "zh": "青岛"
+  },
+  {
+    "en": "Harbin",
+    "zh": "哈尔滨"
+  },
+  {
+    "en": "Lhasa",
+    "zh": "拉萨"
+  },
+  {
+    "en": "Almaty",
+    "zh": "阿拉木图"
+  },
+  {
+    "en": "Tashkent",
+    "zh": "塔什干"
+  },
+  {
+    "en": "Baku",
+    "zh": "巴库"
+  },
+  {
+    "en": "Tbilisi",
+    "zh": "第比利斯"
+  },
+  {
+    "en": "Yerevan",
+    "zh": "埃里温"
+  },
+  {
+    "en": "Amman",
+    "zh": "安曼"
+  },
+  {
+    "en": "Petra",
+    "zh": "佩特拉"
+  },
+  {
+    "en": "Jerusalem",
+    "zh": "耶路撒冷"
+  },
+  {
+    "en": "Tel Aviv",
+    "zh": "特拉维夫"
+  },
+  {
+    "en": "Beirut",
+    "zh": "贝鲁特"
+  },
+  {
+    "en": "Doha",
+    "zh": "多哈"
+  },
+  {
+    "en": "Abu Dhabi",
+    "zh": "阿布扎比"
+  },
+  {
+    "en": "Riyadh",
+    "zh": "利雅得"
+  },
+  {
+    "en": "Jeddah",
+    "zh": "吉达"
+  },
+  {
+    "en": "Mecca",
+    "zh": "麦加"
+  },
+  {
+    "en": "Baghdad",
+    "zh": "巴格达"
+  },
+  {
+    "en": "Tehran",
+    "zh": "德黑兰"
+  },
+  {
+    "en": "Nairobi",
+    "zh": "内罗毕"
+  },
+  {
+    "en": "Zanzibar",
+    "zh": "桑给巴尔"
+  },
+  {
+    "en": "Los Angeles",
+    "zh": "洛杉矶"
+  },
+  {
+    "en": "Las Vegas",
+    "zh": "拉斯维加斯"
+  },
+  {
+    "en": "Chicago",
+    "zh": "芝加哥"
+  },
+  {
+    "en": "Washington DC",
+    "zh": "华盛顿"
+  },
+  {
+    "en": "Boston",
+    "zh": "波士顿"
+  },
+  {
+    "en": "Seattle",
+    "zh": "西雅图"
+  },
+  {
+    "en": "Miami",
+    "zh": "迈阿密"
+  },
+  {
+    "en": "Honolulu",
+    "zh": "檀香山"
+  },
+  {
+    "en": "Toronto",
+    "zh": "多伦多"
+  },
+  {
+    "en": "Vancouver",
+    "zh": "温哥华"
+  },
+  {
+    "en": "Montreal",
+    "zh": "蒙特利尔"
+  },
+  {
+    "en": "Mexico City",
+    "zh": "墨西哥城"
+  },
+  {
+    "en": "Cancun",
+    "zh": "坎昆"
+  },
+  {
+    "en": "Havana",
+    "zh": "哈瓦那"
+  },
+  {
+    "en": "Bogota",
+    "zh": "波哥大"
+  },
+  {
+    "en": "Lima",
+    "zh": "利马"
+  },
+  {
+    "en": "Cusco",
+    "zh": "库斯科"
+  },
+  {
+    "en": "Machu Picchu",
+    "zh": "马丘比丘"
+  },
+  {
+    "en": "Santiago",
+    "zh": "圣地亚哥"
+  },
+  {
+    "en": "Buenos Aires",
+    "zh": "布宜诺斯艾利斯"
+  },
+  {
+    "en": "Melbourne",
+    "zh": "墨尔本"
+  },
+  {
+    "en": "Brisbane",
+    "zh": "布里斯班"
+  },
+  {
+    "en": "Perth",
+    "zh": "珀斯"
+  },
+  {
+    "en": "Auckland",
+    "zh": "奥克兰"
+  },
+  {
+    "en": "Wellington",
+    "zh": "惠灵顿"
+  },
+  {
+    "en": "Queenstown",
+    "zh": "皇后镇"
+  },
+  {
+    "en": "Christchurch",
+    "zh": "基督城"
+  }
+]
