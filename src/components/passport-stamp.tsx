@@ -172,14 +172,15 @@ export function PassportStampGraphic({
   // in the dashboard Passport widget) so text doesn't overflow the ring.
   const scale = size / 140;
   // A passport stamp reads a place name, not a full free-text destination
-  // -- long strings ("Los Angeles, California") were being crammed in at a
-  // size that crossed the inner decorative ring. Show just the first
-  // clause and hard-cap the length.
-  const displayCity = (city.split(",")[0] ?? city).trim().slice(0, 16);
+  // -- show just the first clause ("Los Angeles, California" -> "Los
+  // Angeles"), but never cut characters off the name itself; long ones
+  // shrink and wrap instead (see the text block below, positioned where
+  // the clip circle is at its widest so a wrapped line has real room).
+  const displayCity = (city.split(",")[0] ?? city).trim();
   // Shrink further, on top of the size-based scale, as the name gets
-  // longer so an 8-character city and a 16-character one both fit the
-  // same physical width instead of both using the same base font size.
-  const nameLengthScale = Math.min(1, 8 / Math.max(displayCity.length, 8));
+  // longer so a short city and a long one both read at a comparable
+  // physical width instead of both using the same base font size.
+  const nameLengthScale = Math.min(1, 10 / Math.max(displayCity.length, 10));
   const nameScale = scale * nameLengthScale;
 
   return (
@@ -211,24 +212,32 @@ export function PassportStampGraphic({
             <LandmarkIcon kind={landmark} ink={ink} />
           )}
         </svg>
-        {/* Font size and padding scale with `size` (fixed px/Tailwind sizes
-            were tuned for the 140px default and badly overflowed the ring
-            at the 64px size the dashboard widget renders). Clip radius is
-            kept inside the *inner* decorative ring (r=38 of the 100-unit
-            viewBox) rather than the outer one, so long text can no longer
-            visually cross the inner ring line before it gets clipped. */}
+        {/* Font size scales with `size` (fixed px/Tailwind sizes were tuned
+            for the 140px default and badly overflowed the ring at the 64px
+            size the dashboard widget renders). Clip radius is kept inside
+            the *inner* decorative ring (r=38 of the 100-unit viewBox)
+            rather than the outer one, so text can't cross that ring line.
+            The block starts right after the icon instead of being
+            bottom-anchored: a circle is narrowest right where the old
+            bottom anchor sat, so even a moderately long name got clipped
+            sideways there. Starting near the icon puts the name in the
+            circle's widest band, and shrinks the icon-to-name gap in the
+            same move. */}
         <div
-          className="absolute inset-0 flex flex-col items-center justify-end text-center"
+          className="absolute inset-0 flex flex-col items-center justify-start text-center"
           style={{
             color: ink,
-            padding: `${4 * scale}px ${13 * scale}px`,
-            gap: 2 * scale,
+            paddingTop: size * 0.51,
+            paddingLeft: 13 * scale,
+            paddingRight: 13 * scale,
+            paddingBottom: 3 * scale,
+            gap: 1 * scale,
             clipPath: "circle(35% at 50% 50%)",
           }}
         >
           <span
             className="font-semibold tracking-widest uppercase opacity-80"
-            style={{ fontSize: Math.max(6, 9 * scale) }}
+            style={{ fontSize: Math.max(5, 7 * scale) }}
           >
             Visited
           </span>
