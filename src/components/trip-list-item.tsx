@@ -13,15 +13,22 @@ export type TripListItemData = {
   endDate: string | null;
 };
 
-const DELETE_WIDTH = 84;
+// At rest the delete tab is just a thin colored sliver beside the card.
+// Dragging the card left grows the tab's own width in lockstep with the
+// drag distance (not a hidden button revealed by translateX) so it reads
+// as physically being pulled open, up to this full-size cap.
+const REST_WIDTH = 10;
+const MAX_WIDTH = 84;
+const MAX_DRAG = MAX_WIDTH - REST_WIDTH;
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
 }
 
-// A swipe-left-to-reveal-delete row, matching the standard iOS list
-// pattern: the card slides left under drag to expose a red delete button
-// pinned to the right edge underneath it. Only trip owners get this --
+// A trip row with a slim, always-visible delete tab beside it (not a
+// hidden swipe-reveal button underneath) whose width grows continuously
+// with how far the card is dragged left, then snaps back once released --
+// tappable at any width, drag or not. Only trip owners get this --
 // collaborators can't delete a shared trip (the DELETE route 404s for
 // them anyway), so for them this is just a plain link.
 export default function TripListItem({
@@ -35,15 +42,18 @@ export default function TripListItem({
 }) {
   const router = useRouter();
   const { t } = useLanguage();
-  const [dragX, setDragX] = useState(0);
+  const [dragAmount, setDragAmount] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const dragState = useRef<{ startClientX: number; startDragX: number } | null>(null);
+  const dragState = useRef<{ startClientX: number; startDragAmount: number } | null>(null);
   const draggedRef = useRef(false);
+
+  const tabWidth = REST_WIDTH + dragAmount;
+  const openness = dragAmount / MAX_DRAG;
 
   function onPointerDown(e: React.PointerEvent) {
     if (!isOwner) return;
-    dragState.current = { startClientX: e.clientX, startDragX: dragX };
+    dragState.current = { startClientX: e.clientX, startDragAmount: dragAmount };
     draggedRef.current = false;
     e.currentTarget.setPointerCapture(e.pointerId);
   }
@@ -51,27 +61,25 @@ export default function TripListItem({
   function onPointerMove(e: React.PointerEvent) {
     const drag = dragState.current;
     if (!drag) return;
-    const delta = e.clientX - drag.startClientX;
+    const delta = drag.startClientX - e.clientX;
     if (Math.abs(delta) > 6) draggedRef.current = true;
     setDragging(true);
-    setDragX(clamp(drag.startDragX + delta, -DELETE_WIDTH, 0));
+    setDragAmount(clamp(drag.startDragAmount + delta, 0, MAX_DRAG));
   }
 
   function onPointerUp() {
     if (!dragState.current) return;
     dragState.current = null;
     setDragging(false);
-    setDragX((x) => (x < -DELETE_WIDTH / 2 ? -DELETE_WIDTH : 0));
+    setDragAmount(0);
   }
 
   function handleClick(e: React.MouseEvent) {
-    // A real swipe, or the row already sitting open, means this click is
-    // part of the swipe gesture (or a tap meant to close it) rather than
-    // an intent to navigate into the trip.
-    if (draggedRef.current || dragX < 0) {
+    // A real drag means this click is part of the gesture, not an intent
+    // to navigate into the trip.
+    if (draggedRef.current) {
       e.preventDefault();
       draggedRef.current = false;
-      setDragX(0);
     }
   }
 
@@ -87,19 +95,7 @@ export default function TripListItem({
   }
 
   return (
-    <li className="relative overflow-hidden rounded-2xl">
-      {isOwner && (
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={deleting}
-          aria-label={`${t("delete")} ${trip.title}`}
-          className="absolute inset-y-0 right-0 flex items-center justify-center bg-red-600 text-sm font-medium text-white disabled:opacity-60"
-          style={{ width: DELETE_WIDTH }}
-        >
-          {deleting ? "…" : t("delete")}
-        </button>
-      )}
+    <li className="flex items-stretch gap-1.5">
       <Link
         href={`/trips/${trip.id}`}
         prefetch={true}
@@ -108,12 +104,8 @@ export default function TripListItem({
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         onClick={handleClick}
-        className="relative flex items-center justify-between gap-4 rounded-2xl border border-black/10 bg-white/50 px-5 py-4 shadow-sm transition hover:bg-white/80 dark:border-white/15 dark:bg-black/20 dark:hover:bg-black/30"
-        style={{
-          transform: `translateX(${dragX}px)`,
-          transition: dragging ? "none" : "transform 0.2s ease",
-          touchAction: "pan-y",
-        }}
+        className="flex min-w-0 flex-1 items-center justify-between gap-4 rounded-2xl border border-black/10 bg-white/50 px-5 py-4 shadow-sm transition-colors hover:bg-white/80 dark:border-white/15 dark:bg-black/20 dark:hover:bg-black/30"
+        style={{ touchAction: "pan-y" }}
       >
         <div className="min-w-0">
           <div className="truncate font-medium">{trip.title}</div>
@@ -135,6 +127,29 @@ export default function TripListItem({
           </span>
         )}
       </Link>
+      {isOwner && (
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={deleting}
+          aria-label={`${t("delete")} ${trip.title}`}
+          className="flex shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-red-600 text-sm font-medium text-white disabled:opacity-60"
+          style={{
+            width: tabWidth,
+            transition: dragging ? "none" : "width 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)",
+          }}
+        >
+          <span
+            className="whitespace-nowrap"
+            style={{
+              opacity: dragging ? Math.max(0, openness * 1.6 - 0.6) : 0,
+              transition: dragging ? "none" : "opacity 0.2s ease",
+            }}
+          >
+            {deleting ? "…" : t("delete")}
+          </span>
+        </button>
+      )}
     </li>
   );
 }

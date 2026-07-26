@@ -1,8 +1,18 @@
 "use client";
 
 import { hashSeed, mulberry32 } from "@/lib/seeded-random";
-import { findCityLandmark, LANDMARK_INK_OVERRIDE } from "@/lib/city-landmarks";
-import { CuratedLandmarkIcon } from "@/components/landmark-icons";
+import {
+  findCityLandmark,
+  matchCityInMap,
+  LANDMARK_INK_OVERRIDE,
+  LANDMARK_KEYS,
+  type LandmarkKey,
+} from "@/lib/city-landmarks";
+import { isArchetypeKey } from "@/lib/landmark-archetypes";
+import { CuratedLandmarkIcon, ArchetypeLandmarkIcon } from "@/components/landmark-icons";
+import { useLandmarkMap } from "@/lib/use-landmark-map";
+
+const BESPOKE_KEY_SET: Set<string> = new Set(LANDMARK_KEYS);
 
 // A curated set of classic ink-stamp colors rather than fully random hues,
 // so every stamp still reads as "stamp ink" instead of an arbitrary color.
@@ -137,17 +147,41 @@ export function PassportStampGraphic({
   const landmark = LANDMARKS[Math.floor(rand() * LANDMARKS.length)];
   const rotation = (rand() - 0.5) * 22;
   const ticks = 28;
-  // A curated set of famous tourist cities get their actual real-world
-  // landmark instead of one of the six generic abstract silhouettes above
-  // -- the Eiffel Tower for Paris, Big Ben for London, etc. Everything
-  // else keeps the seeded generic icon so it still reads as "a place"
-  // rather than a blank stamp.
-  const curatedLandmark = findCityLandmark(city);
-  const ink = (curatedLandmark && LANDMARK_INK_OVERRIDE[curatedLandmark]) || seededInk;
+  // A curated set of ~200 popular travel cities (see
+  // src/data/landmark-seed.json, loaded from the DB via useLandmarkMap)
+  // get their actual real-world landmark or landmark *type* instead of
+  // one of the six generic abstract silhouettes above -- the Eiffel
+  // Tower for Paris, a minaret-and-dome for Muscat, etc. The DB map takes
+  // priority; while it's still loading (or for a handful of the most
+  // iconic cities if the fetch ever fails) the small hardcoded set in
+  // city-landmarks.ts covers the same ~25 cities as a fallback. Anything
+  // outside both keeps the seeded generic icon so it still reads as "a
+  // place" rather than a blank stamp.
+  const dbMap = useLandmarkMap();
+  const dbEntry = dbMap ? matchCityInMap(city, dbMap) : null;
+  const dbKeyValid = dbEntry && (BESPOKE_KEY_SET.has(dbEntry.landmarkKey) || isArchetypeKey(dbEntry.landmarkKey));
+  const curatedLandmark: LandmarkKey | null =
+    dbKeyValid && BESPOKE_KEY_SET.has(dbEntry!.landmarkKey) ? (dbEntry!.landmarkKey as LandmarkKey) : findCityLandmark(city);
+  const archetypeLandmark = dbKeyValid && isArchetypeKey(dbEntry!.landmarkKey) ? dbEntry!.landmarkKey : null;
+  const ink =
+    (dbEntry && dbEntry.inkOverride) ||
+    (curatedLandmark && LANDMARK_INK_OVERRIDE[curatedLandmark]) ||
+    seededInk;
   // The text overlay uses fixed px/Tailwind sizes tuned for the 140px
   // default -- scale them down for smaller renders (e.g. the 64px stamp
   // in the dashboard Passport widget) so text doesn't overflow the ring.
   const scale = size / 140;
+  // A passport stamp reads a place name, not a full free-text destination
+  // -- show just the first clause ("Los Angeles, California" -> "Los
+  // Angeles"), but never cut characters off the name itself; long ones
+  // shrink and wrap instead (see the text block below, positioned where
+  // the clip circle is at its widest so a wrapped line has real room).
+  const displayCity = (city.split(",")[0] ?? city).trim();
+  // Shrink further, on top of the size-based scale, as the name gets
+  // longer so a short city and a long one both read at a comparable
+  // physical width instead of both using the same base font size.
+  const nameLengthScale = Math.min(1, 10 / Math.max(displayCity.length, 10));
+  const nameScale = scale * nameLengthScale;
 
   return (
     <div
@@ -170,37 +204,48 @@ export function PassportStampGraphic({
               <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={ink} strokeWidth="1.2" opacity="0.7" />
             );
           })}
-          {curatedLandmark ? (
+          {archetypeLandmark ? (
+            <ArchetypeLandmarkIcon archetypeKey={archetypeLandmark} ink={ink} />
+          ) : curatedLandmark ? (
             <CuratedLandmarkIcon landmarkKey={curatedLandmark} ink={ink} />
           ) : (
             <LandmarkIcon kind={landmark} ink={ink} />
           )}
         </svg>
-        {/* Font size and padding scale with `size` (fixed px/Tailwind sizes
-            were tuned for the 140px default and badly overflowed the ring
-            at the 64px size the dashboard widget renders) -- clip-path is a
-            hard backstop so a long city name can never poke past the ring
-            regardless of font metrics. */}
+        {/* Font size scales with `size` (fixed px/Tailwind sizes were tuned
+            for the 140px default and badly overflowed the ring at the 64px
+            size the dashboard widget renders). Clip radius is kept inside
+            the *inner* decorative ring (r=38 of the 100-unit viewBox)
+            rather than the outer one, so text can't cross that ring line.
+            The block starts right after the icon instead of being
+            bottom-anchored: a circle is narrowest right where the old
+            bottom anchor sat, so even a moderately long name got clipped
+            sideways there. Starting near the icon puts the name in the
+            circle's widest band, and shrinks the icon-to-name gap in the
+            same move. */}
         <div
-          className="absolute inset-0 flex flex-col items-center justify-end text-center"
+          className="absolute inset-0 flex flex-col items-center justify-start text-center"
           style={{
             color: ink,
-            padding: `${4 * scale}px ${13 * scale}px`,
-            gap: 2 * scale,
-            clipPath: "circle(44% at 50% 50%)",
+            paddingTop: size * 0.51,
+            paddingLeft: 13 * scale,
+            paddingRight: 13 * scale,
+            paddingBottom: 3 * scale,
+            gap: 1 * scale,
+            clipPath: "circle(35% at 50% 50%)",
           }}
         >
           <span
             className="font-semibold tracking-widest uppercase opacity-80"
-            style={{ fontSize: Math.max(6, 9 * scale) }}
+            style={{ fontSize: Math.max(5, 7 * scale) }}
           >
             Visited
           </span>
           <span
             className="leading-tight font-bold break-words uppercase"
-            style={{ fontSize: Math.max(7, 12 * scale) }}
+            style={{ fontSize: Math.max(6, 12 * nameScale) }}
           >
-            {city}
+            {displayCity}
           </span>
           <span
             className="font-medium opacity-75"

@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { GENDER_OPTIONS } from "@/lib/validation";
+import AvatarCropModal from "@/components/avatar-crop-modal";
 
 const GENDER_LABELS: Record<(typeof GENDER_OPTIONS)[number], string> = {
   female: "Female",
@@ -31,16 +32,25 @@ export default function ProfileForm({ initial }: { initial: ProfileValues }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
-  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setError(null);
+    // Open the crop dialog instead of uploading immediately -- the actual
+    // upload happens once the user confirms a crop, in handleCropConfirm.
+    setPendingFile(file);
+  }
+
+  async function handleCropConfirm(blob: Blob) {
+    setPendingFile(null);
     setError(null);
     setUploading(true);
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", new File([blob], "avatar.jpg", { type: "image/jpeg" }));
       const res = await fetch("/api/profile/avatar", {
         method: "POST",
         body: formData,
@@ -83,6 +93,17 @@ export default function ProfileForm({ initial }: { initial: ProfileValues }) {
   }
 
   return (
+    <>
+    {pendingFile && (
+      <AvatarCropModal
+        file={pendingFile}
+        onCancel={() => {
+          setPendingFile(null);
+          if (fileInput.current) fileInput.current.value = "";
+        }}
+        onConfirm={handleCropConfirm}
+      />
+    )}
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <div className="flex items-center gap-4">
         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border border-black/10 bg-black/5 dark:border-white/20 dark:bg-white/10">
@@ -163,5 +184,6 @@ export default function ProfileForm({ initial }: { initial: ProfileValues }) {
         {saving ? "Saving..." : "Save changes"}
       </button>
     </form>
+    </>
   );
 }
