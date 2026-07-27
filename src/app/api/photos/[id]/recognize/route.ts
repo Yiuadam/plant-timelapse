@@ -132,8 +132,16 @@ async function handlePost({ params }: { params: Promise<{ id: string }> }) {
       );
     }
     if (err instanceof Anthropic.APIError) {
+      // Same "account out of credit" case handled in /api/translate --
+      // shares the same ANTHROPIC_API_KEY, so it fails the same way here.
+      if (err.status === 400 && /credit balance/i.test(err.message ?? "")) {
+        return NextResponse.json(
+          { error: "Photo recognition is unavailable — the AI service's account is out of credit" },
+          { status: 503 },
+        );
+      }
       return NextResponse.json(
-        { error: `AI service error (${err.status ?? "unknown"}) — try again` },
+        { error: "AI service error — try again" },
         { status: 502 },
       );
     }
