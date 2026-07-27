@@ -10,7 +10,7 @@ type Result = {
   explanation: string | null;
 };
 
-type TranslateResponse = { translation: Result; source?: "dictionary" | "ai" };
+type TranslateResponse = { translation: Result; source?: "dictionary" | "free-mt" | "ai" };
 
 export default function TranslateCapture() {
   const router = useRouter();
@@ -19,7 +19,7 @@ export default function TranslateCapture() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
-  const [source, setSource] = useState<"dictionary" | "ai" | null>(null);
+  const [source, setSource] = useState<"dictionary" | "free-mt" | "ai" | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -82,6 +82,11 @@ export default function TranslateCapture() {
               {source === "dictionary" && (
                 <span className="inline-block w-fit rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
                   ⚡ {t("translate_instant_match")}
+                </span>
+              )}
+              {source === "free-mt" && (
+                <span className="inline-block w-fit rounded-full bg-sky-500/15 px-3 py-1 text-xs font-medium text-sky-700 dark:text-sky-400">
+                  {t("translate_free_mt")}
                 </span>
               )}
             </div>
