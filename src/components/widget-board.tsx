@@ -126,83 +126,163 @@ const WIDGET_DESCRIPTIONS: Record<string, string> = {
   passport: "Stamp collection",
 };
 
-// A small glyph per widget type so a picker card reads at a glance, not
-// just as a text label -- echoes the widget's own look (a clock face for
-// Clock, a folded-corner square for a sticky note) rather than a generic
-// placeholder icon.
-function WidgetPreviewIcon({ type }: { type: string }) {
-  const common = { fill: "none", stroke: "white", strokeWidth: 1.6, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
-  switch (type) {
-    case "trips":
-      return (
-        <svg width="30" height="30" viewBox="0 0 24 24" {...common}>
-          <rect x="4" y="8" width="16" height="12" rx="2" />
-          <path d="M9 8V6a3 3 0 0 1 6 0v2" />
-        </svg>
-      );
-    case "clock":
-      return (
-        <svg width="30" height="30" viewBox="0 0 24 24" {...common}>
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 7v5l3.5 2" />
-        </svg>
-      );
-    case "photos":
-      return (
-        <svg width="30" height="30" viewBox="0 0 24 24" {...common}>
-          <rect x="3" y="6" width="14" height="14" rx="2" />
-          <path d="M7 2h14v14" />
-        </svg>
-      );
-    case "map":
-      return (
-        <svg width="30" height="30" viewBox="0 0 24 24" {...common}>
-          <path d="M12 21s7-6.5 7-11.5A7 7 0 0 0 5 9.5C5 14.5 12 21 12 21Z" />
-          <circle cx="12" cy="9.5" r="2.2" />
-        </svg>
-      );
-    case "notes":
-      return (
-        <svg width="30" height="30" viewBox="0 0 24 24" {...common}>
-          <rect x="4" y="3" width="16" height="18" rx="2" />
-          <path d="M8 8h8M8 12h8M8 16h5" />
-        </svg>
-      );
-    case "sticky":
-      return (
-        <svg width="30" height="30" viewBox="0 0 24 24" {...common}>
-          <path d="M4 4h12l4 4v12H4Z" />
-          <path d="M16 4v4h4" />
-        </svg>
-      );
-    case "travel":
-      return (
-        <svg width="30" height="30" viewBox="0 0 24 24" {...common}>
-          <path d="M3 13l8-2 6-8 2 2-4 7 3 3-1 1-3-2-2 4-2-2-3 1-1-2Z" />
-        </svg>
-      );
-    case "passport":
-      return (
-        <svg width="30" height="30" viewBox="0 0 24 24" {...common}>
-          <rect x="5" y="3" width="14" height="18" rx="2" />
-          <circle cx="12" cy="10" r="2.5" />
-          <path d="M9 15.5h6" />
-        </svg>
-      );
-    default:
-      return (
-        <svg width="30" height="30" viewBox="0 0 24 24" {...common}>
-          <rect x="4" y="4" width="16" height="16" rx="2" />
-        </svg>
-      );
+const noop = () => {};
+const noopAsync = () => {};
+
+// A real, live, non-interactive instance of the widget itself -- scaled
+// down and cropped to fill a fixed-size thumbnail -- rather than an
+// abstract icon, so a picker card shows exactly what adding it will
+// actually put on the board (real trip titles, the real ticking clock
+// face, actual photos), the same way a phone's own widget gallery shows
+// live previews instead of generic glyphs. pointer-events-none makes it
+// purely decorative: every control the real widget renders (remove,
+// color picker, etc.) is visible but inert, so the whole card's own
+// button handles the "add" tap regardless of where on it you tap.
+const PREVIEW_W = 168;
+const PREVIEW_H = 108;
+
+function WidgetLivePreview({
+  type,
+  trips,
+  recentPhotos,
+  mapLocations,
+  travelItems,
+  passportStamps,
+}: {
+  type: string;
+  trips: TripSummary[];
+  recentPhotos: PhotoSummary[];
+  mapLocations: MapLoc[];
+  travelItems: TravelSummary[];
+  passportStamps: PassportStampSummary[];
+}) {
+  const def = WIDGET_LIBRARY[type];
+  const naturalW = def?.w ?? 220;
+  const naturalH = def?.h ?? 220;
+  // Fills the box completely (cropping whichever axis has room to spare)
+  // rather than letterboxing, so every card reads as a full little
+  // screenshot instead of a small image floating in empty space.
+  const scale = Math.max(PREVIEW_W / naturalW, PREVIEW_H / naturalH);
+  const color = def?.color ?? "slate";
+
+  function renderWidget() {
+    switch (type) {
+      case "trips":
+        return (
+          <TripsWidget
+            trips={trips}
+            color={color}
+            onColorChange={noop}
+            style="clean"
+            onStyleChange={noop}
+            onRemove={noop}
+          />
+        );
+      case "clock":
+        return (
+          <ClockWidget color={color} onColorChange={noop} style="clean" onStyleChange={noop} onRemove={noop} />
+        );
+      case "photos":
+        return (
+          <PhotosWidget
+            photos={recentPhotos}
+            color={color}
+            onColorChange={noop}
+            style="clean"
+            onStyleChange={noop}
+            onRemove={noop}
+            trips={trips}
+            onUploaded={noopAsync}
+          />
+        );
+      case "map":
+        return (
+          <MapWidget
+            locations={mapLocations}
+            color={color}
+            onColorChange={noop}
+            style="clean"
+            onStyleChange={noop}
+            onRemove={noop}
+          />
+        );
+      case "notes":
+        return (
+          <NotesWidget
+            content=""
+            color={color}
+            onColorChange={noop}
+            style="clean"
+            onStyleChange={noop}
+            onRemove={noop}
+            onSave={noop}
+          />
+        );
+      case "sticky":
+        return (
+          <StickyWidget
+            color={color}
+            content=""
+            onSave={noop}
+            onColorChange={noop}
+            style="clean"
+            onStyleChange={noop}
+            onRemove={noop}
+          />
+        );
+      case "travel":
+        return (
+          <TravelWidget
+            items={travelItems}
+            color={color}
+            onColorChange={noop}
+            style="clean"
+            onStyleChange={noop}
+            onRemove={noop}
+          />
+        );
+      case "passport":
+        return <PassportWidget stamps={passportStamps} style="clean" onStyleChange={noop} onRemove={noop} />;
+      default:
+        return null;
+    }
   }
+
+  return (
+    <div className="relative h-full w-full overflow-hidden bg-black/5 dark:bg-white/5" aria-hidden>
+      <div
+        className="pointer-events-none absolute top-1/2 left-1/2"
+        style={{
+          width: naturalW,
+          height: naturalH,
+          transform: `translate(-50%, -50%) scale(${scale})`,
+        }}
+      >
+        {renderWidget()}
+      </div>
+    </div>
+  );
 }
 
 // A searchable widget gallery, opened from "+ Add widget" -- a full
 // picker with a preview per card rather than a bare text dropdown, so
 // choosing a widget looks (and works) like picking one from a phone's own
 // home-screen widget gallery.
-function AddWidgetModal({ onAdd }: { onAdd: (type: string) => void }) {
+function AddWidgetModal({
+  onAdd,
+  trips,
+  recentPhotos,
+  mapLocations,
+  travelItems,
+  passportStamps,
+}: {
+  onAdd: (type: string) => void;
+  trips: TripSummary[];
+  recentPhotos: PhotoSummary[];
+  mapLocations: MapLoc[];
+  travelItems: TravelSummary[];
+  passportStamps: PassportStampSummary[];
+}) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const { t } = useLanguage();
@@ -270,7 +350,6 @@ function AddWidgetModal({ onAdd }: { onAdd: (type: string) => void }) {
               <div className="grid grid-cols-2 gap-3 overflow-y-auto pb-1">
                 {entries.map(([type, def]) => {
                   const label = WIDGET_TYPE_KEYS[type] ? t(WIDGET_TYPE_KEYS[type]) : def.label;
-                  const accent = ACCENT_HEX[def.color] ?? ACCENT_HEX.slate;
                   return (
                     <button
                       key={type}
@@ -281,11 +360,15 @@ function AddWidgetModal({ onAdd }: { onAdd: (type: string) => void }) {
                       }}
                       className="flex flex-col overflow-hidden rounded-xl border border-black/10 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-white/15"
                     >
-                      <div
-                        className="flex h-16 items-center justify-center"
-                        style={{ backgroundColor: accent }}
-                      >
-                        <WidgetPreviewIcon type={type} />
+                      <div style={{ height: PREVIEW_H }}>
+                        <WidgetLivePreview
+                          type={type}
+                          trips={trips}
+                          recentPhotos={recentPhotos}
+                          mapLocations={mapLocations}
+                          travelItems={travelItems}
+                          passportStamps={passportStamps}
+                        />
                       </div>
                       <div className="px-2.5 py-2">
                         <div className="truncate text-sm font-medium">{label}</div>
@@ -679,7 +762,14 @@ export default function WidgetBoard({
               {t("dashboard_tidy_up")}
             </button>
           )}
-          <AddWidgetModal onAdd={addWidget} />
+          <AddWidgetModal
+            onAdd={addWidget}
+            trips={trips}
+            recentPhotos={recentPhotos}
+            mapLocations={mapLocations}
+            travelItems={travelItems}
+            passportStamps={passportStamps}
+          />
         </div>
       </div>
 
