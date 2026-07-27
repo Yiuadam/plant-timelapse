@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { DICTIONARY_LANG_NAMES, lookupDictionaryEntry } from "@/lib/dictionary";
+import { freeTranslate } from "@/lib/free-translate";
 
 // A dictionary-style explanation can take a moment to generate.
 export const maxDuration = 30;
@@ -111,9 +112,27 @@ async function handlePost(request: Request) {
     return NextResponse.json({ translation, source: "dictionary" }, { status: 201 });
   }
 
+  // Next, a free machine-translation API (no API key, no billing tied to
+  // this app's Anthropic account) -- covers arbitrary sentences the
+  // dictionary doesn't, without needing AI credit at all. Claude below is
+  // now the last resort, only reached if this is unreachable/down.
+  const freeResult = await freeTranslate(text);
+  if (freeResult) {
+    const translation = await prisma.translation.create({
+      data: {
+        userId,
+        originalText: text,
+        detectedLanguage: freeResult.detectedLanguage,
+        translatedText: freeResult.translatedText,
+        explanation: null,
+      },
+    });
+    return NextResponse.json({ translation, source: "free-mt" }, { status: 201 });
+  }
+
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json(
-      { error: "Translation is not configured (missing ANTHROPIC_API_KEY)" },
+      { error: "Translation is unavailable — the free translation service is unreachable and no AI fallback is configured" },
       { status: 503 },
     );
   }

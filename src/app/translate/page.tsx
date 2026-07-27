@@ -34,7 +34,8 @@ export default async function TranslatePage() {
         <Link href="/api/dictionary" prefetch={false} className="underline">
           /api/dictionary
         </Link>
-        .
+        . Anything else translates through a free machine-translation
+        service — no AI credit required.
       </p>
     </div>
   );

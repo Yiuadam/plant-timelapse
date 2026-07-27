@@ -111,6 +111,7 @@ export const DICT = {
   translate_result_translation: { en: "Translation", zh: "翻译" },
   translate_result_explanation: { en: "Explanation", zh: "解释" },
   translate_instant_match: { en: "Instant dictionary match", zh: "词典即时匹配" },
+  translate_free_mt: { en: "Free machine translation", zh: "免费机器翻译" },
   translate_no_text: {
     en: "Couldn't make out any text there.",
     zh: "没能识别出文字。",
