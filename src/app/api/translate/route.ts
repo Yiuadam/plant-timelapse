@@ -162,13 +162,18 @@ async function handlePost(request: Request) {
       );
     }
     if (err instanceof Anthropic.APIError) {
-      // Temporarily include the underlying status/message so we can see
-      // exactly what Anthropic rejected -- this route was returning this
-      // generic branch in production with no way to tell why. Revert to a
-      // plain message once the real cause is confirmed.
-      const detail = `${err.status ?? "?"}: ${err.message ?? "unknown"}`;
+      // The account behind ANTHROPIC_API_KEY running out of credit surfaces
+      // as a plain 400 invalid_request_error -- worth a distinct, actionable
+      // message rather than the generic "try again" below, since retrying
+      // does nothing until credit is added.
+      if (err.status === 400 && /credit balance/i.test(err.message ?? "")) {
+        return NextResponse.json(
+          { error: "Translation is unavailable — the AI service's account is out of credit" },
+          { status: 503 },
+        );
+      }
       return NextResponse.json(
-        { error: `Translation service error — try again (${detail})` },
+        { error: "Translation service error — try again" },
         { status: 502 },
       );
     }
