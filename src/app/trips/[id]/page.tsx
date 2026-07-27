@@ -6,6 +6,7 @@ import TripLocations from "@/components/trip-locations";
 import TripPhotos from "@/components/trip-photos";
 import TripWishlist from "@/components/trip-wishlist";
 import TripTravel from "@/components/trip-travel";
+import TripBudget from "@/components/trip-budget";
 import DeleteTripButton from "@/components/delete-trip-button";
 import StackedCards from "@/components/stacked-cards";
 import TripShare from "@/components/trip-share";
@@ -32,6 +33,7 @@ export default async function TripDetailPage({
       photos: { orderBy: { createdAt: "desc" } },
       collaborators: { include: { user: { select: { name: true, email: true, image: true } } } },
       travelItems: { orderBy: { startAt: "asc" } },
+      budgetItems: { orderBy: { createdAt: "asc" } },
     },
   });
   if (!trip) notFound();
@@ -69,6 +71,13 @@ export default async function TripDetailPage({
               image: c.user.image,
             }))}
           />
+          <Link
+            href={`/trips/${trip.id}/schedule`}
+            prefetch={true}
+            className="text-sm underline"
+          >
+            Schedule
+          </Link>
           <Link
             href={`/trips/${trip.id}/poster`}
             prefetch={true}
@@ -130,6 +139,23 @@ export default async function TripDetailPage({
                   endAt: item.endAt ? item.endAt.toISOString() : null,
                   notes: item.notes,
                 }))}
+              />
+            ),
+          },
+          {
+            key: "budget",
+            title: "Budget",
+            content: (
+              <TripBudget
+                tripId={trip.id}
+                items={trip.budgetItems.map((item) => ({
+                  id: item.id,
+                  category: item.category,
+                  label: item.label,
+                  amount: item.amount,
+                }))}
+                budgetTarget={trip.budgetTarget}
+                budgetCurrency={trip.budgetCurrency ?? "USD"}
               />
             ),
           },

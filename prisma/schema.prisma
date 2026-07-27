@@ -72,17 +72,22 @@ model VerificationToken {
 }
 
 model Trip {
-  id          String    @id @default(cuid())
-  userId      String
-  title       String
-  destination String?
-  startDate   DateTime?
-  endDate     DateTime?
-  notes       String?
-  mood        String?
-  shareToken  String?   @unique
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  userId         String
+  title          String
+  destination    String?
+  startDate      DateTime?
+  endDate        DateTime?
+  notes          String?
+  mood           String?
+  shareToken     String?   @unique
+  // An optional overall spending target the budget calculator compares
+  // the sum of BudgetItems against -- null means "no target set", not
+  // "$0 budget".
+  budgetTarget   Float?
+  budgetCurrency String?   @default("USD")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   locations      Location[]
@@ -90,6 +95,7 @@ model Trip {
   collaborators  TripCollaborator[]
   travelItems    TravelItem[]
   passportStamps PassportStamp[]
+  budgetItems    BudgetItem[]
 }
 
 model TripCollaborator {
@@ -204,6 +210,23 @@ model TravelItem {
   createdAt DateTime  @default(now())
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+// A single line item in a trip's budget calculator -- "Flight to Tokyo:
+// $450", "Hotel: $600". category is a free string (not a Prisma enum) for
+// the same reason TravelItem.type is, so new categories don't need a
+// migration; the UI offers a fixed set of common ones as a select.
+model BudgetItem {
+  id        String   @id @default(cuid())
+  tripId    String
+  category  String
+  label     String
+  amount    Float
+  createdAt DateTime @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId])
 }
 
 model Widget {

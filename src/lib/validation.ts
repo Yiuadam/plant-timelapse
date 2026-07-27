@@ -132,3 +132,24 @@ export const travelItemSchema = z.object({
   endAt: z.string().optional().or(z.literal("")),
   notes: z.string().max(2000).optional().or(z.literal("")),
 });
+
+export const BUDGET_CATEGORIES = [
+  "flight",
+  "hotel",
+  "food",
+  "transport",
+  "activities",
+  "shopping",
+  "other",
+] as const;
+
+export const budgetItemSchema = z.object({
+  category: z.enum(BUDGET_CATEGORIES),
+  label: z.string().trim().min(1, "Label is required").max(200),
+  amount: z.coerce.number().positive("Amount must be greater than 0").max(1_000_000_000),
+});
+
+export const budgetTargetSchema = z.object({
+  budgetTarget: z.coerce.number().positive().max(1_000_000_000).nullable(),
+  budgetCurrency: z.string().trim().min(1).max(10).optional(),
+});
