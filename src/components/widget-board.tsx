@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   TripsWidget,
@@ -112,50 +113,283 @@ const WIDGET_TYPE_KEYS: Record<string, DictKey> = {
   passport: "widget_passport",
 };
 
-function AddWidgetMenu({ onAdd }: { onAdd: (type: string) => void }) {
+// Short subtitle shown under each widget's name in the picker, so a card
+// reads like "Trips — Your trip list" rather than just a bare label.
+const WIDGET_DESCRIPTIONS: Record<string, string> = {
+  trips: "Your trip list",
+  clock: "Local time",
+  photos: "Recent photos",
+  map: "Pinned locations",
+  notes: "Quick notes",
+  sticky: "Sticky note",
+  travel: "Flights & stays",
+  passport: "Stamp collection",
+};
+
+const noop = () => {};
+const noopAsync = () => {};
+
+// A real, live, non-interactive instance of the widget itself -- scaled
+// down and cropped to fill a fixed-size thumbnail -- rather than an
+// abstract icon, so a picker card shows exactly what adding it will
+// actually put on the board (real trip titles, the real ticking clock
+// face, actual photos), the same way a phone's own widget gallery shows
+// live previews instead of generic glyphs. pointer-events-none makes it
+// purely decorative: every control the real widget renders (remove,
+// color picker, etc.) is visible but inert, so the whole card's own
+// button handles the "add" tap regardless of where on it you tap.
+const PREVIEW_W = 168;
+const PREVIEW_H = 108;
+
+function WidgetLivePreview({
+  type,
+  trips,
+  recentPhotos,
+  mapLocations,
+  travelItems,
+  passportStamps,
+}: {
+  type: string;
+  trips: TripSummary[];
+  recentPhotos: PhotoSummary[];
+  mapLocations: MapLoc[];
+  travelItems: TravelSummary[];
+  passportStamps: PassportStampSummary[];
+}) {
+  const def = WIDGET_LIBRARY[type];
+  const naturalW = def?.w ?? 220;
+  const naturalH = def?.h ?? 220;
+  // Fills the box completely (cropping whichever axis has room to spare)
+  // rather than letterboxing, so every card reads as a full little
+  // screenshot instead of a small image floating in empty space.
+  const scale = Math.max(PREVIEW_W / naturalW, PREVIEW_H / naturalH);
+  const color = def?.color ?? "slate";
+
+  function renderWidget() {
+    switch (type) {
+      case "trips":
+        return (
+          <TripsWidget
+            trips={trips}
+            color={color}
+            onColorChange={noop}
+            style="clean"
+            onStyleChange={noop}
+            onRemove={noop}
+          />
+        );
+      case "clock":
+        return (
+          <ClockWidget color={color} onColorChange={noop} style="clean" onStyleChange={noop} onRemove={noop} />
+        );
+      case "photos":
+        return (
+          <PhotosWidget
+            photos={recentPhotos}
+            color={color}
+            onColorChange={noop}
+            style="clean"
+            onStyleChange={noop}
+            onRemove={noop}
+            trips={trips}
+            onUploaded={noopAsync}
+          />
+        );
+      case "map":
+        return (
+          <MapWidget
+            locations={mapLocations}
+            color={color}
+            onColorChange={noop}
+            style="clean"
+            onStyleChange={noop}
+            onRemove={noop}
+          />
+        );
+      case "notes":
+        return (
+          <NotesWidget
+            content=""
+            color={color}
+            onColorChange={noop}
+            style="clean"
+            onStyleChange={noop}
+            onRemove={noop}
+            onSave={noop}
+          />
+        );
+      case "sticky":
+        return (
+          <StickyWidget
+            color={color}
+            content=""
+            onSave={noop}
+            onColorChange={noop}
+            style="clean"
+            onStyleChange={noop}
+            onRemove={noop}
+          />
+        );
+      case "travel":
+        return (
+          <TravelWidget
+            items={travelItems}
+            color={color}
+            onColorChange={noop}
+            style="clean"
+            onStyleChange={noop}
+            onRemove={noop}
+          />
+        );
+      case "passport":
+        return <PassportWidget stamps={passportStamps} style="clean" onStyleChange={noop} onRemove={noop} />;
+      default:
+        return null;
+    }
+  }
+
+  return (
+    <div className="relative h-full w-full overflow-hidden bg-black/5 dark:bg-white/5" aria-hidden>
+      <div
+        className="pointer-events-none absolute top-1/2 left-1/2"
+        style={{
+          width: naturalW,
+          height: naturalH,
+          transform: `translate(-50%, -50%) scale(${scale})`,
+        }}
+      >
+        {renderWidget()}
+      </div>
+    </div>
+  );
+}
+
+// A searchable widget gallery, opened from "+ Add widget" -- a full
+// picker with a preview per card rather than a bare text dropdown, so
+// choosing a widget looks (and works) like picking one from a phone's own
+// home-screen widget gallery.
+function AddWidgetModal({
+  onAdd,
+  trips,
+  recentPhotos,
+  mapLocations,
+  travelItems,
+  passportStamps,
+}: {
+  onAdd: (type: string) => void;
+  trips: TripSummary[];
+  recentPhotos: PhotoSummary[];
+  mapLocations: MapLoc[];
+  travelItems: TravelSummary[];
+  passportStamps: PassportStampSummary[];
+}) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [query, setQuery] = useState("");
   const { t } = useLanguage();
 
   useEffect(() => {
     if (!open) return;
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
     }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
   }, [open]);
 
+  const entries = Object.entries(WIDGET_LIBRARY).filter(([type, def]) => {
+    const label = WIDGET_TYPE_KEYS[type] ? t(WIDGET_TYPE_KEYS[type]) : def.label;
+    const needle = query.trim().toLowerCase();
+    if (!needle) return true;
+    return (
+      label.toLowerCase().includes(needle) ||
+      (WIDGET_DESCRIPTIONS[type] ?? "").toLowerCase().includes(needle)
+    );
+  });
+
   return (
-    <div ref={ref} className="relative">
+    <>
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
+        onClick={() => {
+          setQuery("");
+          setOpen(true);
+        }}
         className="rounded-xl border border-black/10 px-3 py-1.5 text-sm dark:border-white/20"
       >
         {t("dashboard_add_widget")}
       </button>
-      {open && (
-        <div className="absolute top-full right-0 z-50 mt-2 flex w-44 flex-col gap-1 rounded-xl border border-black/10 bg-white p-2 shadow-lg dark:border-white/20 dark:bg-neutral-800">
-          {Object.entries(WIDGET_LIBRARY).map(([type, def]) => (
-            <button
-              key={type}
-              type="button"
-              onClick={() => {
-                onAdd(type);
-                setOpen(false);
-              }}
-              className="rounded-lg px-2 py-1.5 text-left text-sm hover:bg-black/5 dark:hover:bg-white/10"
-            >
-              {WIDGET_TYPE_KEYS[type] ? t(WIDGET_TYPE_KEYS[type]) : def.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+      {open &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+            <div
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setOpen(false)}
+            />
+            <div className="relative flex max-h-[85vh] w-full flex-col rounded-t-2xl border border-black/10 bg-white p-4 shadow-2xl sm:max-w-md sm:rounded-2xl dark:border-white/15 dark:bg-neutral-900">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h2 className="text-lg font-semibold">{t("dashboard_add_widget")}</h2>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  aria-label={t("cancel")}
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-black/50 hover:bg-black/5 dark:text-white/50 dark:hover:bg-white/10"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="relative mb-3 shrink-0">
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={t("dashboard_search_widgets")}
+                  autoFocus
+                  className="w-full rounded-xl border border-black/10 bg-black/[0.03] px-4 py-2.5 text-sm outline-none focus:border-black/30 dark:border-white/15 dark:bg-white/[0.05] dark:focus:border-white/40"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3 overflow-y-auto pb-1">
+                {entries.map(([type, def]) => {
+                  const label = WIDGET_TYPE_KEYS[type] ? t(WIDGET_TYPE_KEYS[type]) : def.label;
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => {
+                        onAdd(type);
+                        setOpen(false);
+                      }}
+                      className="flex flex-col overflow-hidden rounded-xl border border-black/10 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-white/15"
+                    >
+                      <div style={{ height: PREVIEW_H }}>
+                        <WidgetLivePreview
+                          type={type}
+                          trips={trips}
+                          recentPhotos={recentPhotos}
+                          mapLocations={mapLocations}
+                          travelItems={travelItems}
+                          passportStamps={passportStamps}
+                        />
+                      </div>
+                      <div className="px-2.5 py-2">
+                        <div className="truncate text-sm font-medium">{label}</div>
+                        <div className="truncate text-xs text-black/50 dark:text-white/50">
+                          {WIDGET_DESCRIPTIONS[type] ?? ""}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+                {entries.length === 0 && (
+                  <p className="col-span-2 py-6 text-center text-sm text-black/50 dark:text-white/50">
+                    {t("dashboard_no_widgets_found")}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }
 
@@ -401,41 +635,28 @@ export default function WidgetBoard({
     }
   }
 
-  // Re-lays-out every widget with no overlaps, shrinking each one by 15%
-  // (down to the same min size the resize handle enforces) so more of them
-  // fit on one page without scrolling. On a narrow phone that's still a
-  // single vertical stack (there's no useful horizontal space to fill),
-  // just at the smaller size. On desktop it's a shelf bin-pack -- widgets
-  // sorted tallest first, placed left to right until one would run past
-  // the canvas width, then wrapping to a new row below the tallest item so
-  // far -- which fills the board's width instead of lining every widget up
-  // in one column regardless of how much horizontal room is available.
-  function shrunk(w: Widget) {
-    return {
-      w: clamp(Math.round(w.w * 0.85), 120, 480),
-      h: clamp(Math.round(w.h * 0.85), 100, 480),
-    };
-  }
-
-  function tidyUp() {
-    if (isMobile) {
-      const margin = 4;
-      let y = margin;
-      const next = [...widgets]
-        .sort((a, b) => a.y - b.y)
-        .map((w) => {
-          const { w: nw, h: nh } = shrunk(w);
-          const patch = { x: margin, y, w: nw, h: nh };
-          y = y + (nh / DESIGN_HEIGHT) * 100 + 3;
-          return { ...w, ...patch };
-        });
-      setWidgets(next);
-      next.forEach((w) => persist(w.id, { x: w.x, y: w.y, w: w.w, h: w.h }));
-      return;
-    }
-
-    const margin = 16;
-    const sizes = new Map(widgets.map((w) => [w.id, shrunk(w)]));
+  // Re-lays-out every widget with no overlaps, as a shelf bin-pack --
+  // widgets sorted tallest first, placed left to right until one would run
+  // past the canvas width, then wrapping to a new row below the tallest
+  // item so far. Same algorithm for both devices: x/y are always
+  // percentages of a fixed logical canvas (DESIGN_WIDTH x DESIGN_HEIGHT
+  // for desktop, MOBILE_DESIGN_WIDTH x DESIGN_HEIGHT for mobile -- see the
+  // MOBILE_DESIGN_WIDTH comment above), so packing within that same
+  // reference width is what actually fills the visible board on either
+  // device instead of lining widgets up in a single column.
+  //
+  // Widgets are only shrunk as much as needed to (a) fit within
+  // DESIGN_HEIGHT and (b) actually achieve more than one column somewhere
+  // -- not an unconditional flat cut. A mild single shrink pass often
+  // still leaves every widget too wide to share a row on the narrow
+  // mobile reference width, which read as "tidy just makes things smaller
+  // without ever reordering them"; checking for real multi-column packing
+  // (not just vertical fit) and continuing to shrink until it's achieved
+  // fixes that. Pressing tidy again on a board that already fits *and*
+  // already has multiple widgets per row is then a no-op resize-wise --
+  // just a re-sort/reposition -- fixing the "shrinks a little more every
+  // time it's pressed" bug.
+  function packWidgets(sizes: Map<string, { w: number; h: number }>, referenceWidth: number, margin: number) {
     const sorted = [...widgets].sort((a, b) => {
       const sa = sizes.get(a.id)!;
       const sb = sizes.get(b.id)!;
@@ -444,23 +665,62 @@ export default function WidgetBoard({
     let shelfX = margin;
     let shelfY = margin;
     let shelfHeight = 0;
-    const placedPx = new Map<string, { x: number; y: number }>();
+    const placed = new Map<string, { x: number; y: number }>();
     for (const w of sorted) {
       const size = sizes.get(w.id)!;
-      if (shelfX > margin && shelfX + size.w > DESIGN_WIDTH - margin) {
+      if (shelfX > margin && shelfX + size.w > referenceWidth - margin) {
         shelfY += shelfHeight + margin;
         shelfX = margin;
         shelfHeight = 0;
       }
-      placedPx.set(w.id, { x: shelfX, y: shelfY });
+      placed.set(w.id, { x: shelfX, y: shelfY });
       shelfX += size.w + margin;
       shelfHeight = Math.max(shelfHeight, size.h);
     }
+    const rowCounts = new Map<number, number>();
+    for (const p of placed.values()) rowCounts.set(p.y, (rowCounts.get(p.y) ?? 0) + 1);
+    const multiColumn = [...rowCounts.values()].some((count) => count > 1);
+    return { placed, totalHeight: shelfY + shelfHeight + margin, multiColumn };
+  }
+
+  function tidyUp() {
+    const referenceWidth = isMobile ? MOBILE_DESIGN_WIDTH : DESIGN_WIDTH;
+    const margin = isMobile ? 6 : 16;
+
+    let sizes = new Map(widgets.map((w) => [w.id, { w: w.w, h: w.h }]));
+    let { placed, totalHeight, multiColumn } = packWidgets(sizes, referenceWidth, margin);
+
+    const needsWork = () =>
+      totalHeight > DESIGN_HEIGHT || (!multiColumn && widgets.length > 1);
+    for (let i = 0; i < 14 && needsWork(); i++) {
+      const factor = 0.88 ** (i + 1);
+      const nextSizes = new Map(
+        widgets.map((w) => [
+          w.id,
+          { w: clamp(Math.round(w.w * factor), 120, 480), h: clamp(Math.round(w.h * factor), 100, 480) },
+        ]),
+      );
+      // Every widget is already at its minimum size and still can't share
+      // a row -- further iterations would be identical, so stop instead
+      // of spinning for no effect.
+      const atFloor = [...nextSizes.values()].every((s) => s.w <= 120 && s.h <= 100);
+      const prevAtFloor = [...sizes.values()].every((s) => s.w <= 120 && s.h <= 100);
+      if (atFloor && prevAtFloor) break;
+      sizes = nextSizes;
+      ({ placed, totalHeight, multiColumn } = packWidgets(sizes, referenceWidth, margin));
+    }
+
     const next = widgets.map((w) => {
-      const p = placedPx.get(w.id);
+      const p = placed.get(w.id);
       const size = sizes.get(w.id)!;
-      if (!p) return w;
-      return { ...w, x: (p.x / DESIGN_WIDTH) * 100, y: (p.y / DESIGN_HEIGHT) * 100, w: size.w, h: size.h };
+      if (!p) return { ...w, ...size };
+      return {
+        ...w,
+        x: (p.x / referenceWidth) * 100,
+        y: (p.y / DESIGN_HEIGHT) * 100,
+        w: size.w,
+        h: size.h,
+      };
     });
     setWidgets(next);
     next.forEach((w) => persist(w.id, { x: w.x, y: w.y, w: w.w, h: w.h }));
@@ -502,7 +762,14 @@ export default function WidgetBoard({
               {t("dashboard_tidy_up")}
             </button>
           )}
-          <AddWidgetMenu onAdd={addWidget} />
+          <AddWidgetModal
+            onAdd={addWidget}
+            trips={trips}
+            recentPhotos={recentPhotos}
+            mapLocations={mapLocations}
+            travelItems={travelItems}
+            passportStamps={passportStamps}
+          />
         </div>
       </div>
 

@@ -42,6 +42,8 @@ export const DICT = {
   dashboard_title: { en: "Your board", zh: "我的看板" },
   dashboard_tidy_up: { en: "Tidy up", zh: "整理" },
   dashboard_add_widget: { en: "+ Add widget", zh: "+ 添加小组件" },
+  dashboard_search_widgets: { en: "Search widgets", zh: "搜索小组件" },
+  dashboard_no_widgets_found: { en: "No widgets found", zh: "未找到小组件" },
   widget_trips: { en: "Trips", zh: "行程" },
   widget_clock: { en: "Clock", zh: "时钟" },
   widget_photos: { en: "Photos", zh: "照片" },
