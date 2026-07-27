@@ -60,11 +60,6 @@ export default function MobileTabBar() {
           label={t("nav_passport")}
           active={pathname.startsWith("/passport")}
         />
-        <TabLink
-          href="/translate"
-          label={t("nav_translate")}
-          active={pathname.startsWith("/translate")}
-        />
         <button
           type="button"
           onClick={() => setAccountOpen(true)}

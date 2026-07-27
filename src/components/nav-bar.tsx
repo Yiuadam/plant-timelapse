@@ -44,13 +44,6 @@ export default function NavBar() {
                 {t("nav_passport")}
               </Link>
               <Link
-                href="/translate"
-                prefetch={true}
-                className={pathname.startsWith("/translate") ? "underline" : ""}
-              >
-                {t("nav_translate")}
-              </Link>
-              <Link
                 href="/profile"
                 prefetch={true}
                 className={pathname.startsWith("/profile") ? "underline" : ""}
