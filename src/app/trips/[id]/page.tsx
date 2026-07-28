@@ -7,6 +7,7 @@ import TripPhotos from "@/components/trip-photos";
 import TripWishlist from "@/components/trip-wishlist";
 import TripTravel from "@/components/trip-travel";
 import TripBudget from "@/components/trip-budget";
+import TripNearby from "@/components/trip-nearby";
 import DeleteTripButton from "@/components/delete-trip-button";
 import StackedCards from "@/components/stacked-cards";
 import TripShare from "@/components/trip-share";
@@ -122,6 +123,11 @@ export default async function TripDetailPage({
             key: "photos",
             title: "Photos",
             content: <TripPhotos tripId={trip.id} photos={trip.photos} />,
+          },
+          {
+            key: "nearby",
+            title: "Explore",
+            content: <TripNearby tripId={trip.id} destination={trip.destination} />,
           },
           {
             key: "travel",
