@@ -248,7 +248,7 @@ function WidgetLivePreview({
   }
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-black/5 dark:bg-white/5" aria-hidden>
+    <div className="relative h-full w-full" aria-hidden>
       <div
         className="pointer-events-none absolute top-1/2 left-1/2"
         style={{
@@ -361,7 +361,7 @@ function AddWidgetModal({
                       aria-label={description ? `${label} — ${description}` : label}
                       title={label}
                       style={{ height: PREVIEW_H }}
-                      className="overflow-hidden rounded-xl border border-black/10 transition hover:-translate-y-0.5 hover:shadow-md dark:border-white/15"
+                      className="transition hover:-translate-y-0.5"
                     >
                       <WidgetLivePreview
                         type={type}
