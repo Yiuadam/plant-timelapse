@@ -106,6 +106,11 @@ export default async function TripDetailPage({
         presenceResourceId={trip.id}
         cards={[
           {
+            key: "nearby",
+            title: "Explore",
+            content: <TripNearby tripId={trip.id} destination={trip.destination} />,
+          },
+          {
             key: "places",
             title: "Places",
             content: (
@@ -123,11 +128,6 @@ export default async function TripDetailPage({
             key: "photos",
             title: "Photos",
             content: <TripPhotos tripId={trip.id} photos={trip.photos} />,
-          },
-          {
-            key: "nearby",
-            title: "Explore",
-            content: <TripNearby tripId={trip.id} destination={trip.destination} />,
           },
           {
             key: "travel",
