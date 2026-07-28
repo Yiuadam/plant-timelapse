@@ -39,23 +39,19 @@ function FieldLabel({
 }
 
 export default function TripForm({
-  mode,
   tripId,
   initialValues,
 }: {
-  mode: "create" | "edit";
-  tripId?: string;
-  initialValues?: TripFormValues;
+  tripId: string;
+  initialValues: TripFormValues;
 }) {
   const router = useRouter();
-  const [title, setTitle] = useState(initialValues?.title ?? "");
-  const [destination, setDestination] = useState(
-    initialValues?.destination ?? "",
-  );
-  const [startDate, setStartDate] = useState(initialValues?.startDate ?? "");
-  const [endDate, setEndDate] = useState(initialValues?.endDate ?? "");
-  const [notes, setNotes] = useState(initialValues?.notes ?? "");
-  const [mood, setMood] = useState(initialValues?.mood ?? "");
+  const [title, setTitle] = useState(initialValues.title);
+  const [destination, setDestination] = useState(initialValues.destination);
+  const [startDate, setStartDate] = useState(initialValues.startDate);
+  const [endDate, setEndDate] = useState(initialValues.endDate);
+  const [notes, setNotes] = useState(initialValues.notes);
+  const [mood, setMood] = useState(initialValues.mood);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   // A ref guard, not just the `loading` state, because a fast double-tap on
@@ -64,7 +60,7 @@ export default function TripForm({
   // is dropped even within the same tick.
   const submittingRef = useRef(false);
 
-  const resourceId = mode === "edit" ? (tripId ?? "") : "";
+  const resourceId = tripId;
   const editors = useFieldLocks(FIELD_RESOURCE_TYPE, resourceId);
   const titleLock = useFieldEditing(FIELD_RESOURCE_TYPE, resourceId, "title");
   const destinationLock = useFieldEditing(FIELD_RESOURCE_TYPE, resourceId, "destination");
@@ -87,19 +83,15 @@ export default function TripForm({
     setLoading(true);
 
     try {
-      const url = mode === "create" ? "/api/trips" : `/api/trips/${tripId}`;
-      const method = mode === "create" ? "POST" : "PATCH";
-      const res = await fetch(url, {
-        method,
+      const res = await fetch(`/api/trips/${tripId}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, destination, startDate, endDate, notes, mood }),
       });
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(
-          data.error ?? (mode === "create" ? "Failed to create trip" : "Failed to save changes"),
-        );
+        setError(data.error ?? "Failed to save changes");
         return;
       }
 
@@ -191,13 +183,7 @@ export default function TripForm({
         disabled={loading}
         className="rounded-xl bg-foreground px-4 py-2 text-background disabled:opacity-50"
       >
-        {loading
-          ? mode === "create"
-            ? "Creating..."
-            : "Saving..."
-          : mode === "create"
-            ? "Create trip"
-            : "Save changes"}
+        {loading ? "Saving..." : "Save changes"}
       </button>
     </form>
   );
