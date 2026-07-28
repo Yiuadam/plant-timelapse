@@ -159,10 +159,9 @@ function WidgetLivePreview({
   const def = WIDGET_LIBRARY[type];
   const naturalW = def?.w ?? 220;
   const naturalH = def?.h ?? 220;
-  // Fills the box completely (cropping whichever axis has room to spare)
-  // rather than letterboxing, so every card reads as a full little
-  // screenshot instead of a small image floating in empty space.
-  const scale = Math.max(PREVIEW_W / naturalW, PREVIEW_H / naturalH);
+  // Shows the whole widget, uncropped -- this needs to look exactly like
+  // what lands on the dashboard, not a zoomed-in crop of it.
+  const scale = Math.min(PREVIEW_W / naturalW, PREVIEW_H / naturalH);
   const color = def?.color ?? "slate";
 
   function renderWidget() {
@@ -775,7 +774,7 @@ export default function WidgetBoard({
 
       <div
         ref={containerRef}
-        className="relative overflow-hidden rounded-2xl"
+        className="relative isolate overflow-hidden rounded-2xl"
         style={{ height: canvasHeight }}
       >
         {widgets.map((widget) => (
