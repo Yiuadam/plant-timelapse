@@ -138,8 +138,8 @@ const noopAsync = () => {};
 // purely decorative: every control the real widget renders (remove,
 // color picker, etc.) is visible but inert, so the whole card's own
 // button handles the "add" tap regardless of where on it you tap.
-const PREVIEW_W = 168;
-const PREVIEW_H = 108;
+const PREVIEW_W = 190;
+const PREVIEW_H = 150;
 
 function WidgetLivePreview({
   type,
@@ -349,6 +349,7 @@ function AddWidgetModal({
               <div className="grid grid-cols-2 gap-3 overflow-y-auto pb-1">
                 {entries.map(([type, def]) => {
                   const label = WIDGET_TYPE_KEYS[type] ? t(WIDGET_TYPE_KEYS[type]) : def.label;
+                  const description = WIDGET_DESCRIPTIONS[type] ?? "";
                   return (
                     <button
                       key={type}
@@ -357,24 +358,19 @@ function AddWidgetModal({
                         onAdd(type);
                         setOpen(false);
                       }}
-                      className="flex flex-col overflow-hidden rounded-xl border border-black/10 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-white/15"
+                      aria-label={description ? `${label} — ${description}` : label}
+                      title={label}
+                      style={{ height: PREVIEW_H }}
+                      className="overflow-hidden rounded-xl border border-black/10 transition hover:-translate-y-0.5 hover:shadow-md dark:border-white/15"
                     >
-                      <div style={{ height: PREVIEW_H }}>
-                        <WidgetLivePreview
-                          type={type}
-                          trips={trips}
-                          recentPhotos={recentPhotos}
-                          mapLocations={mapLocations}
-                          travelItems={travelItems}
-                          passportStamps={passportStamps}
-                        />
-                      </div>
-                      <div className="px-2.5 py-2">
-                        <div className="truncate text-sm font-medium">{label}</div>
-                        <div className="truncate text-xs text-black/50 dark:text-white/50">
-                          {WIDGET_DESCRIPTIONS[type] ?? ""}
-                        </div>
-                      </div>
+                      <WidgetLivePreview
+                        type={type}
+                        trips={trips}
+                        recentPhotos={recentPhotos}
+                        mapLocations={mapLocations}
+                        travelItems={travelItems}
+                        passportStamps={passportStamps}
+                      />
                     </button>
                   );
                 })}
