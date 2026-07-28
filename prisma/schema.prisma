@@ -86,6 +86,12 @@ model Trip {
   // "$0 budget".
   budgetTarget   Float?
   budgetCurrency String?   @default("USD")
+  // Geocoded once from `destination` and cached here so the "nearby"
+  // lookup doesn't re-hit the geocoder on every page view -- null until
+  // the first successful lookup (or if geocoding it failed/was never
+  // tried).
+  destLat        Float?
+  destLng        Float?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
