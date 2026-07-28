@@ -72,28 +72,38 @@ model VerificationToken {
 }
 
 model Trip {
-  id             String    @id @default(cuid())
-  userId         String
-  title          String
-  destination    String?
-  startDate      DateTime?
-  endDate        DateTime?
-  notes          String?
-  mood           String?
-  shareToken     String?   @unique
+  id                String    @id @default(cuid())
+  userId            String
+  title             String
+  destination       String?
+  startDate         DateTime?
+  endDate           DateTime?
+  notes             String?
+  mood              String?
+  shareToken        String?   @unique
   // An optional overall spending target the budget calculator compares
   // the sum of BudgetItems against -- null means "no target set", not
   // "$0 budget".
-  budgetTarget   Float?
-  budgetCurrency String?   @default("USD")
+  budgetTarget      Float?
+  budgetCurrency    String?   @default("USD")
   // Geocoded once from `destination` and cached here so the "nearby"
   // lookup doesn't re-hit the geocoder on every page view -- null until
   // the first successful lookup (or if geocoding it failed/was never
   // tried).
-  destLat        Float?
-  destLng        Float?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  destLat           Float?
+  destLng           Float?
+  // Nominatim's own `type` for the geocoded point (e.g. "city", "suburb",
+  // "attraction") -- used to tell a whole-city match ("shenzhen") apart
+  // from an already-precise one ("Nanshan, Shenzhen"), so the nearby
+  // lookup only prompts for a specific area when the destination is
+  // actually that broad.
+  destAddressType   String?
+  // Set once the user has either picked a specific area or explicitly
+  // chosen to keep the destination as-is, so the area picker only ever
+  // shows once per trip.
+  destAreaConfirmed Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   locations      Location[]

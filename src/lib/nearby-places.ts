@@ -33,8 +33,9 @@ export type NearbyPlace = {
 
 type OverpassElement = {
   id: number;
-  lat: number;
-  lon: number;
+  lat?: number;
+  lon?: number;
+  center?: { lat: number; lon: number };
   tags?: Record<string, string>;
 };
 
@@ -57,6 +58,21 @@ function buildQuery(lat: number, lng: number) {
   );out body ${MAX_PER_CATEGORY * 6};`;
 }
 
+// Districts/neighbourhoods/suburbs within a wider radius of a broad
+// destination's geocoded point (a whole city or bigger) -- used to offer
+// a "which part of this city?" picker instead of showing results for
+// whatever spot Nominatim happened to centroid the search on.
+const AREA_RADIUS_METERS = 20000;
+const AREA_PLACE_VALUES = "suburb|neighbourhood|quarter|borough|city_district|town";
+const MAX_AREAS = 16;
+
+function buildAreaQuery(lat: number, lng: number) {
+  return `[out:json][timeout:15];(
+    node["place"~"${AREA_PLACE_VALUES}"]["name"](around:${AREA_RADIUS_METERS},${lat},${lng});
+    way["place"~"${AREA_PLACE_VALUES}"]["name"](around:${AREA_RADIUS_METERS},${lat},${lng});
+  );out center ${MAX_AREAS * 4};`;
+}
+
 function categoryLabel(tags: Record<string, string>) {
   if (tags.tourism) {
     return tags.tourism.replace(/_/g, " ");
@@ -67,11 +83,7 @@ function categoryLabel(tags: Record<string, string>) {
   return (tags.amenity ?? "place").replace(/_/g, " ");
 }
 
-async function tryOne(
-  endpoint: string,
-  lat: number,
-  lng: number,
-): Promise<OverpassElement[] | null> {
+async function tryOne(endpoint: string, query: string): Promise<OverpassElement[] | null> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
@@ -85,7 +97,7 @@ async function tryOne(
         "Content-Type": "application/x-www-form-urlencoded",
         "User-Agent": "TravelLog/1.0 (personal travel journal app)",
       },
-      body: `data=${encodeURIComponent(buildQuery(lat, lng))}`,
+      body: `data=${encodeURIComponent(query)}`,
       signal: controller.signal,
     });
     if (!res.ok) {
@@ -113,14 +125,18 @@ async function tryOne(
   }
 }
 
+async function queryOverpass(query: string): Promise<OverpassElement[] | null> {
+  for (const endpoint of CANDIDATE_ENDPOINTS) {
+    const elements = await tryOne(endpoint, query);
+    if (elements) return elements;
+  }
+  return null;
+}
+
 export type NearbyResult = { attractions: NearbyPlace[]; food: NearbyPlace[] };
 
 export async function fetchNearbyPlaces(lat: number, lng: number): Promise<NearbyResult | null> {
-  let elements: OverpassElement[] | null = null;
-  for (const endpoint of CANDIDATE_ENDPOINTS) {
-    elements = await tryOne(endpoint, lat, lng);
-    if (elements) break;
-  }
+  const elements = await queryOverpass(buildQuery(lat, lng));
   if (!elements) return null;
 
   const attractions: NearbyPlace[] = [];
@@ -128,7 +144,7 @@ export async function fetchNearbyPlaces(lat: number, lng: number): Promise<Nearb
 
   for (const el of elements) {
     const tags = el.tags;
-    if (!tags?.name) continue;
+    if (!tags?.name || el.lat == null || el.lon == null) continue;
     const place: NearbyPlace = {
       id: el.id,
       name: tags.name,
@@ -148,4 +164,32 @@ export async function fetchNearbyPlaces(lat: number, lng: number): Promise<Nearb
     attractions: attractions.slice(0, MAX_PER_CATEGORY),
     food: food.slice(0, MAX_PER_CATEGORY),
   };
+}
+
+export type CityArea = { name: string; lat: number; lng: number; distanceMeters: number };
+
+// Districts/neighbourhoods near a broad destination's centroid, deduped
+// by name (OSM often has both a node and a way for the same place) and
+// sorted by distance from that centroid.
+export async function fetchCityAreas(lat: number, lng: number): Promise<CityArea[] | null> {
+  const elements = await queryOverpass(buildAreaQuery(lat, lng));
+  if (!elements) return null;
+
+  const byName = new Map<string, CityArea>();
+  for (const el of elements) {
+    const name = el.tags?.name;
+    const pointLat = el.lat ?? el.center?.lat;
+    const pointLng = el.lon ?? el.center?.lon;
+    if (!name || pointLat == null || pointLng == null || byName.has(name)) continue;
+    byName.set(name, {
+      name,
+      lat: pointLat,
+      lng: pointLng,
+      distanceMeters: Math.round(haversineMeters(lat, lng, pointLat, pointLng)),
+    });
+  }
+
+  return [...byName.values()]
+    .sort((a, b) => a.distanceMeters - b.distanceMeters)
+    .slice(0, MAX_AREAS);
 }
