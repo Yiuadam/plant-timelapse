@@ -12,8 +12,9 @@
 const CANDIDATE_ENDPOINTS = [
   "https://overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
 ];
-const TIMEOUT_MS = 9000;
+const TIMEOUT_MS = 8000;
 const RADIUS_METERS = 3000;
 const MAX_PER_CATEGORY = 12;
 
@@ -75,22 +76,32 @@ async function tryOne(
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
+    // Form-encoded "data=<query>" is the format documented by every public
+    // Overpass instance -- some mirrors' front-end proxies reject a raw
+    // text/plain body with a 400, so this is the safer of the two.
     const res = await fetch(endpoint, {
       method: "POST",
       headers: {
-        "Content-Type": "text/plain",
+        "Content-Type": "application/x-www-form-urlencoded",
         "User-Agent": "TravelLog/1.0 (personal travel journal app)",
       },
-      body: buildQuery(lat, lng),
+      body: `data=${encodeURIComponent(buildQuery(lat, lng))}`,
       signal: controller.signal,
     });
     if (!res.ok) {
-      console.error("nearbyPlaces:", endpoint, "non-OK response", res.status);
+      const bodySnippet = await res.text().catch(() => "");
+      console.error(
+        "nearbyPlaces:",
+        endpoint,
+        "non-OK response",
+        res.status,
+        bodySnippet.slice(0, 300),
+      );
       return null;
     }
     const data = await res.json().catch(() => null);
     if (!Array.isArray(data?.elements)) {
-      console.error("nearbyPlaces:", endpoint, "unexpected response shape");
+      console.error("nearbyPlaces:", endpoint, "unexpected response shape", JSON.stringify(data)?.slice(0, 300));
       return null;
     }
     return data.elements;

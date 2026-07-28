@@ -4,7 +4,9 @@ import { requireUserId } from "@/lib/require-user";
 import { canAccessTrip } from "@/lib/trip-access";
 import { fetchNearbyPlaces } from "@/lib/nearby-places";
 
-export const maxDuration = 30;
+// 3 Overpass mirrors at up to 8s each, plus a Nominatim geocode call,
+// comfortably need more than the platform's 10s default.
+export const maxDuration = 45;
 
 type NominatimResult = { lat: string; lon: string };
 
