@@ -27,14 +27,33 @@ const SCAN_MESSAGES = [
   "Almost there…",
 ];
 
+// There's no real percentage to report for a single lookup, so this
+// approaches a cap over time rather than claiming an exact number --
+// climbs fast at first, then eases off, landing "almost full" the
+// longer the search runs, but never claims 100% until the result
+// actually arrives (loading flips to false and this unmounts).
+const PROGRESS_CAP = 92;
+const PROGRESS_TAU_MS = 1800;
+
 function ScanningIndicator() {
   const [messageIndex, setMessageIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const messageInterval = setInterval(() => {
       setMessageIndex((i) => (i + 1) % SCAN_MESSAGES.length);
     }, 1600);
-    return () => clearInterval(interval);
+
+    const start = Date.now();
+    const progressInterval = setInterval(() => {
+      const elapsed = Date.now() - start;
+      setProgress(PROGRESS_CAP * (1 - Math.exp(-elapsed / PROGRESS_TAU_MS)));
+    }, 100);
+
+    return () => {
+      clearInterval(messageInterval);
+      clearInterval(progressInterval);
+    };
   }, []);
 
   return (
@@ -47,8 +66,12 @@ function ScanningIndicator() {
         </span>
       </div>
       <p className="text-sm text-black/50 dark:text-white/50">{SCAN_MESSAGES[messageIndex]}</p>
-      <div className="relative h-1.5 w-40 overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
-        <div className="nearby-scan-progress-bar" aria-hidden />
+      <div className="h-1.5 w-40 overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
+        <div
+          className="nearby-scan-progress-bar"
+          style={{ width: `${progress}%` }}
+          aria-hidden
+        />
       </div>
     </div>
   );

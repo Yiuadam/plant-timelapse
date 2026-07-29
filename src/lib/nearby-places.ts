@@ -63,14 +63,24 @@ function buildQuery(lat: number, lng: number) {
 // a "which part of this city?" picker instead of showing results for
 // whatever spot Nominatim happened to centroid the search on.
 const AREA_RADIUS_METERS = 20000;
-const AREA_PLACE_VALUES = "suburb|neighbourhood|quarter|borough|city_district|town";
+const AREA_PLACE_VALUES = "suburb|neighbourhood|quarter|borough|city_district|district|town";
 const MAX_AREAS = 16;
 
+// A real city's proper districts (e.g. Shenzhen's Futian/Nanshan/Luohu)
+// are commonly mapped as administrative boundary *relations*, often
+// without an informal place=* tag at all -- node/way place-tag queries
+// alone miss them entirely and fall back to whatever small place nodes
+// happen to be nearby, which for a border city (Shenzhen sits right next
+// to Hong Kong) can mean neighbouring-country villages outrank the
+// city's own districts. admin_level 6-10 covers city-district-through-
+// neighbourhood level across most countries' OSM conventions.
 function buildAreaQuery(lat: number, lng: number) {
   return `[out:json][timeout:15];(
     node["place"~"${AREA_PLACE_VALUES}"]["name"](around:${AREA_RADIUS_METERS},${lat},${lng});
     way["place"~"${AREA_PLACE_VALUES}"]["name"](around:${AREA_RADIUS_METERS},${lat},${lng});
-  );out center ${MAX_AREAS * 4};`;
+    relation["place"~"${AREA_PLACE_VALUES}"]["name"](around:${AREA_RADIUS_METERS},${lat},${lng});
+    relation["boundary"="administrative"]["admin_level"~"^(6|7|8|9|10)$"]["name"](around:${AREA_RADIUS_METERS},${lat},${lng});
+  );out center ${MAX_AREAS * 8};`;
 }
 
 function categoryLabel(tags: Record<string, string>) {
@@ -168,28 +178,49 @@ export async function fetchNearbyPlaces(lat: number, lng: number): Promise<Nearb
 
 export type CityArea = { name: string; lat: number; lng: number; distanceMeters: number };
 
+type ScoredArea = CityArea & { isAdminBoundary: boolean };
+
 // Districts/neighbourhoods near a broad destination's centroid, deduped
 // by name (OSM often has both a node and a way for the same place) and
-// sorted by distance from that centroid.
+// sorted so a real administrative district (e.g. "Futian District")
+// outranks an informally-tagged place node at the same or even nearer
+// distance -- otherwise, for a border city, a handful of small
+// neighbouring-country villages could crowd out the city's own actual
+// districts just for being a little closer to the geocoded centroid.
 export async function fetchCityAreas(lat: number, lng: number): Promise<CityArea[] | null> {
   const elements = await queryOverpass(buildAreaQuery(lat, lng));
   if (!elements) return null;
 
-  const byName = new Map<string, CityArea>();
+  const byName = new Map<string, ScoredArea>();
   for (const el of elements) {
     const name = el.tags?.name;
     const pointLat = el.lat ?? el.center?.lat;
     const pointLng = el.lon ?? el.center?.lon;
-    if (!name || pointLat == null || pointLng == null || byName.has(name)) continue;
+    if (!name || pointLat == null || pointLng == null) continue;
+    const isAdminBoundary = el.tags?.boundary === "administrative";
+    const existing = byName.get(name);
+    // Prefer keeping the administrative-boundary version of a duplicate
+    // name if one shows up in both forms.
+    if (existing && (existing.isAdminBoundary || !isAdminBoundary)) continue;
     byName.set(name, {
       name,
       lat: pointLat,
       lng: pointLng,
       distanceMeters: Math.round(haversineMeters(lat, lng, pointLat, pointLng)),
+      isAdminBoundary,
     });
   }
 
   return [...byName.values()]
-    .sort((a, b) => a.distanceMeters - b.distanceMeters)
-    .slice(0, MAX_AREAS);
+    .sort((a, b) => {
+      if (a.isAdminBoundary !== b.isAdminBoundary) return a.isAdminBoundary ? -1 : 1;
+      return a.distanceMeters - b.distanceMeters;
+    })
+    .slice(0, MAX_AREAS)
+    .map(({ name, lat: areaLat, lng: areaLng, distanceMeters }) => ({
+      name,
+      lat: areaLat,
+      lng: areaLng,
+      distanceMeters,
+    }));
 }
