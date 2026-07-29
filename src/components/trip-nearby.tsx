@@ -9,6 +9,7 @@ type NearbyPlace = {
   lat: number;
   lng: number;
   distanceMeters: number;
+  photoUrl: string | null;
 };
 
 type NearbyResult = { attractions: NearbyPlace[]; food: NearbyPlace[] };
@@ -22,24 +23,34 @@ function formatDistance(meters: number) {
   return `${(meters / 1000).toFixed(1)} km`;
 }
 
-// There's no free source of actual venue photos without either paying
-// for a places API or scraping -- neither of which this app does. A
-// small OpenStreetMap tile centered on the place is a genuine, real
-// image (not a placeholder) using the exact same free tile
-// infrastructure this app's own maps already depend on, so it doesn't
-// add a new external risk.
-function tileThumbnailUrl(lat: number, lng: number, zoom = 15) {
-  const n = 2 ** zoom;
-  const x = Math.floor(((lng + 180) / 360) * n);
-  const latRad = (lat * Math.PI) / 180;
-  const y = Math.floor(
-    ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n,
-  );
-  return `https://tile.openstreetmap.org/${zoom}/${x}/${y}.png`;
-}
-
 function placeMapsUrl(name: string, lat: number, lng: number) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${name} ${lat},${lng}`)}`;
+}
+
+// There's no free source of actual venue photos without either paying
+// for a places API or scraping -- neither of which this app does, so
+// most places (small restaurants/cafes especially) simply won't have a
+// real photoUrl. Falls back to a category-appropriate icon rather than
+// a generic map thumbnail, so it's honest about not having a real photo
+// instead of substituting something unrelated.
+const CATEGORY_ICONS: Record<string, string> = {
+  museum: "🏛️",
+  gallery: "🖼️",
+  viewpoint: "🌄",
+  artwork: "🗿",
+  zoo: "🦁",
+  "theme park": "🎢",
+  aquarium: "🐠",
+  attraction: "📍",
+  restaurant: "🍽️",
+  cafe: "☕",
+  "fast food": "🍔",
+  bar: "🍸",
+  pub: "🍺",
+};
+
+function categoryIcon(category: string) {
+  return CATEGORY_ICONS[category] ?? "📍";
 }
 
 const SCAN_MESSAGES = [
@@ -119,13 +130,22 @@ function PlaceList({
             rel="noopener noreferrer"
             className="flex items-center gap-3 rounded-xl border border-black/10 p-2 text-sm hover:bg-black/[0.03] dark:border-white/20 dark:hover:bg-white/[0.05]"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={tileThumbnailUrl(p.lat, p.lng)}
-              alt=""
-              className="h-12 w-12 shrink-0 rounded-lg object-cover"
-              loading="lazy"
-            />
+            {p.photoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={p.photoUrl}
+                alt=""
+                className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <div
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-black/5 text-xl dark:bg-white/10"
+                aria-hidden
+              >
+                {categoryIcon(p.category)}
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <div className="truncate font-medium">{p.name}</div>
               <div className="truncate text-xs text-black/50 capitalize dark:text-white/50">

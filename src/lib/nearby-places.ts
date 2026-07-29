@@ -29,6 +29,12 @@ export type NearbyPlace = {
   lat: number;
   lng: number;
   distanceMeters: number;
+  // A real photo of the place, resolved from its Wikipedia article when
+  // OSM tags one (see resolvePhotoUrl) -- null when there isn't one to
+  // find. There's no free source of actual venue photos otherwise
+  // (a paid places API, or scraping, neither of which this app does),
+  // so most small/non-notable places simply won't have one.
+  photoUrl: string | null;
 };
 
 type OverpassElement = {
@@ -38,6 +44,60 @@ type OverpassElement = {
   center?: { lat: number; lon: number };
   tags?: Record<string, string>;
 };
+
+const WIKIPEDIA_TIMEOUT_MS = 3000;
+
+// OSM's `wikipedia` tag is "<lang>:<Article Title>" -- Wikipedia's own
+// REST API serves a page summary (including a thumbnail image when the
+// article has one) for exactly that shape, no key needed.
+async function resolvePhotoUrl(wikipediaTag: string): Promise<string | null> {
+  const colonIndex = wikipediaTag.indexOf(":");
+  if (colonIndex < 1) return null;
+  const lang = wikipediaTag.slice(0, colonIndex).trim();
+  const title = wikipediaTag.slice(colonIndex + 1).trim();
+  if (!lang || !title || !/^[a-z-]+$/i.test(lang)) return null;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), WIKIPEDIA_TIMEOUT_MS);
+  try {
+    const res = await fetch(
+      `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`,
+      {
+        headers: { "User-Agent": "TravelLog/1.0 (personal travel journal app)" },
+        signal: controller.signal,
+      },
+    );
+    if (!res.ok) return null;
+    const data = await res.json().catch(() => null);
+    return typeof data?.thumbnail?.source === "string" ? data.thumbnail.source : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+type PlaceDraft = Omit<NearbyPlace, "photoUrl"> & { wikipediaTag?: string };
+
+// Resolves photos for a batch of places in parallel -- capped by the
+// caller already slicing to MAX_PER_CATEGORY, and each lookup has its
+// own short timeout, so a slow/unresolvable one can't hold up the rest.
+// Builds a clean NearbyPlace explicitly (rather than spreading `place`)
+// so the internal wikipediaTag field never leaks into the API response.
+async function attachPhotos(places: PlaceDraft[]): Promise<NearbyPlace[]> {
+  const photoUrls = await Promise.all(
+    places.map((p) => (p.wikipediaTag ? resolvePhotoUrl(p.wikipediaTag) : Promise.resolve(null))),
+  );
+  return places.map(({ id, name, category, lat, lng, distanceMeters }, i) => ({
+    id,
+    name,
+    category,
+    lat,
+    lng,
+    distanceMeters,
+    photoUrl: photoUrls[i] ?? null,
+  }));
+}
 
 function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371000;
@@ -149,19 +209,20 @@ export async function fetchNearbyPlaces(lat: number, lng: number): Promise<Nearb
   const elements = await queryOverpass(buildQuery(lat, lng));
   if (!elements) return null;
 
-  const attractions: NearbyPlace[] = [];
-  const food: NearbyPlace[] = [];
+  const attractions: PlaceDraft[] = [];
+  const food: PlaceDraft[] = [];
 
   for (const el of elements) {
     const tags = el.tags;
     if (!tags?.name || el.lat == null || el.lon == null) continue;
-    const place: NearbyPlace = {
+    const place: PlaceDraft = {
       id: el.id,
       name: tags.name,
       category: categoryLabel(tags),
       lat: el.lat,
       lng: el.lon,
       distanceMeters: Math.round(haversineMeters(lat, lng, el.lat, el.lon)),
+      wikipediaTag: tags.wikipedia,
     };
     if (tags.tourism) attractions.push(place);
     else if (tags.amenity) food.push(place);
@@ -170,10 +231,12 @@ export async function fetchNearbyPlaces(lat: number, lng: number): Promise<Nearb
   attractions.sort((a, b) => a.distanceMeters - b.distanceMeters);
   food.sort((a, b) => a.distanceMeters - b.distanceMeters);
 
-  return {
-    attractions: attractions.slice(0, MAX_PER_CATEGORY),
-    food: food.slice(0, MAX_PER_CATEGORY),
-  };
+  const [attractionsWithPhotos, foodWithPhotos] = await Promise.all([
+    attachPhotos(attractions.slice(0, MAX_PER_CATEGORY)),
+    attachPhotos(food.slice(0, MAX_PER_CATEGORY)),
+  ]);
+
+  return { attractions: attractionsWithPhotos, food: foodWithPhotos };
 }
 
 export type CityArea = { name: string; lat: number; lng: number; distanceMeters: number };
