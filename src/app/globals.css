@@ -201,6 +201,36 @@ select {
   animation: nearby-scan-wobble 1.3s ease-in-out infinite;
 }
 
+/* A single lookup has no real percentage to report, so this is an
+   honest indeterminate sweep (grows, then slides off) rather than a
+   fabricated "73% done" -- still reads as active progress, not a
+   frozen spinner. */
+@keyframes nearby-scan-progress {
+  0% {
+    transform: translateX(-100%);
+    width: 35%;
+  }
+  50% {
+    width: 65%;
+  }
+  100% {
+    transform: translateX(260%);
+    width: 35%;
+  }
+}
+.nearby-scan-progress-bar {
+  position: absolute;
+  inset-block: 0;
+  border-radius: 9999px;
+  background: linear-gradient(
+    90deg,
+    rgba(129, 140, 248, 0.15),
+    rgba(129, 140, 248, 0.9),
+    rgba(129, 140, 248, 0.15)
+  );
+  animation: nearby-scan-progress 1.6s ease-in-out infinite;
+}
+
 /* Site style ("flavor") -- a lighter-weight alternative to a full
    per-page reskin: swaps the shared design tokens (corner radius, the
    decorative background blob palette, and for Sketch, the base font)

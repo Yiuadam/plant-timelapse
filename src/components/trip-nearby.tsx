@@ -47,6 +47,9 @@ function ScanningIndicator() {
         </span>
       </div>
       <p className="text-sm text-black/50 dark:text-white/50">{SCAN_MESSAGES[messageIndex]}</p>
+      <div className="relative h-1.5 w-40 overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
+        <div className="nearby-scan-progress-bar" aria-hidden />
+      </div>
     </div>
   );
 }
