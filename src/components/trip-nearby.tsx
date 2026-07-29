@@ -6,6 +6,8 @@ type NearbyPlace = {
   id: number;
   name: string;
   category: string;
+  lat: number;
+  lng: number;
   distanceMeters: number;
 };
 
@@ -18,6 +20,26 @@ type AreaPrompt = { cityLabel: string; areas: CityArea[] };
 function formatDistance(meters: number) {
   if (meters < 1000) return `${meters} m`;
   return `${(meters / 1000).toFixed(1)} km`;
+}
+
+// There's no free source of actual venue photos without either paying
+// for a places API or scraping -- neither of which this app does. A
+// small OpenStreetMap tile centered on the place is a genuine, real
+// image (not a placeholder) using the exact same free tile
+// infrastructure this app's own maps already depend on, so it doesn't
+// add a new external risk.
+function tileThumbnailUrl(lat: number, lng: number, zoom = 15) {
+  const n = 2 ** zoom;
+  const x = Math.floor(((lng + 180) / 360) * n);
+  const latRad = (lat * Math.PI) / 180;
+  const y = Math.floor(
+    ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n,
+  );
+  return `https://tile.openstreetmap.org/${zoom}/${x}/${y}.png`;
+}
+
+function placeMapsUrl(name: string, lat: number, lng: number) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${name} ${lat},${lng}`)}`;
 }
 
 const SCAN_MESSAGES = [
@@ -90,19 +112,30 @@ function PlaceList({
   return (
     <ul className="flex flex-col gap-2">
       {places.map((p) => (
-        <li
-          key={p.id}
-          className="flex items-center justify-between gap-3 rounded-xl border border-black/10 px-3 py-2 text-sm dark:border-white/20"
-        >
-          <div className="min-w-0">
-            <div className="truncate font-medium">{p.name}</div>
-            <div className="truncate text-xs text-black/50 capitalize dark:text-white/50">
-              {p.category}
+        <li key={p.id}>
+          <a
+            href={placeMapsUrl(p.name, p.lat, p.lng)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 rounded-xl border border-black/10 p-2 text-sm hover:bg-black/[0.03] dark:border-white/20 dark:hover:bg-white/[0.05]"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={tileThumbnailUrl(p.lat, p.lng)}
+              alt=""
+              className="h-12 w-12 shrink-0 rounded-lg object-cover"
+              loading="lazy"
+            />
+            <div className="min-w-0 flex-1">
+              <div className="truncate font-medium">{p.name}</div>
+              <div className="truncate text-xs text-black/50 capitalize dark:text-white/50">
+                {p.category}
+              </div>
             </div>
-          </div>
-          <span className="shrink-0 text-xs text-black/50 dark:text-white/50">
-            {formatDistance(p.distanceMeters)}
-          </span>
+            <span className="shrink-0 text-xs text-black/50 dark:text-white/50">
+              {formatDistance(p.distanceMeters)}
+            </span>
+          </a>
         </li>
       ))}
     </ul>
