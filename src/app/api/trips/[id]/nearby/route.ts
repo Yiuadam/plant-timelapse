@@ -2,33 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { canAccessTrip } from "@/lib/trip-access";
-import { fetchNearbyPlaces } from "@/lib/nearby-places";
+import { fetchNearbyPlaces, fetchCityAreas } from "@/lib/nearby-places";
+import { geocodeDestination, isBroadDestination } from "@/lib/geocode-destination";
 
 // 3 Overpass mirrors at up to 8s each, plus a Nominatim geocode call,
 // comfortably need more than the platform's 10s default.
 export const maxDuration = 45;
-
-type NominatimResult = { lat: string; lon: string };
-
-async function geocode(query: string): Promise<{ lat: number; lng: number } | null> {
-  const url = new URL("https://nominatim.openstreetmap.org/search");
-  url.searchParams.set("q", query.slice(0, 200));
-  url.searchParams.set("format", "json");
-  url.searchParams.set("limit", "1");
-
-  try {
-    const res = await fetch(url, {
-      headers: { "User-Agent": "TravelLog/1.0 (personal travel journal app)" },
-    });
-    if (!res.ok) return null;
-    const data: NominatimResult[] = await res.json();
-    const first = data[0];
-    if (!first) return null;
-    return { lat: Number(first.lat), lng: Number(first.lon) };
-  } catch {
-    return null;
-  }
-}
 
 export async function GET(
   _request: Request,
@@ -57,9 +36,10 @@ export async function GET(
 
   let lat = trip.destLat;
   let lng = trip.destLng;
+  let addressType = trip.destAddressType;
 
   if (lat == null || lng == null) {
-    const geocoded = await geocode(trip.destination);
+    const geocoded = await geocodeDestination(trip.destination);
     if (!geocoded) {
       return NextResponse.json(
         { error: "Couldn't locate that destination" },
@@ -68,10 +48,25 @@ export async function GET(
     }
     lat = geocoded.lat;
     lng = geocoded.lng;
+    addressType = geocoded.type;
     await prisma.trip.update({
       where: { id },
-      data: { destLat: lat, destLng: lng },
+      data: { destLat: lat, destLng: lng, destAddressType: addressType },
     });
+  }
+
+  if (!trip.destAreaConfirmed && isBroadDestination(addressType)) {
+    const areas = await fetchCityAreas(lat, lng);
+    if (areas && areas.length > 0) {
+      return NextResponse.json({
+        needsAreaSelection: true,
+        cityLabel: trip.destination,
+        areas,
+      });
+    }
+    // No areas found (or the lookup itself failed) -- fall through to
+    // plain nearby results for the broad point rather than leaving the
+    // user stuck with no way to see anything.
   }
 
   const nearby = await fetchNearbyPlaces(lat, lng);

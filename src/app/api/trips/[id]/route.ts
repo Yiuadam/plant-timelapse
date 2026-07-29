@@ -58,16 +58,33 @@ export async function PATCH(
   }
 
   const { title, destination, startDate, endDate, notes, mood } = parsed.data;
+  const nextDestination = destination || null;
+
+  const current = await prisma.trip.findUnique({
+    where: { id },
+    select: { destination: true },
+  });
+  // The nearby-places geocode (destLat/destLng/destAddressType) and area
+  // selection are only valid for the destination they were resolved
+  // from -- changing the destination without clearing them would leave
+  // the Explore card silently showing results for the old place.
+  const destinationChanged = current?.destination !== nextDestination;
 
   const updated = await prisma.trip.update({
     where: { id },
     data: {
       title,
-      destination: destination || null,
+      destination: nextDestination,
       startDate: startDate ? new Date(startDate) : null,
       endDate: endDate ? new Date(endDate) : null,
       notes: notes || null,
       mood: mood || null,
+      ...(destinationChanged && {
+        destLat: null,
+        destLng: null,
+        destAddressType: null,
+        destAreaConfirmed: false,
+      }),
     },
   });
 
