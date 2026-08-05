@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { canAccessTrip } from "@/lib/trip-access";
-import { fetchNearbyPlaces, fetchCityAreas } from "@/lib/nearby-places";
+import {
+  fetchNearbyPlaces,
+  fetchCityAreas,
+  fetchCityAreaShapes,
+} from "@/lib/nearby-places";
 import { geocodeDestination, isBroadDestination } from "@/lib/geocode-destination";
 import { readCache, writeCache } from "@/lib/nearby-cache";
 
@@ -65,6 +69,25 @@ export async function GET(
   }
 
   if (!trip.destAreaConfirmed && isBroadDestination(addressType)) {
+    // Boundary geometry first, so the picker can draw the city's real
+    // shape. Only administrative relations have an outline to draw, so
+    // this comes back empty for places mapped only as informal nodes --
+    // hence the centroid list below as the fallback.
+    const shapes = await fetchCityAreaShapes(lat, lng);
+    if (shapes && shapes.length > 0) {
+      return NextResponse.json({
+        needsAreaSelection: true,
+        cityLabel: trip.destination,
+        areas: shapes.map(({ name, lat: aLat, lng: aLng, distanceMeters }) => ({
+          name,
+          lat: aLat,
+          lng: aLng,
+          distanceMeters,
+        })),
+        shapes,
+      });
+    }
+
     const areas = await fetchCityAreas(lat, lng);
     if (areas && areas.length > 0) {
       return NextResponse.json({

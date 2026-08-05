@@ -83,44 +83,6 @@ select {
   border-radius: 1.125rem !important;
 }
 
-/* Area picker markers: a named pill instead of a pin, since which
-   district is which is the whole question being asked. iconSize is [0,0]
-   on the divIcon, so the pill sizes itself to its text and is centred
-   over the true coordinate here. */
-.area-pick-marker {
-  background: transparent;
-  border: none;
-}
-.area-pick-pill {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  display: block;
-  width: max-content;
-  max-width: 11rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 0.25rem 0.6rem;
-  border-radius: 9999px;
-  background: white;
-  color: #171717;
-  font-size: 0.75rem;
-  line-height: 1.1rem;
-  font-weight: 500;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-  cursor: pointer;
-  transition:
-    background 150ms ease,
-    transform 150ms ease;
-}
-.area-pick-pill:hover {
-  background: rgb(99, 102, 241);
-  color: white;
-  border-color: rgb(99, 102, 241);
-  transform: translate(-50%, -50%) scale(1.06);
-}
-
 /* Google-Maps-style "you are here" dot: solid center + an expanding,
    fading ring to read as a live position rather than a static pin. */
 .user-location-marker {

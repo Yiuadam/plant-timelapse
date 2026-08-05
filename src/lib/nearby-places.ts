@@ -9,6 +9,8 @@
 // slow, rate-limited, or down -- trying a couple of known mirrors in
 // sequence (same resilience pattern as src/lib/free-translate.ts) means
 // one instance having a bad day doesn't take the feature down.
+import { assembleRings, simplifyToBudget, type AreaShape, type Point } from "@/lib/area-shapes";
+
 const CANDIDATE_ENDPOINTS = [
   "https://overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
@@ -43,6 +45,13 @@ type OverpassElement = {
   lon?: number;
   center?: { lat: number; lon: number };
   tags?: Record<string, string>;
+  // Present on relations fetched with `out geom` -- each member way
+  // carries its own slice of the boundary's coordinates.
+  members?: {
+    type: string;
+    role?: string;
+    geometry?: { lat: number; lon: number }[];
+  }[];
 };
 
 const WIKIPEDIA_TIMEOUT_MS = 3000;
@@ -251,6 +260,74 @@ export async function fetchNearbyPlaces(lat: number, lng: number): Promise<Nearb
   ]);
 
   return { attractions: attractionsWithPhotos, food: foodWithPhotos };
+}
+
+// Boundary geometry for the same districts, so the picker can draw the
+// city's actual shape rather than dropping pins on a tile map. Only
+// administrative-boundary relations carry an outline; informally tagged
+// place nodes have no geometry to draw, which is why the chip list stays
+// as the fallback.
+const SHAPE_MAX_POINTS_PER_RING = 120;
+const SHAPE_MAX_AREAS = 14;
+
+function buildAreaShapeQuery(lat: number, lng: number) {
+  return `[out:json][timeout:25];(
+    relation["boundary"="administrative"]["admin_level"~"^(6|7|8|9|10)$"]["name"](around:${AREA_RADIUS_METERS},${lat},${lng});
+  );out geom ${SHAPE_MAX_AREAS * 2};`;
+}
+
+function ringCentroid(ring: Point[]) {
+  let sumLat = 0;
+  let sumLng = 0;
+  for (const p of ring) {
+    sumLat += p.lat;
+    sumLng += p.lng;
+  }
+  return { lat: sumLat / ring.length, lng: sumLng / ring.length };
+}
+
+export async function fetchCityAreaShapes(
+  lat: number,
+  lng: number,
+): Promise<AreaShape[] | null> {
+  const elements = await queryOverpass(buildAreaShapeQuery(lat, lng));
+  if (!elements) return null;
+
+  const byName = new Map<string, AreaShape>();
+
+  for (const el of elements) {
+    const name = el.tags?.name;
+    if (!name || !el.members) continue;
+
+    const rings = assembleRings(el.members)
+      .map((ring) => simplifyToBudget(ring, SHAPE_MAX_POINTS_PER_RING))
+      .filter((ring) => ring.length >= 4);
+    if (rings.length === 0) continue;
+
+    // Label and distance come from the largest ring's centroid, which is
+    // a better anchor for a district than the first fragment's corner.
+    const largest = rings.reduce((a, b) => (b.length > a.length ? b : a));
+    const centre = ringCentroid(largest);
+
+    const existing = byName.get(name);
+    const totalPoints = rings.reduce((n, r) => n + r.length, 0);
+    if (existing) {
+      const existingPoints = existing.rings.reduce((n, r) => n + r.length, 0);
+      if (existingPoints >= totalPoints) continue;
+    }
+
+    byName.set(name, {
+      name,
+      lat: centre.lat,
+      lng: centre.lng,
+      distanceMeters: Math.round(haversineMeters(lat, lng, centre.lat, centre.lng)),
+      rings,
+    });
+  }
+
+  return [...byName.values()]
+    .sort((a, b) => a.distanceMeters - b.distanceMeters)
+    .slice(0, SHAPE_MAX_AREAS);
 }
 
 export type CityArea = { name: string; lat: number; lng: number; distanceMeters: number };
