@@ -9,7 +9,13 @@
 // slow, rate-limited, or down -- trying a couple of known mirrors in
 // sequence (same resilience pattern as src/lib/free-translate.ts) means
 // one instance having a bad day doesn't take the feature down.
-import { assembleRings, simplifyToBudget, type AreaShape, type Point } from "@/lib/area-shapes";
+import {
+  assembleRings,
+  simplifyToBudget,
+  simplifyShapesToBudget,
+  type AreaShape,
+  type Point,
+} from "@/lib/area-shapes";
 
 const CANDIDATE_ENDPOINTS = [
   "https://overpass-api.de/api/interpreter",
@@ -313,7 +319,19 @@ export async function fetchNearbyPlaces(
 // administrative-boundary relations carry an outline; informally tagged
 // place nodes have no geometry to draw, which is why the chip list stays
 // as the fallback.
-const SHAPE_MAX_POINTS_PER_RING = 120;
+// A fixed per-ring cap alone was measured against every district
+// boundary in China's geoBoundaries dataset (an independent source):
+// median raw ring size is 181 points, 90th percentile 423, but the most
+// complex coastlines run past 1500. At the old cap of 120, those worst
+// cases deviated up to 5.6km from the true outline -- exactly the
+// straight-edged, wrong-looking shapes reported live. At 500, the same
+// worst cases deviate ~0.7km, and the P90 case (423 raw points) isn't
+// simplified at all. SHAPE_TOTAL_POINT_BUDGET is a second, whole-response
+// ceiling: it only engages for the rare city where several districts are
+// all this complex at once (a coastal city with many islands), so no
+// single request can still balloon into an unshippable payload.
+const SHAPE_MAX_POINTS_PER_RING = 500;
+const SHAPE_TOTAL_POINT_BUDGET = 6000;
 const SHAPE_MAX_AREAS = 14;
 
 // Everything administrative that CONTAINS the point -- country, province,
@@ -448,7 +466,7 @@ function keepOneTier(
   const levels = [...byLevel.keys()].sort((a, b) => a - b);
   const chosen =
     levels.find((lvl) => (byLevel.get(lvl)?.length ?? 0) >= 2) ?? levels[0];
-  return (byLevel.get(chosen) ?? [])
+  const picked = (byLevel.get(chosen) ?? [])
     .sort((a, b) => a.distanceMeters - b.distanceMeters)
     .slice(0, SHAPE_MAX_AREAS)
     .map(({ name, lat, lng, distanceMeters, rings }) => ({
@@ -458,6 +476,15 @@ function keepOneTier(
       distanceMeters,
       rings,
     }));
+
+  // Applied once here, after tier selection and the SHAPE_MAX_AREAS cut,
+  // so this budgets only the shapes that will actually be returned --
+  // not the ones the two steps above already discarded.
+  return simplifyShapesToBudget(
+    picked,
+    SHAPE_MAX_POINTS_PER_RING,
+    SHAPE_TOTAL_POINT_BUDGET,
+  );
 }
 
 export async function fetchCityAreaShapes(

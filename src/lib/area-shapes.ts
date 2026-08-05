@@ -144,3 +144,52 @@ export function simplifyToBudget(ring: Ring, maxPoints: number): Ring {
   }
   return out;
 }
+
+// Applies simplifyToBudget across a whole set of shapes, then -- if their
+// combined point count still exceeds `totalBudget` -- re-simplifies every
+// ring together, once, to a single shared tolerance chosen so the total
+// lands under budget.
+//
+// The per-ring budget alone isn't enough: it bounds how bad any ONE
+// district's outline can get, but a city where several districts are all
+// genuinely complex (a coastal city with many islands, say) can still
+// produce a payload too large to ship to a phone. A single shared
+// tolerance is used for the fallback pass -- rather than shrinking each
+// ring's own per-ring budget independently -- so a district that was
+// already simple stays simple and the coarsening lands on the districts
+// that actually have the detail to lose.
+export function simplifyShapesToBudget<T extends { rings: Ring[] }>(
+  shapes: T[],
+  perRingMax: number,
+  totalBudget: number,
+): T[] {
+  const firstPass = shapes.map((s) => ({
+    ...s,
+    rings: s.rings.map((r) => simplifyToBudget(r, perRingMax)),
+  }));
+
+  const total = firstPass.reduce(
+    (n, s) => n + s.rings.reduce((m, r) => m + r.length, 0),
+    0,
+  );
+  if (total <= totalBudget) return firstPass;
+
+  let tolerance = 0.0004;
+  let guard = 0;
+  let result = firstPass;
+  while (guard < 14) {
+    const attempt = shapes.map((s) => ({
+      ...s,
+      rings: s.rings.map((r) => simplify(r, tolerance)),
+    }));
+    const attemptTotal = attempt.reduce(
+      (n, s) => n + s.rings.reduce((m, r) => m + r.length, 0),
+      0,
+    );
+    result = attempt;
+    if (attemptTotal <= totalBudget) break;
+    tolerance *= 1.6;
+    guard++;
+  }
+  return result;
+}
