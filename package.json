@@ -6,13 +6,16 @@
     "dev": "next dev",
     "build": "prisma generate && node -e \"if(process.env.DATABASE_URL){require('child_process').execSync('npx prisma db push --accept-data-loss --skip-generate',{stdio:'inherit'});require('child_process').execSync('node prisma/seed-landmarks.mjs',{stdio:'inherit'});require('child_process').execSync('node prisma/seed-dictionary.mjs',{stdio:'inherit'})}else{console.log('Skipping prisma db push: DATABASE_URL not set')}\" && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.113.0",
     "@auth/prisma-adapter": "^2.11.3",
+    "@neondatabase/serverless": "^1.1.0",
+    "@prisma/adapter-neon": "^6.19.3",
     "@prisma/client": "^6.19.3",
-    "@vercel/blob": "^2.6.1",
     "bcryptjs": "^3.0.3",
     "leaflet": "^1.9.4",
     "next": "16.2.11",
@@ -24,6 +27,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.20.2",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/leaflet": "^1.9.21",
@@ -33,6 +37,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.11",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.118.0"
   }
 }

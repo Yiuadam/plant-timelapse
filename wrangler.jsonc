@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "travel-log",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-08-05",
+  // nodejs_compat gives the Worker the Node built-ins Next.js, Prisma and
+  // the Auth.js/bcrypt stack expect; the v2 flag is what OpenNext targets.
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  // Photo and avatar uploads (src/lib/uploads.ts). Create the bucket with
+  // `npx wrangler r2 bucket create travel-log-photos`, then enable public
+  // access on it and set R2_PUBLIC_URL to the resulting base URL.
+  "r2_buckets": [
+    {
+      "binding": "PHOTOS",
+      "bucket_name": "travel-log-photos"
+    }
+  ]
+}

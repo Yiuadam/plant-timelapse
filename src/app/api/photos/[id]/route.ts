@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { del } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
+import { deleteStoredFile } from "@/lib/uploads";
 import { requireUserId } from "@/lib/require-user";
 import { canAccessTrip } from "@/lib/trip-access";
 
@@ -21,7 +21,7 @@ export async function DELETE(
 
   await prisma.photo.delete({ where: { id } });
 
-  await del(photo.filePath).catch(() => {});
+  await deleteStoredFile(photo.filePath).catch(() => {});
 
   return NextResponse.json({ ok: true });
 }
