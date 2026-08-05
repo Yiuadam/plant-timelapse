@@ -364,13 +364,40 @@ function buildAreaShapeQuery(lat: number, lng: number) {
   );out geom ${SHAPE_MAX_AREAS * 2};`;
 }
 
-// The city-ish ancestor: the deepest containing admin area at levels 4-7
-// (province through city across most countries' conventions). Deeper
-// than 7 risks picking the district the centroid happens to fall in,
-// which would scope the query to a single district's children.
+// Strips common administrative-unit words/characters and punctuation so
+// "深圳市" (OSM's name for the ancestor) and "深圳" or "Shenzhen, China"
+// (what a user actually typed) compare as the same place.
+function normalizePlaceName(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[市省县区镇乡州]/g, "")
+    .replace(/\b(city|district|county|province|prefecture)\b/gi, "")
+    .replace(/[\s,，、]+/g, "")
+    .trim();
+}
+
+// The city-ish ancestor -- i.e. the one whose OWN districts the user
+// means by "which part of <destination>". Matched by NAME against what
+// the user actually typed wherever possible: that's a direct read of
+// intent, and sidesteps admin_level entirely, which varies by country
+// and, within China alone, does not mean what the previous version of
+// this function assumed. Prefecture-level cities (Shenzhen) sit at
+// level 6; their districts (Futian) sit at level 7. The old heuristic
+// picked "the deepest ancestor in [4,7]" as the city -- which is
+// Futian, not Shenzhen, whenever the geocoded point (Shenzhen's civic
+// centre) happens to fall inside that particular district. That's
+// exactly the bug reported live: the picker showed Futian's internal
+// street-level subdivisions instead of Shenzhen's own ten districts.
+//
+// Falls back to the shallowest candidate in [4,7] only when no name
+// matches -- shallowest, not deepest, so an unmatched destination still
+// prefers "too broad" (a province, in the worst case) over silently
+// repeating the district-mistaken-for-city bug this function exists to
+// avoid.
 async function findContainingCity(
   lat: number,
   lng: number,
+  destination: string | undefined,
   deadlineAt?: number,
 ): Promise<{ areaId: number; adminLevel: number } | null> {
   const elements = await queryOverpass(
@@ -381,17 +408,42 @@ async function findContainingCity(
   );
   if (!elements) return null;
 
-  let best: { id: number; level: number } | null = null;
+  // A Chinese destination typed by the user won't match an OSM `name`
+  // tag that's romanized, and vice versa -- OSM carries `name:en` /
+  // `int_name` on essentially every major city specifically for this,
+  // so every variant present is a candidate to match against.
+  const candidates: { id: number; level: number; names: string[] }[] = [];
   for (const el of elements) {
     const tags = el.tags;
     if (!tags?.name || tags.boundary !== "administrative") continue;
     const level = Number.parseInt(tags.admin_level ?? "", 10);
-    if (!Number.isFinite(level) || level < 4 || level > 7) continue;
-    if (!best || level > best.level) best = { id: el.id, level };
+    if (!Number.isFinite(level) || level < 4 || level > 8) continue;
+    const names = [tags.name, tags["name:en"], tags.int_name, tags.alt_name].filter(
+      (n): n is string => !!n,
+    );
+    candidates.push({ id: el.id, level, names });
   }
-  return best
-    ? { areaId: best.id + OVERPASS_AREA_OFFSET, adminLevel: best.level }
-    : null;
+  if (candidates.length === 0) return null;
+
+  if (destination) {
+    const target = normalizePlaceName(destination);
+    if (target.length >= 2) {
+      const nameMatch = candidates.find((c) =>
+        c.names.some((raw) => {
+          const n = normalizePlaceName(raw);
+          return n.length >= 2 && (n === target || target.includes(n) || n.includes(target));
+        }),
+      );
+      if (nameMatch) {
+        return { areaId: nameMatch.id + OVERPASS_AREA_OFFSET, adminLevel: nameMatch.level };
+      }
+    }
+  }
+
+  const inCityRange = candidates.filter((c) => c.level <= 7);
+  if (inCityRange.length === 0) return null;
+  const best = inCityRange.reduce((a, b) => (b.level < a.level ? b : a));
+  return { areaId: best.id + OVERPASS_AREA_OFFSET, adminLevel: best.level };
 }
 
 function ringCentroid(ring: Point[]) {
@@ -490,13 +542,18 @@ function keepOneTier(
 export async function fetchCityAreaShapes(
   lat: number,
   lng: number,
+  destination: string | undefined,
   onProgress?: (fraction: number) => void,
   deadlineAt?: number,
 ): Promise<AreaShape[] | null> {
   // Scope to the city that actually CONTAINS the point. The earlier
   // radius version put Hong Kong's Yuen Long in Shenzhen's picker:
   // proximity crosses jurisdictions near any border, containment can't.
-  const city = await findContainingCity(lat, lng, deadlineAt);
+  // `destination` is what the user typed -- matched by name against the
+  // ancestor chain so the district-mistaken-for-city bug (see
+  // findContainingCity) can't recur even where the numeric fallback
+  // would still get it wrong.
+  const city = await findContainingCity(lat, lng, destination, deadlineAt);
   onProgress?.(0.15);
 
   if (city) {

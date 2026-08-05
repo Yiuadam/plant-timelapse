@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import type { NearbyResult } from "@/lib/nearby-places";
+import { fetchNearbyPlaces, type NearbyResult } from "@/lib/nearby-places";
+import { geocodeDestination } from "@/lib/geocode-destination";
 
 // Attractions and restaurants don't move, so a week-old answer is still a
 // good answer. The point isn't freshness -- it's that the free Overpass
@@ -112,4 +113,54 @@ export async function writeSharedCache(
   } catch {
     // ignored on purpose
   }
+}
+
+// How many districts to warm when a picker is shown. Kept small on
+// purpose -- this runs against the same free, shared Overpass mirrors
+// every other lookup depends on, and warming every district in a large
+// city would multiply this app's own load on that infrastructure for a
+// convenience feature. The closest few are also the ones a user is
+// statistically most likely to tap next.
+const PRELOAD_DISTRICT_COUNT = 3;
+
+// Warms the shared "nearby" cache for the districts a user is about to
+// be offered, so tapping one feels instant instead of triggering its
+// own live Overpass round-trip on top of the one that just ran to find
+// the districts themselves. Meant to be called from `after()` in the
+// route handler -- it must run once the picker has already been shown,
+// never delay showing it.
+//
+// Geocodes "<district>, <destination>" for each one, mirroring exactly
+// what the /area route does when a district is actually picked, so the
+// coordinates -- and therefore the cache key -- match. A shape's own
+// ring-centroid was considered instead (already on hand, no extra
+// geocode call) but Nominatim's geocode of the district's NAME can land
+// on a different point than the shape's geometric centre (a
+// district's named centre, e.g. its government seat, isn't always its
+// geometric middle) -- and a mismatched key here would silently warm a
+// cache entry that /area's later lookup would never see.
+export async function preloadDistrictsNearby(
+  districts: { name: string }[],
+  destination: string,
+): Promise<void> {
+  const toPreload = districts.slice(0, PRELOAD_DISTRICT_COUNT);
+  await Promise.all(
+    toPreload.map(async (district) => {
+      try {
+        const geocoded = await geocodeDestination(`${district.name}, ${destination}`);
+        if (!geocoded) return;
+        const already = await readSharedCache<NearbyResult>(
+          "nearby",
+          geocoded.lat,
+          geocoded.lng,
+        );
+        if (already) return;
+        const result = await fetchNearbyPlaces(geocoded.lat, geocoded.lng);
+        if (result) await writeSharedCache("nearby", geocoded.lat, geocoded.lng, result);
+      } catch {
+        // Best-effort warming -- a failure here just means the district
+        // stays cold until someone actually picks it, same as today.
+      }
+    }),
+  );
 }

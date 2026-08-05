@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { canAccessTrip } from "@/lib/trip-access";
@@ -13,6 +13,7 @@ import {
   writeCache,
   readSharedCache,
   writeSharedCache,
+  preloadDistrictsNearby,
 } from "@/lib/nearby-cache";
 import type { NearbyResult } from "@/lib/nearby-places";
 import type { AreaShape } from "@/lib/area-shapes";
@@ -85,6 +86,19 @@ export async function GET(
         // the function mid-response.
         const deadlineAt = Date.now() + (maxDuration - 5) * 1000;
 
+        // The area-lookup phase (finding the containing city, then its
+        // districts) gets its OWN, smaller ceiling, separate from the
+        // overall one. Without this, a slow or very broad query -- a
+        // whole PROVINCE like Yunnan is a much bigger Overpass
+        // computation than one city's districts -- could burn the
+        // entire request budget on the picker convenience, starving the
+        // core "what's nearby" result of the time it needs and turning
+        // it into the "temporarily unavailable" error users actually
+        // notice. Losing the district picker to a slow query is fine;
+        // it falls through to plain results. Losing the plain results
+        // themselves is the failure this exists to prevent.
+        const areaDeadlineAt = Math.min(deadlineAt, Date.now() + 18000);
+
         let lat = trip.destLat;
         let lng = trip.destLng;
         let addressType = trip.destAddressType;
@@ -111,20 +125,30 @@ export async function GET(
           // when Overpass is struggling, so each mirror attempt reports
           // in: shapes across 0.25..0.6, the centroid fallback across
           // 0.6..0.9. Without this the bar sat still through both.
-          // "shapes2": the v1 entries were built by the old radius query
-          // and can contain a neighbouring jurisdiction's districts;
-          // serving them would silently undo the containment fix below.
+          // "shapes3": shapes2 entries could have been built with the old
+          // numeric-only city heuristic, which picked a district's OWN
+          // subdivisions instead of the city's districts whenever the
+          // point fell inside a district tagged at the same admin_level
+          // this app used to treat as "the city" -- serving one back
+          // would silently undo the name-matching fix below.
           const shapes =
-            (await readSharedCache<AreaShape[]>("shapes2", lat, lng)) ??
+            (await readSharedCache<AreaShape[]>("shapes3", lat, lng)) ??
             (await fetchCityAreaShapes(
               lat,
               lng,
+              trip.destination ?? undefined,
               (f) => progress(0.25 + f * 0.35, "Tracing the city's districts…"),
-              deadlineAt,
+              areaDeadlineAt,
             ));
           if (shapes && shapes.length > 0) {
-            await writeSharedCache("shapes2", lat, lng, shapes);
+            await writeSharedCache("shapes3", lat, lng, shapes);
             progress(0.95, "Districts found");
+            // Warms the shared cache for the districts a user is most
+            // likely to tap next. Scheduled for AFTER this response is
+            // sent -- it must never delay showing the picker itself.
+            if (trip.destination) {
+              after(() => preloadDistrictsNearby(shapes, trip.destination!));
+            }
             return finish({
               needsAreaSelection: true,
               cityLabel: trip.destination,
@@ -144,9 +168,12 @@ export async function GET(
             lat,
             lng,
             (f) => progress(0.6 + f * 0.3, "Looking up district names…"),
-            deadlineAt,
+            areaDeadlineAt,
           );
           if (areas && areas.length > 0) {
+            if (trip.destination) {
+              after(() => preloadDistrictsNearby(areas, trip.destination!));
+            }
             progress(0.95, "Districts found");
             return finish({
               needsAreaSelection: true,
