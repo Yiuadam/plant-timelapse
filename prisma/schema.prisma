@@ -98,6 +98,15 @@ model Trip {
   // lookup only prompts for a specific area when the destination is
   // actually that broad.
   destAddressType   String?
+  // Last successful nearby-places result for this trip's coordinates,
+  // as the JSON the API returns. The Overpass instances behind that
+  // lookup are free shared infrastructure that rate-limits and times out
+  // under load, and without this every single view of the Explore card
+  // re-queried them -- which both caused those failures and made them
+  // user-visible. Served straight back while fresh, and served stale
+  // rather than erroring when a refetch fails.
+  nearbyJson        String?
+  nearbyFetchedAt   DateTime?
   // Set once the user has either picked a specific area or explicitly
   // chosen to keep the destination as-is, so the area picker only ever
   // shows once per trip.
@@ -177,6 +186,23 @@ model PassportStamp {
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 
   @@unique([userId, tripId])
+}
+
+// A lookup cache shared by every trip and every user, keyed by rounded
+// coordinates rather than by trip. The per-trip cache on Trip only helps
+// a trip that has already loaded once; this is what makes a *brand new*
+// trip to a city someone has already looked up resolve instantly, with
+// no Overpass call at all. Not user-scoped on purpose -- "what is near
+// this coordinate" is public geographic fact, identical for everyone,
+// and holds nothing about who asked.
+model PlaceLookup {
+  // "<kind>:<lat>,<lng>" with coordinates rounded to ~1km, so two
+  // geocodes of the same city share an entry.
+  key       String   @id
+  json      String
+  fetchedAt DateTime @default(now())
+
+  @@index([fetchedAt])
 }
 
 model Location {

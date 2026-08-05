@@ -4,6 +4,13 @@ import { requireUserId } from "@/lib/require-user";
 import { canAccessTrip } from "@/lib/trip-access";
 import { fetchNearbyPlaces } from "@/lib/nearby-places";
 import { geocodeDestination } from "@/lib/geocode-destination";
+import {
+  CLEAR_NEARBY_CACHE,
+  writeCache,
+  readSharedCache,
+  writeSharedCache,
+} from "@/lib/nearby-cache";
+import type { NearbyResult } from "@/lib/nearby-places";
 
 export const maxDuration = 45;
 
@@ -51,6 +58,9 @@ export async function POST(
         destLng: lng,
         destAddressType: geocoded.type,
         destAreaConfirmed: true,
+        // The coordinates just moved, so anything cached for the old
+        // ones no longer describes this trip.
+        ...CLEAR_NEARBY_CACHE,
       },
     });
   } else {
@@ -64,7 +74,9 @@ export async function POST(
     );
   }
 
-  const nearby = await fetchNearbyPlaces(lat, lng);
+  const nearby =
+    (await readSharedCache<NearbyResult>("nearby", lat, lng)) ??
+    (await fetchNearbyPlaces(lat, lng));
   if (!nearby) {
     return NextResponse.json(
       { error: "Nearby lookup is temporarily unavailable — try again shortly" },
@@ -72,5 +84,7 @@ export async function POST(
     );
   }
 
+  await writeCache(id, nearby);
+  await writeSharedCache("nearby", lat, lng, nearby);
   return NextResponse.json(nearby);
 }

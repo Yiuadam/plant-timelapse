@@ -3,8 +3,29 @@
 
 /* Switch Tailwind's dark: variant from the OS-only media query to
    responding to a `.dark` class on <html>, so the theme toggle button can
-   override the system preference instead of just following it. */
-@custom-variant dark (&:where(.dark, .dark *));
+   override the system preference instead of just following it.
+
+   The second rule matters as much as the first: the --background /
+   --foreground variables below also darken under `prefers-color-scheme:
+   dark` whenever the user hasn't explicitly chosen light. If `dark:`
+   only followed the class, those two would disagree any time the class
+   is missing -- the inline theme script in layout.tsx is what normally
+   sets it, and it silently does nothing when localStorage throws (Safari
+   private mode, storage disabled). The page would then take its dark
+   background and near-white text from the variables while every
+   `dark:bg-*` panel stayed light, i.e. white text on white. Keeping both
+   conditions here means the variant and the variables can never
+   disagree about what "dark" means. */
+@custom-variant dark {
+  &:where(.dark, .dark *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not(.light), :root:not(.light) *) {
+      @slot;
+    }
+  }
+}
 
 :root {
   --background: #ffffff;

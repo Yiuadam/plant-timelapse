@@ -65,6 +65,13 @@ export default async function RootLayout({
   return (
     <html
       lang={lang}
+      // THEME_INIT_SCRIPT below deliberately mutates this element's class
+      // and data-flavor before React hydrates, so the server-rendered
+      // attributes can never match the client's. Without this, every page
+      // load logs a hydration mismatch for a difference that is the whole
+      // point of that script. Scoped to <html> itself, so genuine
+      // mismatches deeper in the tree still surface.
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${caveat.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
