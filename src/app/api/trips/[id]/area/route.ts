@@ -4,6 +4,7 @@ import { requireUserId } from "@/lib/require-user";
 import { canAccessTrip } from "@/lib/trip-access";
 import { fetchNearbyPlaces } from "@/lib/nearby-places";
 import { geocodeDestination } from "@/lib/geocode-destination";
+import { CLEAR_NEARBY_CACHE, writeCache } from "@/lib/nearby-cache";
 
 export const maxDuration = 45;
 
@@ -51,6 +52,9 @@ export async function POST(
         destLng: lng,
         destAddressType: geocoded.type,
         destAreaConfirmed: true,
+        // The coordinates just moved, so anything cached for the old
+        // ones no longer describes this trip.
+        ...CLEAR_NEARBY_CACHE,
       },
     });
   } else {
@@ -72,5 +76,6 @@ export async function POST(
     );
   }
 
+  await writeCache(id, nearby);
   return NextResponse.json(nearby);
 }

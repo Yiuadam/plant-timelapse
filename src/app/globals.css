@@ -3,8 +3,29 @@
 
 /* Switch Tailwind's dark: variant from the OS-only media query to
    responding to a `.dark` class on <html>, so the theme toggle button can
-   override the system preference instead of just following it. */
-@custom-variant dark (&:where(.dark, .dark *));
+   override the system preference instead of just following it.
+
+   The second rule matters as much as the first: the --background /
+   --foreground variables below also darken under `prefers-color-scheme:
+   dark` whenever the user hasn't explicitly chosen light. If `dark:`
+   only followed the class, those two would disagree any time the class
+   is missing -- the inline theme script in layout.tsx is what normally
+   sets it, and it silently does nothing when localStorage throws (Safari
+   private mode, storage disabled). The page would then take its dark
+   background and near-white text from the variables while every
+   `dark:bg-*` panel stayed light, i.e. white text on white. Keeping both
+   conditions here means the variant and the variables can never
+   disagree about what "dark" means. */
+@custom-variant dark {
+  &:where(.dark, .dark *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not(.light), :root:not(.light) *) {
+      @slot;
+    }
+  }
+}
 
 :root {
   --background: #ffffff;
@@ -60,6 +81,44 @@ select {
 .leaflet-bar a:last-child,
 .leaflet-popup-content-wrapper {
   border-radius: 1.125rem !important;
+}
+
+/* Area picker markers: a named pill instead of a pin, since which
+   district is which is the whole question being asked. iconSize is [0,0]
+   on the divIcon, so the pill sizes itself to its text and is centred
+   over the true coordinate here. */
+.area-pick-marker {
+  background: transparent;
+  border: none;
+}
+.area-pick-pill {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: block;
+  width: max-content;
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  background: white;
+  color: #171717;
+  font-size: 0.75rem;
+  line-height: 1.1rem;
+  font-weight: 500;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    transform 150ms ease;
+}
+.area-pick-pill:hover {
+  background: rgb(99, 102, 241);
+  color: white;
+  border-color: rgb(99, 102, 241);
+  transform: translate(-50%, -50%) scale(1.06);
 }
 
 /* Google-Maps-style "you are here" dot: solid center + an expanding,

@@ -4,6 +4,7 @@ import { requireUserId } from "@/lib/require-user";
 import { canAccessTrip } from "@/lib/trip-access";
 import { fetchNearbyPlaces, fetchCityAreas } from "@/lib/nearby-places";
 import { geocodeDestination, isBroadDestination } from "@/lib/geocode-destination";
+import { readCache, writeCache } from "@/lib/nearby-cache";
 
 // 3 Overpass mirrors at up to 8s each, plus a Nominatim geocode call,
 // comfortably need more than the platform's 10s default.
@@ -32,6 +33,14 @@ export async function GET(
       { error: "Set a destination on this trip first" },
       { status: 200 },
     );
+  }
+
+  // A fresh cached answer short-circuits everything below -- no geocode,
+  // no Overpass call, no area prompt (the area question was already
+  // settled when this was cached).
+  const cached = readCache(trip);
+  if (cached && !cached.stale) {
+    return NextResponse.json(cached.result);
   }
 
   let lat = trip.destLat;
@@ -71,11 +80,17 @@ export async function GET(
 
   const nearby = await fetchNearbyPlaces(lat, lng);
   if (!nearby) {
+    // Overpass is having a bad day. A stale answer for these same
+    // coordinates beats an error message -- the places haven't moved.
+    if (cached) {
+      return NextResponse.json(cached.result);
+    }
     return NextResponse.json(
       { error: "Nearby lookup is temporarily unavailable — try again shortly" },
       { status: 200 },
     );
   }
 
+  await writeCache(id, nearby);
   return NextResponse.json(nearby);
 }

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { tripSchema, budgetTargetSchema } from "@/lib/validation";
 import { canAccessTrip } from "@/lib/trip-access";
+import { CLEAR_NEARBY_CACHE } from "@/lib/nearby-cache";
 
 export async function PATCH(
   request: Request,
@@ -84,6 +85,7 @@ export async function PATCH(
         destLng: null,
         destAddressType: null,
         destAreaConfirmed: false,
+        ...CLEAR_NEARBY_CACHE,
       }),
     },
   });

@@ -195,7 +195,21 @@ async function tryOne(endpoint: string, query: string): Promise<OverpassElement[
   }
 }
 
+// 429 (rate limited) and 504 (gateway timeout) are what a busy Overpass
+// mirror actually returns, and both clear on their own within a second or
+// two -- so the whole mirror list is walked a second time after a short
+// pause before giving up, rather than failing the request on what is
+// usually a momentary load spike.
+const RETRY_DELAY_MS = 1200;
+
 async function queryOverpass(query: string): Promise<OverpassElement[] | null> {
+  for (const endpoint of CANDIDATE_ENDPOINTS) {
+    const elements = await tryOne(endpoint, query);
+    if (elements) return elements;
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+
   for (const endpoint of CANDIDATE_ENDPOINTS) {
     const elements = await tryOne(endpoint, query);
     if (elements) return elements;

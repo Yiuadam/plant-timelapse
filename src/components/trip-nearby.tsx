@@ -1,6 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+
+// Leaflet touches `window` on import, so the map only loads in the browser.
+const AreaPickerMap = dynamic(() => import("@/components/area-picker-map"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full w-full items-center justify-center text-sm text-black/50 dark:text-white/50">
+      Loading map…
+    </div>
+  ),
+});
 
 type NearbyPlace = {
   id: number;
@@ -287,6 +298,18 @@ export default function TripNearby({
           <p className="text-sm">
             Which part of <span className="font-medium">{areaPrompt.cityLabel}</span> are you
             focusing on? Picking an area gives more precise recommendations.
+          </p>
+          {areaPrompt.areas.length > 0 && (
+            <div className="h-64 overflow-hidden rounded-xl border border-black/10 dark:border-white/20">
+              <AreaPickerMap
+                areas={areaPrompt.areas}
+                onPick={pickArea}
+                disabled={pickingArea}
+              />
+            </div>
+          )}
+          <p className="text-xs text-black/50 dark:text-white/50">
+            Tap an area on the map, or pick from the list.
           </p>
           <div className="flex flex-wrap gap-2">
             {areaPrompt.areas.map((a) => (
