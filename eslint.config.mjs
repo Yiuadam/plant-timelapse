@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // OpenNext/wrangler build output -- generated bundles, not source.
+    // Without these, a local `opennextjs-cloudflare build` leaves behind
+    // artifacts that `npx eslint` then walks into, drowning real
+    // findings in tens of thousands of errors from bundled code.
+    ".open-next/**",
+    ".wrangler/**",
   ]),
 ]);
 
