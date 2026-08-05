@@ -370,8 +370,22 @@ function buildAreaShapeQuery(lat: number, lng: number) {
 function normalizePlaceName(s: string): string {
   return s
     .toLowerCase()
-    .replace(/[市省县区镇乡州]/g, "")
-    .replace(/\b(city|district|county|province|prefecture)\b/gi, "")
+    // Compound administrative suffixes stripped as whole units first --
+    // "自治州" (autonomous prefecture) has to go before the single-char
+    // pass below, because its last character, 州, is ALSO the literal
+    // second character of dozens of real city names with no separate
+    // suffix at all: 广州 Guangzhou, 杭州 Hangzhou, 苏州 Suzhou, 郑州
+    // Zhengzhou, 福州 Fuzhou, 兰州 Lanzhou, 梅州 Meizhou, and more.
+    // Blind-stripping bare 州 collapsed "广州" down to "广" -- a
+    // fragment that then matched "广东" (Guangdong PROVINCE) as a
+    // substring, live-verified: "广州" resolved to Guangdong instead of
+    // Guangzhou itself before this fix.
+    .replace(/自治州|自治区|自治县/g, "")
+    // These, unlike 州, are essentially never the tail of a real 2-char
+    // place name in their own right -- always a genuine administrative
+    // suffix (福田"区", 平远"县"), safe to strip unconditionally.
+    .replace(/[市省县区镇乡]/g, "")
+    .replace(/\b(city|district|county|province|prefecture|autonomous)\b/gi, "")
     .replace(/[\s,，、]+/g, "")
     .trim();
 }
