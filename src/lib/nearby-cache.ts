@@ -67,17 +67,25 @@ function placeKey(kind: string, lat: number, lng: number) {
   return `${kind}:${lat.toFixed(2)},${lng.toFixed(2)}`;
 }
 
+// try/catch rather than a trailing .catch() on the query: if the
+// generated Prisma client predates this model -- a cached node_modules on
+// the build host, a deploy whose `prisma generate` didn't rerun -- then
+// `prisma.placeLookup` is undefined and reading .findUnique throws
+// synchronously, before any promise exists for .catch() to attach to.
+// That turned a cold cache into a 500 on the whole Explore card. The
+// cache is an optimisation; nothing about it should be able to fail the
+// request it was meant to speed up.
 export async function readSharedCache<T>(
   kind: string,
   lat: number,
   lng: number,
 ): Promise<T | null> {
-  const row = await prisma.placeLookup
-    .findUnique({ where: { key: placeKey(kind, lat, lng) } })
-    .catch(() => null);
-  if (!row) return null;
-  if (Date.now() - row.fetchedAt.getTime() > MAX_AGE_MS) return null;
   try {
+    const row = await prisma.placeLookup.findUnique({
+      where: { key: placeKey(kind, lat, lng) },
+    });
+    if (!row) return null;
+    if (Date.now() - row.fetchedAt.getTime() > MAX_AGE_MS) return null;
     return JSON.parse(row.json) as T;
   } catch {
     return null;
@@ -90,15 +98,18 @@ export async function writeSharedCache(
   lng: number,
   value: unknown,
 ) {
-  const key = placeKey(kind, lat, lng);
-  const json = JSON.stringify(value);
-  // A write failure here costs nothing but a slower next lookup, so it
-  // must never take down the request that just produced good data.
-  await prisma.placeLookup
-    .upsert({
+  // Same reasoning as readSharedCache: a write failure here costs a
+  // slower next lookup, and must never take down the request that just
+  // produced good data.
+  try {
+    const key = placeKey(kind, lat, lng);
+    const json = JSON.stringify(value);
+    await prisma.placeLookup.upsert({
       where: { key },
       create: { key, json },
       update: { json, fetchedAt: new Date() },
-    })
-    .catch(() => null);
+    });
+  } catch {
+    // ignored on purpose
+  }
 }
