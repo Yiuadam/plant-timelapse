@@ -379,19 +379,30 @@ function normalizePlaceName(s: string): string {
 // The city-ish ancestor -- i.e. the one whose OWN districts the user
 // means by "which part of <destination>". Matched by NAME against what
 // the user actually typed wherever possible: that's a direct read of
-// intent, and sidesteps admin_level entirely, which varies by country
-// and, within China alone, does not mean what the previous version of
-// this function assumed. Prefecture-level cities (Shenzhen) sit at
-// level 6; their districts (Futian) sit at level 7. The old heuristic
-// picked "the deepest ancestor in [4,7]" as the city -- which is
-// Futian, not Shenzhen, whenever the geocoded point (Shenzhen's civic
-// centre) happens to fall inside that particular district. That's
-// exactly the bug reported live: the picker showed Futian's internal
-// street-level subdivisions instead of Shenzhen's own ten districts.
+// intent, and sidesteps admin_level entirely, which varies by CITY, not
+// just by country -- confirmed against live OSM data for two real
+// Chinese cities with genuinely different hierarchies: Shenzhen (an
+// ordinary prefecture-level city) sits at admin_level 5 with its
+// districts (Futian) at 6, while Beijing (a province-level municipality,
+// with no separate province above it in the boundary hierarchy at all)
+// sits at 4 with its districts also at 6. There is no single number that
+// means "the city" across China, let alone across countries -- the old
+// heuristic's assumption (deepest ancestor in a fixed [4,7] window) was
+// wrong on both counts, and happened to land on Futian instead of
+// Shenzhen whenever the geocoded point (Shenzhen's civic centre) fell
+// inside that particular district. That's exactly the bug reported
+// live: the picker showed Futian's internal street-level subdivisions
+// instead of Shenzhen's own ten districts.
 //
 // Falls back to the shallowest candidate in [4,7] only when no name
-// matches -- shallowest, not deepest, so an unmatched destination still
-// prefers "too broad" (a province, in the worst case) over silently
+// matches. This fallback is known-ambiguous for an ordinary prefecture
+// city (a real province ancestor and the real city can both be inside
+// that window, and shallowest then wrongly prefers the province) --
+// accepted because the fallback should be unreachable in practice: the
+// route only reaches this code with a non-empty destination Nominatim
+// already geocoded successfully, so a name match should always exist.
+// Shallow over deep is still the safer default of the two wrong
+// answers, so an unmatched destination prefers "too broad" over silently
 // repeating the district-mistaken-for-city bug this function exists to
 // avoid.
 async function findContainingCity(
