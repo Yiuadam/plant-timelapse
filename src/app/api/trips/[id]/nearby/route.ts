@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { canAccessTrip } from "@/lib/trip-access";
@@ -13,14 +13,24 @@ import {
   writeCache,
   readSharedCache,
   writeSharedCache,
+  preloadDistrictsNearby,
 } from "@/lib/nearby-cache";
 import type { NearbyResult } from "@/lib/nearby-places";
 import type { AreaShape } from "@/lib/area-shapes";
 
-// 3 Overpass mirrors at up to 8s each, plus a Nominatim geocode call,
-// comfortably need more than the platform's 10s default.
+// Worst case inside this budget: a geocode, an area-shape lookup, and
+// two full passes over the Overpass mirror list at 6s per attempt (see
+// TIMEOUT_MS in nearby-places.ts).
 export const maxDuration = 45;
 
+// The response is a newline-delimited JSON stream rather than a single
+// body: `{type:"progress", value, label}` events as each phase of the
+// pipeline actually completes, then exactly one `{type:"result", data}`.
+// This exists because the client's progress bar previously had nothing
+// real to show -- a single-shot response reports nothing until it's
+// done, so any bar drawn against it is a guess by construction. Every
+// progress event here corresponds to finished work: a geocode that
+// resolved, a mirror attempt that completed, photos that attached.
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -46,93 +56,186 @@ export async function GET(
     );
   }
 
-  // A fresh cached answer short-circuits everything below -- no geocode,
-  // no Overpass call, no area prompt (the area question was already
-  // settled when this was cached).
+  // A fresh cached answer needs no progress reporting at all -- it's
+  // done before the client could draw a first frame.
   const cached = readCache(trip);
   if (cached && !cached.stale) {
     return NextResponse.json(cached.result);
   }
 
-  let lat = trip.destLat;
-  let lng = trip.destLng;
-  let addressType = trip.destAddressType;
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      let closed = false;
+      const send = (event: unknown) => {
+        if (closed) return;
+        controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
+      };
+      const progress = (value: number, label: string) =>
+        send({ type: "progress", value, label });
+      const finish = (data: unknown) => {
+        send({ type: "result", data });
+        closed = true;
+        controller.close();
+      };
 
-  if (lat == null || lng == null) {
-    const geocoded = await geocodeDestination(trip.destination);
-    if (!geocoded) {
-      return NextResponse.json(
-        { error: "Couldn't locate that destination" },
-        { status: 200 },
-      );
-    }
-    lat = geocoded.lat;
-    lng = geocoded.lng;
-    addressType = geocoded.type;
-    await prisma.trip.update({
-      where: { id },
-      data: { destLat: lat, destLng: lng, destAddressType: addressType },
-    });
-  }
+      try {
+        // Hard ceiling for every Overpass attempt in this request,
+        // slightly inside maxDuration so the stream always gets to send
+        // its result (or the stale fallback) before the platform kills
+        // the function mid-response.
+        const deadlineAt = Date.now() + (maxDuration - 5) * 1000;
 
-  if (!trip.destAreaConfirmed && isBroadDestination(addressType)) {
-    // Boundary geometry first, so the picker can draw the city's real
-    // shape. Only administrative relations have an outline to draw, so
-    // this comes back empty for places mapped only as informal nodes --
-    // hence the centroid list below as the fallback.
-    const shapes =
-      (await readSharedCache<AreaShape[]>("shapes", lat, lng)) ??
-      (await fetchCityAreaShapes(lat, lng));
-    if (shapes && shapes.length > 0) {
-      await writeSharedCache("shapes", lat, lng, shapes);
-      return NextResponse.json({
-        needsAreaSelection: true,
-        cityLabel: trip.destination,
-        areas: shapes.map(({ name, lat: aLat, lng: aLng, distanceMeters }) => ({
-          name,
-          lat: aLat,
-          lng: aLng,
-          distanceMeters,
-        })),
-        shapes,
-      });
-    }
+        // The area-lookup phase (finding the containing city, then its
+        // districts) gets its OWN, smaller ceiling, separate from the
+        // overall one. Without this, a slow or very broad query -- a
+        // whole PROVINCE like Yunnan is a much bigger Overpass
+        // computation than one city's districts -- could burn the
+        // entire request budget on the picker convenience, starving the
+        // core "what's nearby" result of the time it needs and turning
+        // it into the "temporarily unavailable" error users actually
+        // notice. Losing the district picker to a slow query is fine;
+        // it falls through to plain results. Losing the plain results
+        // themselves is the failure this exists to prevent.
+        const areaDeadlineAt = Math.min(deadlineAt, Date.now() + 18000);
 
-    const areas = await fetchCityAreas(lat, lng);
-    if (areas && areas.length > 0) {
-      return NextResponse.json({
-        needsAreaSelection: true,
-        cityLabel: trip.destination,
-        areas,
-      });
-    }
-    // No areas found (or the lookup itself failed) -- fall through to
-    // plain nearby results for the broad point rather than leaving the
-    // user stuck with no way to see anything.
-  }
+        let lat = trip.destLat;
+        let lng = trip.destLng;
+        let addressType = trip.destAddressType;
 
-  // Someone else's lookup of this same place counts -- "what is near
-  // these coordinates" is the same answer for every trip and every user.
-  const shared = await readSharedCache<NearbyResult>("nearby", lat, lng);
-  if (shared) {
-    await writeCache(id, shared);
-    return NextResponse.json(shared);
-  }
+        if (lat == null || lng == null) {
+          progress(0.05, "Locating the destination…");
+          const geocoded = await geocodeDestination(trip.destination!);
+          if (!geocoded) {
+            return finish({ error: "Couldn't locate that destination" });
+          }
+          lat = geocoded.lat;
+          lng = geocoded.lng;
+          addressType = geocoded.type;
+          await prisma.trip.update({
+            where: { id },
+            data: { destLat: lat, destLng: lng, destAddressType: addressType },
+          });
+        }
+        progress(0.2, "Destination located");
 
-  const nearby = await fetchNearbyPlaces(lat, lng);
-  if (!nearby) {
-    // Overpass is having a bad day. A stale answer for these same
-    // coordinates beats an error message -- the places haven't moved.
-    if (cached) {
-      return NextResponse.json(cached.result);
-    }
-    return NextResponse.json(
-      { error: "Nearby lookup is temporarily unavailable — try again shortly" },
-      { status: 200 },
-    );
-  }
+        if (!trip.destAreaConfirmed && isBroadDestination(addressType)) {
+          progress(0.25, "Tracing the city's districts…");
+          // The two area lookups are the slowest thing this route does
+          // when Overpass is struggling, so each mirror attempt reports
+          // in: shapes across 0.25..0.6, the centroid fallback across
+          // 0.6..0.9. Without this the bar sat still through both.
+          // "shapes3": shapes2 entries could have been built with the old
+          // numeric-only city heuristic, which picked a district's OWN
+          // subdivisions instead of the city's districts whenever the
+          // point fell inside a district tagged at the same admin_level
+          // this app used to treat as "the city" -- serving one back
+          // would silently undo the name-matching fix below.
+          const shapes =
+            (await readSharedCache<AreaShape[]>("shapes3", lat, lng)) ??
+            (await fetchCityAreaShapes(
+              lat,
+              lng,
+              trip.destination ?? undefined,
+              (f) => progress(0.25 + f * 0.35, "Tracing the city's districts…"),
+              areaDeadlineAt,
+            ));
+          if (shapes && shapes.length > 0) {
+            await writeSharedCache("shapes3", lat, lng, shapes);
+            progress(0.95, "Districts found");
+            // Warms the shared cache for the districts a user is most
+            // likely to tap next. Scheduled for AFTER this response is
+            // sent -- it must never delay showing the picker itself.
+            if (trip.destination) {
+              after(() => preloadDistrictsNearby(shapes, trip.destination!));
+            }
+            return finish({
+              needsAreaSelection: true,
+              cityLabel: trip.destination,
+              areas: shapes.map(
+                ({ name, lat: aLat, lng: aLng, distanceMeters }) => ({
+                  name,
+                  lat: aLat,
+                  lng: aLng,
+                  distanceMeters,
+                }),
+              ),
+              shapes,
+            });
+          }
 
-  await writeCache(id, nearby);
-  await writeSharedCache("nearby", lat, lng, nearby);
-  return NextResponse.json(nearby);
+          const areas = await fetchCityAreas(
+            lat,
+            lng,
+            (f) => progress(0.6 + f * 0.3, "Looking up district names…"),
+            areaDeadlineAt,
+          );
+          if (areas && areas.length > 0) {
+            if (trip.destination) {
+              after(() => preloadDistrictsNearby(areas, trip.destination!));
+            }
+            progress(0.95, "Districts found");
+            return finish({
+              needsAreaSelection: true,
+              cityLabel: trip.destination,
+              areas,
+            });
+          }
+          // No areas found (or the lookup itself failed) -- fall through
+          // to plain nearby results rather than leaving the user stuck.
+        }
+
+        const shared = await readSharedCache<NearbyResult>("nearby", lat, lng);
+        if (shared) {
+          await writeCache(id, shared);
+          return finish(shared);
+        }
+
+        // fetchNearbyPlaces reports its own completion in [0..1] as each
+        // mirror attempt and then the photo pass finishes; mapped onto
+        // the remaining 30%..95% of the overall pipeline.
+        progress(0.3, "Scanning for places nearby…");
+        const nearby = await fetchNearbyPlaces(
+          lat,
+          lng,
+          (f) =>
+            progress(
+              0.3 + f * 0.65,
+              f < 0.7 ? "Scanning for places nearby…" : "Fetching photos…",
+            ),
+          deadlineAt,
+        );
+        if (!nearby) {
+          // Overpass is having a bad day. A stale answer for these same
+          // coordinates beats an error -- the places haven't moved.
+          if (cached) {
+            return finish(cached.result);
+          }
+          return finish({
+            error: "Nearby lookup is temporarily unavailable — try again shortly",
+          });
+        }
+
+        await writeCache(id, nearby);
+        await writeSharedCache("nearby", lat, lng, nearby);
+        finish(nearby);
+      } catch (err) {
+        console.error("nearby route:", err);
+        if (!closed) {
+          finish(
+            cached
+              ? cached.result
+              : { error: "Nearby lookup is temporarily unavailable — try again shortly" },
+          );
+        }
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "application/x-ndjson; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
+  });
 }

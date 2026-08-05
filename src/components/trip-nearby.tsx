@@ -57,42 +57,18 @@ function categoryIcon(category: string) {
   return CATEGORY_ICONS[category] ?? "📍";
 }
 
-const SCAN_MESSAGES = [
-  "Finding what's nearby…",
-  "Scouting the area…",
-  "Checking the map…",
-  "Almost there…",
-];
-
-// There's no real percentage to report for a single lookup, so this
-// approaches a cap over time rather than claiming an exact number --
-// climbs fast at first, then eases off, landing "almost full" the
-// longer the search runs, but never claims 100% until the result
-// actually arrives (loading flips to false and this unmounts).
-const PROGRESS_CAP = 92;
-const PROGRESS_TAU_MS = 1800;
-
-function ScanningIndicator() {
-  const [messageIndex, setMessageIndex] = useState(0);
-  const [progress, setProgress] = useState(0);
-
-  useEffect(() => {
-    const messageInterval = setInterval(() => {
-      setMessageIndex((i) => (i + 1) % SCAN_MESSAGES.length);
-    }, 1600);
-
-    const start = Date.now();
-    const progressInterval = setInterval(() => {
-      const elapsed = Date.now() - start;
-      setProgress(PROGRESS_CAP * (1 - Math.exp(-elapsed / PROGRESS_TAU_MS)));
-    }, 100);
-
-    return () => {
-      clearInterval(messageInterval);
-      clearInterval(progressInterval);
-    };
-  }, []);
-
+// Progress and label both come from the server, which emits an event as
+// each real step of the lookup finishes -- geocode resolved, each
+// Overpass mirror attempt returned, photos attached. Nothing here is
+// driven by a timer, so the bar advances when work advances and sits
+// still when the server is genuinely waiting on a slow mirror.
+function ScanningIndicator({
+  progress,
+  label,
+}: {
+  progress: number;
+  label: string;
+}) {
   return (
     <div className="flex flex-col items-center gap-3 py-6 text-center">
       <div className="relative flex h-16 w-16 items-center justify-center">
@@ -102,11 +78,17 @@ function ScanningIndicator() {
           🧭
         </span>
       </div>
-      <p className="text-sm text-black/50 dark:text-white/50">{SCAN_MESSAGES[messageIndex]}</p>
-      <div className="h-1.5 w-40 overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
+      <p className="text-sm text-black/50 dark:text-white/50">{label}</p>
+      <div
+        className="h-1.5 w-40 overflow-hidden rounded-full bg-black/10 dark:bg-white/10"
+        role="progressbar"
+        aria-valuenow={Math.round(progress * 100)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
         <div
           className="nearby-scan-progress-bar"
-          style={{ width: `${progress}%` }}
+          style={{ width: `${Math.round(progress * 100)}%` }}
           aria-hidden
         />
       </div>
@@ -178,28 +160,81 @@ export default function TripNearby({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(!!destination);
   const [pickingArea, setPickingArea] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [progressLabel, setProgressLabel] = useState("Starting the search…");
 
   // Split so the mount effect can fetch without a synchronous setState
   // call in its body (only the terminal, async-resolved updates below) --
   // the retry button below calls `retry`, which resets state first since
   // it's a real event handler, not an effect.
+  // The endpoint streams newline-delimited JSON: progress events as real
+  // steps finish, then one result. A cache hit skips the stream entirely
+  // and returns a plain JSON body, so both shapes are handled -- if no
+  // progress event ever arrives, the result simply lands immediately.
   const runFetch = useCallback(() => {
     if (!destination) return;
-    fetch(`/api/trips/${tripId}/nearby`)
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.error) {
-          setError(json.error);
-        } else if (json.needsAreaSelection) {
-          setAreaPrompt({
-            cityLabel: json.cityLabel,
-            areas: json.areas,
-            shapes: json.shapes,
-          });
-        } else {
-          setData(json);
+
+    const apply = (json: {
+      error?: string;
+      needsAreaSelection?: boolean;
+      cityLabel?: string;
+      areas?: CityArea[];
+      shapes?: AreaShape[];
+      attractions?: NearbyPlace[];
+      food?: NearbyPlace[];
+    }) => {
+      if (json.error) {
+        setError(json.error);
+      } else if (json.needsAreaSelection) {
+        setAreaPrompt({
+          cityLabel: json.cityLabel ?? "",
+          areas: json.areas ?? [],
+          shapes: json.shapes,
+        });
+      } else {
+        setData({ attractions: json.attractions ?? [], food: json.food ?? [] });
+      }
+    };
+
+    (async () => {
+      const res = await fetch(`/api/trips/${tripId}/nearby`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      if (!res.body || !res.headers.get("content-type")?.includes("ndjson")) {
+        apply(await res.json());
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let sawResult = false;
+
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        // The final chunk may end mid-line, so the trailing fragment is
+        // kept in the buffer until its newline arrives.
+        let newline: number;
+        while ((newline = buffer.indexOf("\n")) !== -1) {
+          const line = buffer.slice(0, newline).trim();
+          buffer = buffer.slice(newline + 1);
+          if (!line) continue;
+          const event = JSON.parse(line);
+          if (event.type === "progress") {
+            setProgress(event.value);
+            setProgressLabel(event.label);
+          } else if (event.type === "result") {
+            sawResult = true;
+            apply(event.data);
+          }
         }
-      })
+      }
+
+      if (!sawResult) throw new Error("stream ended without a result");
+    })()
       .catch(() => setError("Couldn't load nearby places"))
       .finally(() => setLoading(false));
   }, [tripId, destination]);
@@ -212,6 +247,8 @@ export default function TripNearby({
     setLoading(true);
     setError(null);
     setAreaPrompt(null);
+    setProgress(0);
+    setProgressLabel("Starting the search…");
     runFetch();
   }
 
@@ -276,7 +313,9 @@ export default function TripNearby({
         </p>
       )}
 
-      {destination && loading && <ScanningIndicator />}
+      {destination && loading && (
+        <ScanningIndicator progress={progress} label={progressLabel} />
+      )}
 
       {destination && !loading && error && (
         <div className="flex items-center gap-3">

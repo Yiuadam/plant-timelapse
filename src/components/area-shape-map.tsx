@@ -13,72 +13,124 @@ export type AreaShape = {
 };
 
 const VIEW_W = 1000;
-const VIEW_H = 700;
-const PADDING = 24;
-// In viewBox units. The card renders this SVG around 285px wide, so the
-// whole thing is scaled down roughly 3.5x -- a 20-unit label would land
-// at about 6px on screen and be unreadable. This is sized backwards from
-// wanting ~11px of rendered text.
-const LABEL_SIZE = 40;
+const PADDING = 16;
 
-// Web Mercator's y term, so districts keep their real proportions rather
-// than looking vertically squashed.
-//
-// The 180/PI factor is essential, not cosmetic: the log-tangent term is
-// in radians, while x is plotted straight from degrees of longitude.
-// Without converting back, y spans a number ~57x smaller than x for the
-// same ground distance, the shared scale below is set by x, and every
-// shape collapses into a horizontal sliver.
+// The drawn box takes its aspect ratio from the districts themselves, so
+// the city fills it edge to edge instead of floating inside a fixed
+// frame. Clamped so a very elongated city can't render as an unusable
+// sliver or a screen-consuming column.
+const MIN_ASPECT = 0.5; // wide
+const MAX_ASPECT = 1.3; // tall
+
+// Label size is derived per district from how big that district actually
+// renders. A single fixed size made a small district's name wider than
+// the district itself.
+const MIN_LABEL = 26;
+const MAX_LABEL = 54;
+
+// A few scattered districts fill a box with mostly empty space and read
+// as a broken map rather than a city. Below this the shape isn't worth
+// drawing and the chip list alone is the better answer.
+const MIN_SHAPES_TO_DRAW = 3;
+
 function mercatorY(lat: number) {
   const clamped = Math.max(-85, Math.min(85, lat));
   const rad = (clamped * Math.PI) / 180;
+  // The 180/PI factor keeps y in the same units as x (degrees of
+  // longitude). Without it the log-tangent term is radians, ~57x smaller
+  // for the same ground distance, and every shape flattens to a sliver.
   return (Math.log(Math.tan(Math.PI / 4 + rad / 2)) * 180) / Math.PI;
 }
 
-type Projection = { toX: (lng: number) => number; toY: (lat: number) => number };
+type Prepared = {
+  viewH: number;
+  paths: {
+    name: string;
+    d: string;
+    labelX: number;
+    labelY: number;
+    labelSize: number;
+    fits: boolean;
+  }[];
+};
 
-function buildProjection(shapes: AreaShape[]): Projection | null {
-  let minLng = Infinity;
-  let maxLng = -Infinity;
+function prepare(shapes: AreaShape[]): Prepared | null {
+  if (shapes.length < MIN_SHAPES_TO_DRAW) return null;
+
+  let minX = Infinity;
+  let maxX = -Infinity;
   let minY = Infinity;
   let maxY = -Infinity;
-
   for (const s of shapes) {
     for (const ring of s.rings) {
       for (const p of ring) {
-        if (p.lng < minLng) minLng = p.lng;
-        if (p.lng > maxLng) maxLng = p.lng;
         const y = mercatorY(p.lat);
+        if (p.lng < minX) minX = p.lng;
+        if (p.lng > maxX) maxX = p.lng;
         if (y < minY) minY = y;
         if (y > maxY) maxY = y;
       }
     }
   }
-  if (!Number.isFinite(minLng) || !Number.isFinite(minY)) return null;
+  if (!Number.isFinite(minX) || !Number.isFinite(minY)) return null;
 
-  const spanLng = maxLng - minLng || 1e-6;
+  const spanX = maxX - minX || 1e-6;
   const spanY = maxY - minY || 1e-6;
-  // One shared scale for both axes keeps the city's real aspect ratio;
-  // scaling each axis to fill the box independently would stretch it.
-  const scale = Math.min((VIEW_W - PADDING * 2) / spanLng, (VIEW_H - PADDING * 2) / spanY);
-  const offsetX = (VIEW_W - spanLng * scale) / 2;
-  const offsetY = (VIEW_H - spanY * scale) / 2;
+  const aspect = Math.min(MAX_ASPECT, Math.max(MIN_ASPECT, spanY / spanX));
+  const viewH = VIEW_W * aspect;
 
-  return {
-    toX: (lng) => offsetX + (lng - minLng) * scale,
-    // SVG y grows downward, Mercator y grows north, hence the flip.
-    toY: (lat) => VIEW_H - (offsetY + (mercatorY(lat) - minY) * scale),
-  };
-}
+  // One scale for both axes preserves the city's true proportions; the
+  // box was sized from the same ratio, so the fit is tight either way.
+  const scale = Math.min(
+    (VIEW_W - PADDING * 2) / spanX,
+    (viewH - PADDING * 2) / spanY,
+  );
+  const offsetX = (VIEW_W - spanX * scale) / 2;
+  const offsetY = (viewH - spanY * scale) / 2;
+  const toX = (lng: number) => offsetX + (lng - minX) * scale;
+  const toY = (lat: number) => viewH - (offsetY + (mercatorY(lat) - minY) * scale);
 
-function ringToPath(ring: Point[], proj: Projection) {
-  let d = "";
-  for (let i = 0; i < ring.length; i++) {
-    const x = proj.toX(ring[i].lng).toFixed(1);
-    const y = proj.toY(ring[i].lat).toFixed(1);
-    d += (i === 0 ? "M" : "L") + x + " " + y;
-  }
-  return d + "Z";
+  const paths = shapes.map((s) => {
+    let d = "";
+    let bx0 = Infinity;
+    let bx1 = -Infinity;
+    let by0 = Infinity;
+    let by1 = -Infinity;
+    for (const ring of s.rings) {
+      for (let i = 0; i < ring.length; i++) {
+        const x = toX(ring[i].lng);
+        const y = toY(ring[i].lat);
+        if (x < bx0) bx0 = x;
+        if (x > bx1) bx1 = x;
+        if (y < by0) by0 = y;
+        if (y > by1) by1 = y;
+        d += (i === 0 ? "M" : "L") + x.toFixed(1) + " " + y.toFixed(1);
+      }
+      d += "Z";
+    }
+
+    const w = bx1 - bx0;
+    const h = by1 - by0;
+    // Fit the name to the district's width, then clamp.
+    const perGlyph = [...s.name].reduce(
+      (n, ch) => n + (/[　-鿿＀-￯]/.test(ch) ? 1 : 0.55),
+      0,
+    );
+    const ideal = perGlyph > 0 ? (w * 0.85) / perGlyph : MIN_LABEL;
+    const labelSize = Math.min(MAX_LABEL, Math.max(MIN_LABEL, ideal));
+
+    return {
+      name: s.name,
+      d,
+      labelX: toX(s.lng),
+      labelY: toY(s.lat),
+      labelSize,
+      // Only label a district that can actually hold its name.
+      fits: perGlyph * labelSize <= w && labelSize * 1.4 <= h,
+    };
+  });
+
+  return { viewH, paths };
 }
 
 export default function AreaShapeMap({
@@ -91,52 +143,18 @@ export default function AreaShapeMap({
   disabled?: boolean;
 }) {
   const [hovered, setHovered] = useState<string | null>(null);
+  const prepared = useMemo(() => prepare(shapes), [shapes]);
 
-  const proj = useMemo(() => buildProjection(shapes), [shapes]);
-  const paths = useMemo(() => {
-    if (!proj) return [];
-    return shapes.map((s) => {
-      // How much room the district actually occupies on screen decides
-      // whether its name can be shown at all -- a label wider than its
-      // own district spills across neighbours and makes the shape
-      // harder to read, not easier.
-      let minX = Infinity;
-      let maxX = -Infinity;
-      let minY = Infinity;
-      let maxY = -Infinity;
-      for (const ring of s.rings) {
-        for (const p of ring) {
-          const x = proj.toX(p.lng);
-          const y = proj.toY(p.lat);
-          if (x < minX) minX = x;
-          if (x > maxX) maxX = x;
-          if (y < minY) minY = y;
-          if (y > maxY) maxY = y;
-        }
-      }
-      // CJK glyphs are about one em wide, Latin closer to half.
-      const estimatedWidth = [...s.name].reduce(
-        (w, ch) => w + (/[　-鿿＀-￯]/.test(ch) ? LABEL_SIZE : LABEL_SIZE * 0.55),
-        0,
-      );
-      return {
-        name: s.name,
-        d: s.rings.map((r) => ringToPath(r, proj)).join(" "),
-        labelX: proj.toX(s.lng),
-        labelY: proj.toY(s.lat),
-        fits: estimatedWidth <= maxX - minX && LABEL_SIZE * 1.6 <= maxY - minY,
-      };
-    });
-  }, [shapes, proj]);
-
-  if (!proj || paths.length === 0) return null;
+  if (!prepared) return null;
+  const { viewH, paths } = prepared;
 
   return (
     <svg
-      viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-      className="h-full w-full"
+      viewBox={`0 0 ${VIEW_W} ${viewH}`}
+      className="block h-auto w-full"
       role="group"
       aria-label="City districts"
+      data-no-swipe
     >
       {paths.map((p) => {
         const active = hovered === p.name;
@@ -165,7 +183,7 @@ export default function AreaShapeMap({
               className={
                 active
                   ? "fill-indigo-500/70 stroke-indigo-600"
-                  : "fill-indigo-400/20 stroke-indigo-400/70 dark:fill-indigo-300/15 dark:stroke-indigo-300/50"
+                  : "fill-indigo-400/25 stroke-indigo-400/70 dark:fill-indigo-300/20 dark:stroke-indigo-300/50"
               }
               strokeWidth={2}
               strokeLinejoin="round"
@@ -174,9 +192,8 @@ export default function AreaShapeMap({
         );
       })}
 
-      {/* Labels are drawn after every shape so no district's fill can
-          cover another's name, and are click-through so they never
-          block the region underneath. */}
+      {/* Drawn after every shape so no district's fill covers another's
+          name, and click-through so they never block the region below. */}
       {paths
         .filter((p) => p.fits || hovered === p.name)
         .map((p) => (
@@ -186,10 +203,10 @@ export default function AreaShapeMap({
             y={p.labelY}
             textAnchor="middle"
             dominantBaseline="middle"
-            fontSize={LABEL_SIZE}
+            fontSize={p.labelSize}
             className="pointer-events-none fill-black font-medium dark:fill-white"
             stroke="var(--background)"
-            strokeWidth={6}
+            strokeWidth={p.labelSize * 0.14}
             paintOrder="stroke"
           >
             {p.name}

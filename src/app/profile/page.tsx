@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import ProfileForm from "@/components/profile-form";
+import DeleteAccount from "@/components/delete-account";
 import { getT } from "@/lib/i18n/server";
 
 export default async function ProfilePage() {
@@ -27,6 +28,7 @@ export default async function ProfilePage() {
           gender: user.gender ?? "",
         }}
       />
+      <DeleteAccount email={user.email} />
     </div>
   );
 }

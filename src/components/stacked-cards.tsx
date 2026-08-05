@@ -149,9 +149,13 @@ export default function StackedCards({
 
   function handlePointerDown(e: React.PointerEvent) {
     const target = e.target as HTMLElement;
+    // [data-no-swipe] is the general opt-out for interactive content that
+    // isn't a native control: without it a tap inside, say, the district
+    // shape map starts a card drag, the pointer gets captured on the
+    // first move, and the element's own click never fires.
     if (
       target.closest(
-        "input, textarea, select, button, a, label, .leaflet-container",
+        "input, textarea, select, button, a, label, .leaflet-container, [data-no-swipe]",
       )
     )
       return;

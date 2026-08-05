@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import type { NearbyResult } from "@/lib/nearby-places";
+import { fetchNearbyPlaces, type NearbyResult } from "@/lib/nearby-places";
+import { geocodeDestination } from "@/lib/geocode-destination";
 
 // Attractions and restaurants don't move, so a week-old answer is still a
 // good answer. The point isn't freshness -- it's that the free Overpass
@@ -67,17 +68,25 @@ function placeKey(kind: string, lat: number, lng: number) {
   return `${kind}:${lat.toFixed(2)},${lng.toFixed(2)}`;
 }
 
+// try/catch rather than a trailing .catch() on the query: if the
+// generated Prisma client predates this model -- a cached node_modules on
+// the build host, a deploy whose `prisma generate` didn't rerun -- then
+// `prisma.placeLookup` is undefined and reading .findUnique throws
+// synchronously, before any promise exists for .catch() to attach to.
+// That turned a cold cache into a 500 on the whole Explore card. The
+// cache is an optimisation; nothing about it should be able to fail the
+// request it was meant to speed up.
 export async function readSharedCache<T>(
   kind: string,
   lat: number,
   lng: number,
 ): Promise<T | null> {
-  const row = await prisma.placeLookup
-    .findUnique({ where: { key: placeKey(kind, lat, lng) } })
-    .catch(() => null);
-  if (!row) return null;
-  if (Date.now() - row.fetchedAt.getTime() > MAX_AGE_MS) return null;
   try {
+    const row = await prisma.placeLookup.findUnique({
+      where: { key: placeKey(kind, lat, lng) },
+    });
+    if (!row) return null;
+    if (Date.now() - row.fetchedAt.getTime() > MAX_AGE_MS) return null;
     return JSON.parse(row.json) as T;
   } catch {
     return null;
@@ -90,15 +99,68 @@ export async function writeSharedCache(
   lng: number,
   value: unknown,
 ) {
-  const key = placeKey(kind, lat, lng);
-  const json = JSON.stringify(value);
-  // A write failure here costs nothing but a slower next lookup, so it
-  // must never take down the request that just produced good data.
-  await prisma.placeLookup
-    .upsert({
+  // Same reasoning as readSharedCache: a write failure here costs a
+  // slower next lookup, and must never take down the request that just
+  // produced good data.
+  try {
+    const key = placeKey(kind, lat, lng);
+    const json = JSON.stringify(value);
+    await prisma.placeLookup.upsert({
       where: { key },
       create: { key, json },
       update: { json, fetchedAt: new Date() },
-    })
-    .catch(() => null);
+    });
+  } catch {
+    // ignored on purpose
+  }
+}
+
+// How many districts to warm when a picker is shown. Kept small on
+// purpose -- this runs against the same free, shared Overpass mirrors
+// every other lookup depends on, and warming every district in a large
+// city would multiply this app's own load on that infrastructure for a
+// convenience feature. The closest few are also the ones a user is
+// statistically most likely to tap next.
+const PRELOAD_DISTRICT_COUNT = 3;
+
+// Warms the shared "nearby" cache for the districts a user is about to
+// be offered, so tapping one feels instant instead of triggering its
+// own live Overpass round-trip on top of the one that just ran to find
+// the districts themselves. Meant to be called from `after()` in the
+// route handler -- it must run once the picker has already been shown,
+// never delay showing it.
+//
+// Geocodes "<district>, <destination>" for each one, mirroring exactly
+// what the /area route does when a district is actually picked, so the
+// coordinates -- and therefore the cache key -- match. A shape's own
+// ring-centroid was considered instead (already on hand, no extra
+// geocode call) but Nominatim's geocode of the district's NAME can land
+// on a different point than the shape's geometric centre (a
+// district's named centre, e.g. its government seat, isn't always its
+// geometric middle) -- and a mismatched key here would silently warm a
+// cache entry that /area's later lookup would never see.
+export async function preloadDistrictsNearby(
+  districts: { name: string }[],
+  destination: string,
+): Promise<void> {
+  const toPreload = districts.slice(0, PRELOAD_DISTRICT_COUNT);
+  await Promise.all(
+    toPreload.map(async (district) => {
+      try {
+        const geocoded = await geocodeDestination(`${district.name}, ${destination}`);
+        if (!geocoded) return;
+        const already = await readSharedCache<NearbyResult>(
+          "nearby",
+          geocoded.lat,
+          geocoded.lng,
+        );
+        if (already) return;
+        const result = await fetchNearbyPlaces(geocoded.lat, geocoded.lng);
+        if (result) await writeSharedCache("nearby", geocoded.lat, geocoded.lng, result);
+      } catch {
+        // Best-effort warming -- a failure here just means the district
+        // stays cold until someone actually picks it, same as today.
+      }
+    }),
+  );
 }
