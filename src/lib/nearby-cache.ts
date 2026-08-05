@@ -48,3 +48,57 @@ export const CLEAR_NEARBY_CACHE = {
   nearbyJson: null,
   nearbyFetchedAt: null,
 } as const;
+
+// ---------------------------------------------------------------------
+// Shared, coordinate-keyed cache
+//
+// The per-trip cache above only ever helps a trip that has already
+// loaded once. This one is keyed by place rather than by trip, so a
+// brand-new trip to a city anyone has already looked up resolves with no
+// Overpass call at all -- which is what makes a search feel instant the
+// first time a given user runs it.
+//
+// Two decimal places is roughly a kilometre, so independent geocodes of
+// the same city collapse onto the same key. It also caps how many
+// distinct entries a city can ever produce.
+// ---------------------------------------------------------------------
+
+function placeKey(kind: string, lat: number, lng: number) {
+  return `${kind}:${lat.toFixed(2)},${lng.toFixed(2)}`;
+}
+
+export async function readSharedCache<T>(
+  kind: string,
+  lat: number,
+  lng: number,
+): Promise<T | null> {
+  const row = await prisma.placeLookup
+    .findUnique({ where: { key: placeKey(kind, lat, lng) } })
+    .catch(() => null);
+  if (!row) return null;
+  if (Date.now() - row.fetchedAt.getTime() > MAX_AGE_MS) return null;
+  try {
+    return JSON.parse(row.json) as T;
+  } catch {
+    return null;
+  }
+}
+
+export async function writeSharedCache(
+  kind: string,
+  lat: number,
+  lng: number,
+  value: unknown,
+) {
+  const key = placeKey(kind, lat, lng);
+  const json = JSON.stringify(value);
+  // A write failure here costs nothing but a slower next lookup, so it
+  // must never take down the request that just produced good data.
+  await prisma.placeLookup
+    .upsert({
+      where: { key },
+      create: { key, json },
+      update: { json, fetchedAt: new Date() },
+    })
+    .catch(() => null);
+}

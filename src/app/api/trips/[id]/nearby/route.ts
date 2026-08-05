@@ -8,7 +8,14 @@ import {
   fetchCityAreaShapes,
 } from "@/lib/nearby-places";
 import { geocodeDestination, isBroadDestination } from "@/lib/geocode-destination";
-import { readCache, writeCache } from "@/lib/nearby-cache";
+import {
+  readCache,
+  writeCache,
+  readSharedCache,
+  writeSharedCache,
+} from "@/lib/nearby-cache";
+import type { NearbyResult } from "@/lib/nearby-places";
+import type { AreaShape } from "@/lib/area-shapes";
 
 // 3 Overpass mirrors at up to 8s each, plus a Nominatim geocode call,
 // comfortably need more than the platform's 10s default.
@@ -73,8 +80,11 @@ export async function GET(
     // shape. Only administrative relations have an outline to draw, so
     // this comes back empty for places mapped only as informal nodes --
     // hence the centroid list below as the fallback.
-    const shapes = await fetchCityAreaShapes(lat, lng);
+    const shapes =
+      (await readSharedCache<AreaShape[]>("shapes", lat, lng)) ??
+      (await fetchCityAreaShapes(lat, lng));
     if (shapes && shapes.length > 0) {
+      await writeSharedCache("shapes", lat, lng, shapes);
       return NextResponse.json({
         needsAreaSelection: true,
         cityLabel: trip.destination,
@@ -101,6 +111,14 @@ export async function GET(
     // user stuck with no way to see anything.
   }
 
+  // Someone else's lookup of this same place counts -- "what is near
+  // these coordinates" is the same answer for every trip and every user.
+  const shared = await readSharedCache<NearbyResult>("nearby", lat, lng);
+  if (shared) {
+    await writeCache(id, shared);
+    return NextResponse.json(shared);
+  }
+
   const nearby = await fetchNearbyPlaces(lat, lng);
   if (!nearby) {
     // Overpass is having a bad day. A stale answer for these same
@@ -115,5 +133,6 @@ export async function GET(
   }
 
   await writeCache(id, nearby);
+  await writeSharedCache("nearby", lat, lng, nearby);
   return NextResponse.json(nearby);
 }
