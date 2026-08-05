@@ -33,6 +33,43 @@ const MAX_LABEL = 54;
 // drawing and the chip list alone is the better answer.
 const MIN_SHAPES_TO_DRAW = 3;
 
+// Some districts are real but detached exclaves tens of km from the
+// city's main cluster (e.g. Shenzhen's 深汕特别合作区, ~130km from its
+// core districts). Including one in the bounding box stretches the whole
+// map so hard the real cluster gets squeezed into a corner. A district is
+// treated as a map outlier -- excluded from what's DRAWN, never from the
+// data itself -- when it sits far past both the typical spread of its
+// siblings and an absolute floor, so a naturally large-but-contiguous
+// city never gets falsely trimmed.
+const OUTLIER_DISTANCE_RATIO = 3;
+const OUTLIER_ABS_FLOOR_KM = 60;
+const EARTH_RADIUS_KM = 6371;
+
+function median(nums: number[]): number {
+  const sorted = [...nums].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function approxDistanceKm(aLat: number, aLng: number, bLat: number, bLng: number) {
+  const meanLatRad = ((aLat + bLat) / 2) * (Math.PI / 180);
+  const dLat = (bLat - aLat) * (Math.PI / 180);
+  const dLng = (bLng - aLng) * (Math.PI / 180) * Math.cos(meanLatRad);
+  return EARTH_RADIUS_KM * Math.sqrt(dLat * dLat + dLng * dLng);
+}
+
+// Median (not mean) center, so a single distant exclave can't drag the
+// reference point toward itself before distances are even measured.
+function excludeMapOutliers(shapes: AreaShape[]): AreaShape[] {
+  if (shapes.length <= MIN_SHAPES_TO_DRAW) return shapes;
+  const centerLat = median(shapes.map((s) => s.lat));
+  const centerLng = median(shapes.map((s) => s.lng));
+  const distances = shapes.map((s) => approxDistanceKm(centerLat, centerLng, s.lat, s.lng));
+  const threshold = Math.max(median(distances) * OUTLIER_DISTANCE_RATIO, OUTLIER_ABS_FLOOR_KM);
+  const kept = shapes.filter((_, i) => distances[i] <= threshold);
+  return kept.length >= MIN_SHAPES_TO_DRAW ? kept : shapes;
+}
+
 function mercatorY(lat: number) {
   const clamped = Math.max(-85, Math.min(85, lat));
   const rad = (clamped * Math.PI) / 180;
@@ -54,8 +91,9 @@ type Prepared = {
   }[];
 };
 
-function prepare(shapes: AreaShape[]): Prepared | null {
-  if (shapes.length < MIN_SHAPES_TO_DRAW) return null;
+function prepare(allShapes: AreaShape[]): Prepared | null {
+  if (allShapes.length < MIN_SHAPES_TO_DRAW) return null;
+  const shapes = excludeMapOutliers(allShapes);
 
   let minX = Infinity;
   let maxX = -Infinity;
@@ -122,15 +160,44 @@ function prepare(shapes: AreaShape[]): Prepared | null {
     return {
       name: s.name,
       d,
+      area: w * h,
       labelX: toX(s.lng),
       labelY: toY(s.lat),
       labelSize,
-      // Only label a district that can actually hold its name.
+      labelHalfW: (perGlyph * labelSize) / 2,
+      labelHalfH: labelSize * 0.65,
+      // Only label a district that can actually hold its own name.
       fits: perGlyph * labelSize <= w && labelSize * 1.4 <= h,
     };
   });
 
-  return { viewH, paths };
+  // A label that fits its own district can still collide with a
+  // neighbour's -- the previous check only looked inward. Place labels
+  // largest-district-first, greedily dropping any candidate whose box
+  // overlaps one already placed, so small closely-packed districts lose
+  // their label before a bigger, more prominent one does.
+  const placed: { x: number; y: number; halfW: number; halfH: number }[] = [];
+  const order = paths
+    .map((_, i) => i)
+    .sort((a, b) => paths[b].area - paths[a].area);
+  const finalFits: boolean[] = new Array(paths.length).fill(false);
+  for (const i of order) {
+    const p = paths[i];
+    if (!p.fits) continue;
+    const overlaps = placed.some(
+      (o) =>
+        Math.abs(p.labelX - o.x) < p.labelHalfW + o.halfW &&
+        Math.abs(p.labelY - o.y) < p.labelHalfH + o.halfH,
+    );
+    if (overlaps) continue;
+    placed.push({ x: p.labelX, y: p.labelY, halfW: p.labelHalfW, halfH: p.labelHalfH });
+    finalFits[i] = true;
+  }
+
+  return {
+    viewH,
+    paths: paths.map((p, i) => ({ ...p, fits: finalFits[i] })),
+  };
 }
 
 export default function AreaShapeMap({
