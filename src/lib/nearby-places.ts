@@ -481,6 +481,34 @@ function ringCentroid(ring: Point[]) {
   return { lat: sumLat / ring.length, lng: sumLng / ring.length };
 }
 
+// A single relation's own member ways can include a way that plainly
+// doesn't belong to it -- live-verified on Shenzhen's real 龙岗区
+// (Longgang) relation, which OSM currently lists with a second "outer"
+// member that runs ~100km south into open sea as a long thin strip.
+// That shape defeats a centroid-distance check: most of its points
+// cluster near the real district, so its centroid lands deceptively
+// close even though its extent stretches far past anything a city
+// district's own geometry should span. Comparing each ring's own
+// bounding-box size against the main ring's catches it regardless of
+// where its centroid falls, while leaving genuine small multi-part
+// shapes (a real nearby island, similarly sized split geography) alone.
+const RING_OUTLIER_SIZE_RATIO = 1.5;
+const RING_OUTLIER_ABS_FLOOR_KM = 25;
+
+function ringBboxDiagonalKm(ring: Point[]) {
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  let minLng = Infinity;
+  let maxLng = -Infinity;
+  for (const p of ring) {
+    if (p.lat < minLat) minLat = p.lat;
+    if (p.lat > maxLat) maxLat = p.lat;
+    if (p.lng < minLng) minLng = p.lng;
+    if (p.lng > maxLng) maxLng = p.lng;
+  }
+  return haversineMeters(minLat, minLng, maxLat, maxLng) / 1000;
+}
+
 // Turns raw boundary relations into drawable AreaShapes, deduped by name.
 // `adminLevel` is carried through so the caller can keep one consistent
 // administrative tier -- mixing levels draws a district and its own
@@ -498,15 +526,22 @@ function elementsToShapes(
     const adminLevel = Number.parseInt(el.tags?.admin_level ?? "", 10);
     if (!Number.isFinite(adminLevel)) continue;
 
-    const rings = assembleRings(el.members)
+    const assembled = assembleRings(el.members)
       .map((ring) => simplifyToBudget(ring, SHAPE_MAX_POINTS_PER_RING))
       .filter((ring) => ring.length >= 4);
-    if (rings.length === 0) continue;
+    if (assembled.length === 0) continue;
 
     // Label and distance come from the largest ring's centroid, which is
     // a better anchor for a district than the first fragment's corner.
-    const largest = rings.reduce((a, b) => (b.length > a.length ? b : a));
+    const largest = assembled.reduce((a, b) => (b.length > a.length ? b : a));
     const centre = ringCentroid(largest);
+
+    const mainDiagonalKm = ringBboxDiagonalKm(largest);
+    const ringSizeLimitKm = Math.max(mainDiagonalKm * RING_OUTLIER_SIZE_RATIO, RING_OUTLIER_ABS_FLOOR_KM);
+    const rings =
+      assembled.length === 1
+        ? assembled
+        : assembled.filter((ring) => ring === largest || ringBboxDiagonalKm(ring) <= ringSizeLimitKm);
 
     const existing = byName.get(name);
     const totalPoints = rings.reduce((n, r) => n + r.length, 0);
