@@ -509,6 +509,28 @@ function ringBboxDiagonalKm(ring: Point[]) {
   return haversineMeters(minLat, minLng, maxLat, maxLng) / 1000;
 }
 
+function ringPerimeterKm(ring: Point[]) {
+  let sum = 0;
+  for (let i = 1; i < ring.length; i++) {
+    sum += haversineMeters(ring[i - 1].lat, ring[i - 1].lng, ring[i].lat, ring[i].lng) / 1000;
+  }
+  return sum;
+}
+
+// Dropping the far-flung outlier ring above doesn't catch every upstream
+// defect -- live-verified on Shenzhen's real 龙岗区 (Longgang) relation,
+// whose remaining district-scale ring is a genuine simple polygon (no
+// self-crossing edges) but is stitched from a jumble of short, imprecise
+// OSM ways in one section, so it zigzags back across itself repeatedly
+// rather than tracing a coherent border. There's no authoritative
+// alternative source this app can redraw it from, so a shape whose
+// perimeter is implausible for its own size is dropped -- keeping the
+// district name/position (still chip-selectable) but not the outline.
+// Threshold set from real comparisons: three normal Shenzhen districts
+// measured 2.4-2.6x their bounding-box diagonal; Longgang's damaged ring
+// measured 3.96x.
+const PERIMETER_TO_DIAGONAL_LIMIT = 3.5;
+
 // Turns raw boundary relations into drawable AreaShapes, deduped by name.
 // `adminLevel` is carried through so the caller can keep one consistent
 // administrative tier -- mixing levels draws a district and its own
@@ -538,10 +560,14 @@ function elementsToShapes(
 
     const mainDiagonalKm = ringBboxDiagonalKm(largest);
     const ringSizeLimitKm = Math.max(mainDiagonalKm * RING_OUTLIER_SIZE_RATIO, RING_OUTLIER_ABS_FLOOR_KM);
-    const rings =
+    const sizeFiltered =
       assembled.length === 1
         ? assembled
         : assembled.filter((ring) => ring === largest || ringBboxDiagonalKm(ring) <= ringSizeLimitKm);
+
+    const mainPerimeterKm = ringPerimeterKm(largest);
+    const rings =
+      mainDiagonalKm > 0 && mainPerimeterKm / mainDiagonalKm > PERIMETER_TO_DIAGONAL_LIMIT ? [] : sizeFiltered;
 
     const existing = byName.get(name);
     const totalPoints = rings.reduce((n, r) => n + r.length, 0);

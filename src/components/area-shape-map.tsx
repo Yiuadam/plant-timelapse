@@ -92,8 +92,15 @@ type Prepared = {
 };
 
 function prepare(allShapes: AreaShape[]): Prepared | null {
-  if (allShapes.length < MIN_SHAPES_TO_DRAW) return null;
-  const shapes = excludeMapOutliers(allShapes);
+  // A shape can carry no rings at all -- the server drops geometry it
+  // can't trust (e.g. a boundary relation stitched from OSM data too
+  // jagged to draw) while still keeping the district itself selectable
+  // via the chip list below the map. Filtered before the draw-worthiness
+  // check below so a batch that's mostly geometry-less districts falls
+  // back to the chip list instead of drawing a sparse, half-empty map.
+  const drawable = allShapes.filter((s) => s.rings.length > 0);
+  if (drawable.length < MIN_SHAPES_TO_DRAW) return null;
+  const shapes = excludeMapOutliers(drawable);
 
   let minX = Infinity;
   let maxX = -Infinity;

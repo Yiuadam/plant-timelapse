@@ -125,15 +125,15 @@ export async function GET(
           // when Overpass is struggling, so each mirror attempt reports
           // in: shapes across 0.25..0.6, the centroid fallback across
           // 0.6..0.9. Without this the bar sat still through both.
-          // "shapes4": shapes3 entries could have been built before a
-          // single relation's own rogue member ring was filtered out --
+          // "shapes5": shapes4 entries could have been built before a
+          // shape's own ring was checked for perimeter/diagonal quality --
           // live-verified on Shenzhen's real 龙岗区 (Longgang) relation,
-          // which OSM currently lists with a stray "outer" way ~100km
-          // south in open sea, stretching the shape's own bounding box.
-          // Serving one of those back would keep shipping the broken
-          // geometry even after the fix landed.
+          // whose district-scale ring is a genuine simple polygon but
+          // zigzags across itself from a jumble of short, imprecise OSM
+          // ways in one section. Serving a shapes4 entry back would keep
+          // shipping that jagged outline even after the fix landed.
           const shapes =
-            (await readSharedCache<AreaShape[]>("shapes4", lat, lng)) ??
+            (await readSharedCache<AreaShape[]>("shapes5", lat, lng)) ??
             (await fetchCityAreaShapes(
               lat,
               lng,
@@ -142,7 +142,7 @@ export async function GET(
               areaDeadlineAt,
             ));
           if (shapes && shapes.length > 0) {
-            await writeSharedCache("shapes4", lat, lng, shapes);
+            await writeSharedCache("shapes5", lat, lng, shapes);
             progress(0.95, "Districts found");
             // Warms the shared cache for the districts a user is most
             // likely to tap next. Scheduled for AFTER this response is
