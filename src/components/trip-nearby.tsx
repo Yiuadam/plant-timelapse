@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import AreaShapeMap, { type AreaShape } from "@/components/area-shape-map";
 
 type NearbyPlace = {
   id: number;
@@ -17,10 +16,7 @@ type NearbyResult = { attractions: NearbyPlace[]; food: NearbyPlace[] };
 
 type CityArea = { name: string; lat: number; lng: number; distanceMeters: number };
 
-// `shapes` is only present when the city's districts are mapped as
-// administrative boundaries with real geometry; otherwise the chip list
-// built from `areas` is all there is to show.
-type AreaPrompt = { cityLabel: string; areas: CityArea[]; shapes?: AreaShape[] };
+type AreaPrompt = { cityLabel: string; areas: CityArea[] };
 
 function formatDistance(meters: number) {
   if (meters < 1000) return `${meters} m`;
@@ -179,7 +175,6 @@ export default function TripNearby({
       needsAreaSelection?: boolean;
       cityLabel?: string;
       areas?: CityArea[];
-      shapes?: AreaShape[];
       attractions?: NearbyPlace[];
       food?: NearbyPlace[];
     }) => {
@@ -189,7 +184,6 @@ export default function TripNearby({
         setAreaPrompt({
           cityLabel: json.cityLabel ?? "",
           areas: json.areas ?? [],
-          shapes: json.shapes,
         });
       } else {
         setData({ attractions: json.attractions ?? [], food: json.food ?? [] });
@@ -335,20 +329,6 @@ export default function TripNearby({
             Which part of <span className="font-medium">{areaPrompt.cityLabel}</span> are you
             focusing on? Picking an area gives more precise recommendations.
           </p>
-          {areaPrompt.shapes && areaPrompt.shapes.length > 0 && (
-            <>
-              <div className="overflow-hidden rounded-xl border border-black/10 dark:border-white/20">
-                <AreaShapeMap
-                  shapes={areaPrompt.shapes}
-                  onPick={pickArea}
-                  disabled={pickingArea}
-                />
-              </div>
-              <p className="text-xs text-black/50 dark:text-white/50">
-                Tap a district on the shape, or pick from the list.
-              </p>
-            </>
-          )}
           <div className="flex flex-wrap gap-2">
             {areaPrompt.areas.map((a) => (
               <button

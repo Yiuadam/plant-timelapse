@@ -15,8 +15,7 @@ import {
   writeSharedCache,
   preloadDistrictsNearby,
 } from "@/lib/nearby-cache";
-import type { NearbyResult } from "@/lib/nearby-places";
-import type { AreaShape } from "@/lib/area-shapes";
+import type { NearbyResult, CityArea } from "@/lib/nearby-places";
 
 // Worst case inside this budget: a geocode, an area-shape lookup, and
 // two full passes over the Overpass mirror list at 6s per attempt (see
@@ -125,43 +124,44 @@ export async function GET(
           // when Overpass is struggling, so each mirror attempt reports
           // in: shapes across 0.25..0.6, the centroid fallback across
           // 0.6..0.9. Without this the bar sat still through both.
-          // "shapes5": shapes4 entries could have been built before a
-          // shape's own ring was checked for perimeter/diagonal quality --
-          // live-verified on Shenzhen's real 龙岗区 (Longgang) relation,
-          // whose district-scale ring is a genuine simple polygon but
-          // zigzags across itself from a jumble of short, imprecise OSM
-          // ways in one section. Serving a shapes4 entry back would keep
-          // shipping that jagged outline even after the fix landed.
-          const shapes =
-            (await readSharedCache<AreaShape[]>("shapes5", lat, lng)) ??
-            (await fetchCityAreaShapes(
-              lat,
-              lng,
-              trip.destination ?? undefined,
-              (f) => progress(0.25 + f * 0.35, "Tracing the city's districts…"),
-              areaDeadlineAt,
-            ));
-          if (shapes && shapes.length > 0) {
-            await writeSharedCache("shapes5", lat, lng, shapes);
+          // The drawn shape map was removed (upstream OSM geometry proved
+          // untrustworthy for some real districts, e.g. Shenzhen's
+          // 龙岗区), but the containment-based lookup stays as the chip
+          // list's source of district names -- unlike the radius-based
+          // fetchCityAreas fallback below, it can't bleed a neighbouring
+          // jurisdiction's districts in (the Yuen Long/Hong Kong bug).
+          // Geometry never reaches the client anymore, so the shared
+          // cache stores only the slim name/position form ("areas1" -- a
+          // fresh namespace; older shapes* entries carried full rings).
+          const cityDistricts =
+            (await readSharedCache<CityArea[]>("areas1", lat, lng)) ??
+            (
+              await fetchCityAreaShapes(
+                lat,
+                lng,
+                trip.destination ?? undefined,
+                (f) => progress(0.25 + f * 0.35, "Tracing the city's districts…"),
+                areaDeadlineAt,
+              )
+            )?.map(({ name, lat: aLat, lng: aLng, distanceMeters }) => ({
+              name,
+              lat: aLat,
+              lng: aLng,
+              distanceMeters,
+            }));
+          if (cityDistricts && cityDistricts.length > 0) {
+            await writeSharedCache("areas1", lat, lng, cityDistricts);
             progress(0.95, "Districts found");
             // Warms the shared cache for the districts a user is most
             // likely to tap next. Scheduled for AFTER this response is
             // sent -- it must never delay showing the picker itself.
             if (trip.destination) {
-              after(() => preloadDistrictsNearby(shapes, trip.destination!));
+              after(() => preloadDistrictsNearby(cityDistricts, trip.destination!));
             }
             return finish({
               needsAreaSelection: true,
               cityLabel: trip.destination,
-              areas: shapes.map(
-                ({ name, lat: aLat, lng: aLng, distanceMeters }) => ({
-                  name,
-                  lat: aLat,
-                  lng: aLng,
-                  distanceMeters,
-                }),
-              ),
-              shapes,
+              areas: cityDistricts,
             });
           }
 
